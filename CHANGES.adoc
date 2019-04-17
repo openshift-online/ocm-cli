@@ -1,0 +1,37 @@
+= Changes
+
+This document describes the relevant changes between releases of the
+_UHC_ command line tool.
+
+== 0.1.7 Apr 9 2019
+
+- Send output to `stderr` only if the response HTTP code is greater than 400.
+
+== 0.1.6 Mar 27 2019
+
+- Update to SDK 0.1.3.
+
+== 0.1.5 Mar 27 2019
+
+- Don't pass empty tokens to connection constructor.
+
+== 0.1.4 Mar 24 2019
+
+- Fix printing of tokens.
+- Don't reorder JSON output if `jq` is available.
+
+== 0.1.3 Mar 24 2019
+
+- Fix check of token expiration.
+
+== 0.1.2 Mar 24 2019
+
+- Add support for login with token.
+
+== 0.1.1 Mar 14 2019
+
+- Don't split the values of the `--parameter` command line option at commas.
+
+== 0.1.0 Jan 24 2019
+
+- Moved from the `api-client` project into its own `uhc-cli` project.
