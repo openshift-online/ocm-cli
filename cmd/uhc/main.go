@@ -25,14 +25,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"gitlab.cee.redhat.com/service/uhc-cli/cmd/uhc/delete"
-	"gitlab.cee.redhat.com/service/uhc-cli/cmd/uhc/get"
-	"gitlab.cee.redhat.com/service/uhc-cli/cmd/uhc/login"
-	"gitlab.cee.redhat.com/service/uhc-cli/cmd/uhc/logout"
-	"gitlab.cee.redhat.com/service/uhc-cli/cmd/uhc/patch"
-	"gitlab.cee.redhat.com/service/uhc-cli/cmd/uhc/post"
-	"gitlab.cee.redhat.com/service/uhc-cli/cmd/uhc/token"
-	"gitlab.cee.redhat.com/service/uhc-cli/cmd/uhc/version"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/delete"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/get"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/login"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/logout"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/patch"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/post"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/token"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/version"
 )
 
 var root = &cobra.Command{

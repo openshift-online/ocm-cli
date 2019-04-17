@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.cee.redhat.com/service/uhc-cli/pkg/config"
+	"github.com/openshift-online/uhc-cli/pkg/config"
 )
 
 var args struct {

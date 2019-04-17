@@ -24,7 +24,7 @@ export PATH="${PATH}:${GOPATH}/bin"
 
 # Create the project directory inside the Go path and copy all the files of
 # the project:
-PROJECT="${GOPATH}/src/gitlab.cee.redhat.com/service/uhc-cli"
+PROJECT="${GOPATH}/src/github.com/openshift-online/uhc-cli"
 mkdir -p "${PROJECT}"
 rsync -ap \
   --exclude=.gopath \

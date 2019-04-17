@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 	"github.com/spf13/cobra"
-	"gitlab.cee.redhat.com/service/uhc-sdk/pkg/client"
 
-	"gitlab.cee.redhat.com/service/uhc-cli/pkg/config"
-	"gitlab.cee.redhat.com/service/uhc-cli/pkg/util"
+	"github.com/openshift-online/uhc-cli/pkg/config"
+	"github.com/openshift-online/uhc-cli/pkg/util"
 )
 
 var args struct {

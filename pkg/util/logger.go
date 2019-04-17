@@ -19,7 +19,7 @@ package util
 import (
 	"github.com/golang/glog"
 
-	"gitlab.cee.redhat.com/service/uhc-sdk/pkg/client"
+	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 )
 
 // NewLogger creates a new logger with the debug level enabled according to the given value.
