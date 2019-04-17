@@ -26,6 +26,17 @@
   version = "v1.0"
 
 [[projects]]
+  digest = "1:bf36b3cd1c92da7363c1f3fca9d1c0fd6eb032c0ae5b32522ec8900000a94417"
+  name = "github.com/openshift-online/uhc-sdk-go"
+  packages = [
+    "pkg/client",
+    "pkg/client/internal",
+  ]
+  pruneopts = "UT"
+  revision = "bcd7eb34e17a374a442d43667f8a3747d92c0a05"
+  version = "v0.1.5"
+
+[[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
   name = "github.com/spf13/cobra"
   packages = ["."]
@@ -41,26 +52,15 @@
   revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
   version = "v1.0.3"
 
-[[projects]]
-  digest = "1:9bc502829c84045bf35a7530cf1925f7fb980926e06eed7a7d1aa2093a7c1f1a"
-  name = "gitlab.cee.redhat.com/service/uhc-sdk"
-  packages = [
-    "pkg/client",
-    "pkg/client/internal",
-  ]
-  pruneopts = "UT"
-  revision = "24d05d169ba6e7b419ff35da4159144773337c2f"
-  version = "v0.1.3"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/dgrijalva/jwt-go",
     "github.com/golang/glog",
+    "github.com/openshift-online/uhc-sdk-go/pkg/client",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
-    "gitlab.cee.redhat.com/service/uhc-sdk/pkg/client",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -3,8 +3,8 @@
   unused-packages = true
 
 [[constraint]]
-  name = "gitlab.cee.redhat.com/service/uhc-sdk"
-  version = "0.1.3"
+  name = "github.com/openshift-online/uhc-sdk-go"
+  version = "0.1.5"
 
 [[constraint]]
   name = "github.com/spf13/pflag"

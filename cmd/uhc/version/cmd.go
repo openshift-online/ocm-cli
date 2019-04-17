@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.cee.redhat.com/service/uhc-cli/pkg/info"
+	"github.com/openshift-online/uhc-cli/pkg/info"
 )
 
 var Cmd = &cobra.Command{
