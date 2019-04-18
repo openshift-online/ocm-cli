@@ -1,7 +1,13 @@
 = Changes
 
 This document describes the relevant changes between releases of the
-_UHC_ command line tool.
+`uhc` command line tool.
+
+== 0.1.8 Apr 18 2019
+
+- Update to use the new package names of the SDK and the CLI.
+
+- Build static binary.
 
 == 0.1.7 Apr 9 2019
 
