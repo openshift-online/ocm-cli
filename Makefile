@@ -21,6 +21,7 @@
 
 cmds: vendor
 	for cmd in $$(ls cmd); do \
+		CGO_ENABLED=0 \
 		go build -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
 	done
 
