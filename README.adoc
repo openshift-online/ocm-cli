@@ -109,6 +109,45 @@ the following command:
 $ uhc get /api/clusters_mgmt/v1/clusters --parameter search="name like 'my%'"
 ....
 
+The `--parameter` option is used to specify query parameters. It is most useful
+combined with the `get` command, but it can be also used with any other command.
+For detailed information about the query parameters supported by each resource
+see the https://api.openshift.com[reference documentation].
+
+The `search` query parameter is specially useful to retrieve objects from
+collections that support searching. The syntax of this parameter is similar to
+the syntax of the `where` clause of an SQL statement, but using the names of the
+attributes of the object instead of the names of the columns of a table. For
+example, in order to retrieve the clusters with a name starting with `my` and
+created in a DNS domain ending with `example.com` the complete command can be
+the following:
+
+....
+$ uhc get /api/clusters_mgmt/v1/clusters \
+--parameter search="name like 'my%' and dns.base_domain like '%.example.com'"
+....
+
+To find the AWS regions in the US:
+
+....
+$ uhc get /api/clusters_mgmt/v1/cloud_providers/aws/regions \
+--parameter search="name like 'US %'"
+....
+
+To find the clusters created after March 1st 2019:
+
+....
+$ uhc get /api/clusters_mgmt/v1/clusters \
+--parameter search="creation_timestamp >= '2019-03-01'"
+....
+
+To find the clusters that are either ready or installing:
+
+....
+$ uhc get /api/clusters_mgmt/v1/clusters \
+--parameter search="state in ('ready', 'installing')"
+....
+
 The result of that will be a JSON document containing the description of those
 clusters, for example:
 
@@ -135,6 +174,7 @@ clusters, for example:
     },
     ...
   ]
+}
 ----
 
 As the server will always return JSON documents, so it is very convenient to use
