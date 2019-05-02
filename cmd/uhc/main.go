@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/openshift-online/uhc-cli/cmd/uhc/cluster"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/delete"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/get"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/login"
@@ -61,6 +62,7 @@ func init() {
 	root.AddCommand(post.Cmd)
 	root.AddCommand(token.Cmd)
 	root.AddCommand(version.Cmd)
+	root.AddCommand(cluster.Cmd)
 }
 
 func main() {

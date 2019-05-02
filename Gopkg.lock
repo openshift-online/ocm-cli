@@ -26,15 +26,21 @@
   version = "v1.0"
 
 [[projects]]
-  digest = "1:bf36b3cd1c92da7363c1f3fca9d1c0fd6eb032c0ae5b32522ec8900000a94417"
+  digest = "1:29b1991538ec62371b388c2371da2816591f667332f48931e8f648daa3606a56"
   name = "github.com/openshift-online/uhc-sdk-go"
   packages = [
     "pkg/client",
+    "pkg/client/accountsmgmt",
+    "pkg/client/accountsmgmt/v1",
+    "pkg/client/clustersmgmt",
+    "pkg/client/clustersmgmt/v1",
+    "pkg/client/errors",
+    "pkg/client/helpers",
     "pkg/client/internal",
   ]
   pruneopts = "UT"
-  revision = "bcd7eb34e17a374a442d43667f8a3747d92c0a05"
-  version = "v0.1.5"
+  revision = "9d1a1d3c76bae5025551e1bae9943cc65ee8c0ce"
+  version = "v0.1.7"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
@@ -59,6 +65,7 @@
     "github.com/dgrijalva/jwt-go",
     "github.com/golang/glog",
     "github.com/openshift-online/uhc-sdk-go/pkg/client",
+    "github.com/openshift-online/uhc-sdk-go/pkg/client/clustersmgmt/v1",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
   ]
