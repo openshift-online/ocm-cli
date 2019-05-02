@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `uhc` command line tool.
 
+== 0.1.9 May 2 2019
+
+- Added the `cluster` command.
+
 == 0.1.8 Apr 18 2019
 
 - Update to use the new package names of the SDK and the CLI.
