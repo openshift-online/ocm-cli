@@ -3,6 +3,11 @@
 This document describes the relevant changes between releases of the
 `uhc` command line tool.
 
+== 0.1.10 May 3 2019
+
+- Adapt to changes in the API and SDK that moved cluster basic metrics to a new
+  `metrics` attribute.
+
 == 0.1.9 May 2 2019
 
 - Added the `cluster` command.
