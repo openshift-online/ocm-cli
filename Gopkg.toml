@@ -4,7 +4,7 @@
 
 [[constraint]]
   name = "github.com/openshift-online/uhc-sdk-go"
-  version = "0.1.7"
+  version = "0.1.8"
 
 [[constraint]]
   name = "github.com/spf13/pflag"

@@ -116,8 +116,8 @@ func run(cmd *cobra.Command, argv []string) {
 	cluster := response.Body()
 
 	//Get data out of the response
-	clusterMemory := cluster.Memory()
-	clusterCPU := cluster.CPU()
+	clusterMemory := cluster.Metrics().Memory()
+	clusterCPU := cluster.Metrics().CPU()
 	memUsed := clusterMemory.Used().Value() / 1000000000
 	memTotal := clusterMemory.Total().Value() / 1000000000
 
