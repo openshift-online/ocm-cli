@@ -26,7 +26,7 @@
   version = "v1.0"
 
 [[projects]]
-  digest = "1:29b1991538ec62371b388c2371da2816591f667332f48931e8f648daa3606a56"
+  digest = "1:9b85c9d2be244ed78f787e75c8dca7c69b1a48265062e42e0f403e221ba24759"
   name = "github.com/openshift-online/uhc-sdk-go"
   packages = [
     "pkg/client",
@@ -39,8 +39,8 @@
     "pkg/client/internal",
   ]
   pruneopts = "UT"
-  revision = "9d1a1d3c76bae5025551e1bae9943cc65ee8c0ce"
-  version = "v0.1.7"
+  revision = "cddd0f41f9a1605bbc9e64ec36da8c89baea7cd8"
+  version = "v0.1.8"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
