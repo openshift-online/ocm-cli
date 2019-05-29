@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/openshift-online/uhc-cli/cmd/uhc/urls"
 	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 	"github.com/spf13/cobra"
 
@@ -36,7 +37,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "get PATH",
+	Use:   "get RESOURCE {ID}",
 	Short: "Send a GET request",
 	Long:  "Send a GET request to the given path.",
 	Run:   run,
@@ -71,12 +72,11 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) {
-	// Check that there is exactly one command line parameter:
-	if len(argv) != 1 {
-		fmt.Fprintf(os.Stderr, "Expected exactly one argument\n")
+	path, err := urls.Expand(argv)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not create URI: %v\n", err)
 		os.Exit(1)
 	}
-	path := argv[0]
 
 	// Load the configuration file:
 	cfg, err := config.Load()
