@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `uhc` command line tool.
 
+== 0.1.12 Jun 7 2019
+
+- Improvements in the `cluster list` and `cluster describe` commands.
+
 == 0.1.11 May 8 2019
 
 - Added the `completion` command that generates _bash_ completion scripts.
