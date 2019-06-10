@@ -37,7 +37,7 @@ var args struct {
 
 var Cmd = &cobra.Command{
 	Use:   "describe CLUSTERID [--output] [--short]",
-	Short: "Decribe a cluster",
+	Short: "Describe a cluster",
 	Long:  "Get info about a cluster identified by its cluster ID",
 	Run:   run,
 }
