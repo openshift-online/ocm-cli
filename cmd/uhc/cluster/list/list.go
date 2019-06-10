@@ -17,6 +17,7 @@ limitations under the License.
 package list
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -56,7 +57,7 @@ func checkES(s string) string {
 // printTop prints top of list
 func printTop(columns []string, padding []int) {
 	fmt.Println()
-	fmt.Println(updateRowPad(padding, columns))
+	prettyPrint(updateRowPad(padding, columns))
 	fmt.Println()
 }
 
@@ -69,6 +70,17 @@ func clearPage() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to clear page: %s", err)
 		os.Exit(1)
+	}
+}
+
+// prettyPrint prints a string array without brackets
+func prettyPrint(arrStr ...[]string) {
+	for fi := range arrStr {
+		finalString := ""
+		for item := range arrStr[fi] {
+			finalString = fmt.Sprint(finalString, arrStr[fi][item])
+		}
+		fmt.Println(finalString)
 	}
 }
 
@@ -225,19 +237,20 @@ func run(cmd *cobra.Command, argv []string) {
 			thisCluster = updateRowPad(paddingByColumn, thisCluster)
 
 			// Print this cluster
-			fmt.Println(thisCluster)
+			prettyPrint(thisCluster)
 
 			return true
 		})
 
-		// if slow was flagged, load only one page at a time
+		// if step was flagged, load only one page at a time
 		if args.step {
 			if response.Size() < pageSize {
 				break
 			}
-			fmt.Println("Press the Enter to load more:")
-			var input string
-			_, err := fmt.Scanln(&input)
+			fmt.Println()
+			fmt.Println("Press the 'Enter' to load more:")
+			_, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
+			// var input string
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to retrieve input: %s", err)
 				os.Exit(1)
