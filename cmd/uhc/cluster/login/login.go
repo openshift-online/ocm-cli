@@ -124,7 +124,7 @@ func run(cmd *cobra.Command, argv []string) {
 	response, err := clusterResource.Get().
 		Send()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s", err)
+		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
 		os.Exit(1)
 	}
 	cluster := response.Body()
@@ -132,7 +132,7 @@ func run(cmd *cobra.Command, argv []string) {
 	// Get the cluster api for login:
 	url := cluster.API().URL()
 	if len(url) == 0 {
-		fmt.Fprintf(os.Stderr, "Cannot find the api url for cluster: %s", argv[0])
+		fmt.Fprintf(os.Stderr, "Cannot find the api url for cluster: %s\n", argv[0])
 		os.Exit(1)
 	}
 	ocArgs := []string{}
@@ -148,7 +148,7 @@ func run(cmd *cobra.Command, argv []string) {
 	ocCmd.Stdout = os.Stdout
 	err = ocCmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to login to cluster: %s", err)
+		fmt.Fprintf(os.Stderr, "Failed to login to cluster: %s\n", err)
 		os.Exit(1)
 	}
 }
