@@ -68,7 +68,7 @@ func clearPage() {
 	cmd.Stdout = os.Stdout
 	err := cmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to clear page: %s", err)
+		fmt.Fprintf(os.Stderr, "Failed to clear page: %s\n", err)
 		os.Exit(1)
 	}
 }
@@ -98,7 +98,7 @@ func updateRowPad(columnPad []int, st []string) []string {
 			}
 		}
 	} else {
-		fmt.Fprintf(os.Stderr, "Slices do not have the same length: ")
+		fmt.Fprintf(os.Stderr, "Slices do not have the same length\n")
 		os.Exit(1)
 	}
 	return st
@@ -252,7 +252,7 @@ func run(cmd *cobra.Command, argv []string) {
 			_, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 			// var input string
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to retrieve input: %s", err)
+				fmt.Fprintf(os.Stderr, "Failed to retrieve input: %s\n", err)
 				os.Exit(1)
 			}
 			clearPage()
@@ -300,7 +300,7 @@ func getResponse(collection *v1.ClustersClient,
 
 	response, err := listRequest.Send()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s", err)
+		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
 		os.Exit(1)
 	}
 
