@@ -310,3 +310,16 @@ Deletion, like creation, is a lengthy process for complicated objects like
 clusters, and it happens asynchronously. After the `delete` command finishes it
 will take some time to actually delete the cluster. That can be checking using
 the `get` command till it returns a `404 Not Found` response.
+
+=== Config
+
+The configuration variables can be read and set via the `get` and `set` commands.
+These settings will be persisted in the `.uhc.json` file in your home directory.
+
+....
+$ uhc config get url
+....
+
+....
+$ uhc config set url https://api.openshift.com
+....

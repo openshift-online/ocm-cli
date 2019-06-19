@@ -27,6 +27,7 @@ import (
 
 	"github.com/openshift-online/uhc-cli/cmd/uhc/cluster"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/completion"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/config"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/delete"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/get"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/login"
@@ -65,6 +66,7 @@ func init() {
 	root.AddCommand(version.Cmd)
 	root.AddCommand(cluster.Cmd)
 	root.AddCommand(completion.Cmd)
+	root.AddCommand(config.Cmd)
 }
 
 func main() {
