@@ -42,6 +42,14 @@
   version = "v1.0"
 
 [[projects]]
+  digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
+  name = "github.com/matttproud/golang_protobuf_extensions"
+  packages = ["pbutil"]
+  pruneopts = "UT"
+  revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:fe167e8f858cbfc10c721f2000f2446140800bb53fa83c088e03d191275611a4"
   name = "github.com/onsi/gomega"
   packages = [
@@ -62,15 +70,7 @@
   revision = "v1.5.0"
 
 [[projects]]
-  digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
-  name = "github.com/matttproud/golang_protobuf_extensions"
-  packages = ["pbutil"]
-  pruneopts = "UT"
-  revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
-  version = "v1.0.1"
-
-[[projects]]
-  digest = "1:f9dfea0963c5e7540ac57eae80232bd7aaf5ffb5e999730f37822f755946d597"
+  digest = "1:551ee2de0490b3d14cf217a5db6164b223913e8935acd3e4261cca08bd8ff51b"
   name = "github.com/openshift-online/uhc-sdk-go"
   packages = [
     "pkg/client",
@@ -83,8 +83,8 @@
     "pkg/client/internal",
   ]
   pruneopts = "UT"
-  revision = "37573992120af5ba25126ff4c4991e56690eec62"
-  version = "v0.1.14"
+  revision = "03e448edf5505c67bac1fd7725db2fca6ee87be8"
+  version = "v0.1.17"
 
 [[projects]]
   digest = "1:641a6f02ac68db91eee65eed28a23630b215aea79e39b3dbcfa0fdbb19cd11de"
