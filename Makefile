@@ -25,6 +25,9 @@ cmds: vendor
 		go build -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
 	done
 
+install: vendor
+	go install ./cmd/uhc
+
 test: vendor
 	go test \
 		./cmd/... \
