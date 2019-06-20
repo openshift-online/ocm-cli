@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018 Red Hat, Inc.
+Copyright (c) 2019 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,151 +17,230 @@ limitations under the License.
 package urls
 
 import (
-	"strings"
 	"testing"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
-type urlExpaderTest struct {
+func TestURLExpander(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "URL expander")
+}
+
+type urlExpanderTest struct {
 	params      []string
 	expectError bool
 	contains    string
 }
 
-var invalidParamsTests = map[string]urlExpaderTest{
-	"invalid params -- too few": {
-		params:      []string{},
-		expectError: true,
-	},
-	"invalid params -- too many": {
-		params:      []string{"foo", "foo", "foo"},
-		expectError: true,
-	},
-}
-
-var accountTests = map[string]urlExpaderTest{
-	"valid list params - accts": {
-		params:   []string{"accts"},
-		contains: "accounts_mgmt/v1/accounts",
-	},
-	"valid list params - accounts": {
-		params:   []string{"accounts"},
-		contains: "accounts_mgmt/v1/accounts",
-	},
-	"valid resource params - acct": {
-		params:   []string{"acct", "foo"},
-		contains: "accounts_mgmt/v1/accounts",
-	},
-	"valid resource params - account": {
-		params:   []string{"account", "foo"},
-		contains: "accounts_mgmt/v1/accounts",
-	},
-	"invalid resource params - acct": {
-		params:      []string{"acct"},
-		expectError: true,
-	},
-	"invalid resource params - account": {
-		params:      []string{"account"},
-		expectError: true,
-	},
-}
-
-var subscriptionTests = map[string]urlExpaderTest{
-	"valid list params - subs": {
-		params:   []string{"subs"},
-		contains: "accounts_mgmt/v1/subscriptions",
-	},
-	"valid list params - subscriptions": {
-		params:   []string{"subscriptions"},
-		contains: "accounts_mgmt/v1/subscriptions",
-	},
-	"valid resource params - sub": {
-		params:   []string{"sub", "foo"},
-		contains: "accounts_mgmt/v1/subscriptions",
-	},
-	"valid resource params - subscription": {
-		params:   []string{"subscription", "foo"},
-		contains: "accounts_mgmt/v1/subscriptions",
-	},
-	"invalid resource params - sub": {
-		params:      []string{"subscription"},
-		expectError: true,
-	},
-	"invalid resource params - subscription": {
-		params:      []string{"subscription"},
-		expectError: true,
-	},
-}
-
-var organizationTests = map[string]urlExpaderTest{
-	"valid list params - orgs": {
-		params:   []string{"orgs"},
-		contains: "accounts_mgmt/v1/organizations",
-	},
-	"valid list params - organizations": {
-		params:   []string{"organizations"},
-		contains: "accounts_mgmt/v1/organizations",
-	},
-	"valid resource params - org": {
-		params:   []string{"org", "foo"},
-		contains: "accounts_mgmt/v1/organizations",
-	},
-	"valid resource params - organization": {
-		params:   []string{"organization", "foo"},
-		contains: "accounts_mgmt/v1/organizations",
-	},
-	"invalid resource params - org": {
-		params:      []string{"org"},
-		expectError: true,
-	},
-	"invalid resource params - organization": {
-		params:      []string{"organization"},
-		expectError: true,
-	},
-}
-
-var passthroughTests = map[string]urlExpaderTest{
-	"paths w/o an alias are passed through": {
-		params:   []string{"/api/accounts_mgmt/v1/quota"},
-		contains: "accounts_mgmt/v1/quota",
-	},
-}
-
-var clusterTests = map[string]urlExpaderTest{
-	"valid list params - clusters": {
-		params:   []string{"clusters"},
-		contains: "clusters_mgmt/v1/clusters",
-	},
-	"valid resource params - cluster": {
-		params:   []string{"cluster", "foo"},
-		contains: "clusters_mgmt/v1/clusters",
-	},
-	"invalid resource params - cluster": {
-		params:      []string{"cluster"},
-		expectError: true,
-	},
-}
-
-func runTests(t *testing.T, tests map[string]urlExpaderTest) {
-	RegisterTestingT(t)
-	for name, test := range tests {
-		expanded, err := Expand(test.params)
-		if !test.expectError {
-			Expect(err).To(BeNil(), "Test '%s' has unexpected error: %s", name, err)
-			Expect(strings.Contains(expanded, test.contains)).To(BeTrue(),
-				"Test '%s' expected path to contain '%s' but got '%s'", name, test.contains, expanded)
-		} else {
-			Expect(err).NotTo(BeNil(), "Test '%s' expected error but got none", name)
-		}
+func urlExpanderTestVerify(test urlExpanderTest) {
+	expanded, err := Expand(test.params)
+	if !test.expectError {
+		Expect(err).ToNot(HaveOccurred())
+		Expect(expanded).To(ContainSubstring(test.contains))
+	} else {
+		Expect(err).To(HaveOccurred())
 	}
 }
 
-func TestExpand(t *testing.T) {
-	runTests(t, invalidParamsTests)
-	runTests(t, accountTests)
-	runTests(t, subscriptionTests)
-	runTests(t, organizationTests)
-	runTests(t, clusterTests)
-	runTests(t, passthroughTests)
-}
+var _ = Describe("Expand", func() {
+	DescribeTable(
+		"Invalid parameters",
+		urlExpanderTestVerify,
+		Entry(
+			"Invalid parameters - too few",
+			urlExpanderTest{
+				params:      []string{},
+				expectError: true,
+			},
+		),
+		Entry(
+			"Invalid parameters - too many",
+			urlExpanderTest{
+				params:      []string{"foo", "foo", "foo"},
+				expectError: true,
+			},
+		),
+	)
+
+	DescribeTable(
+		"Accounts",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - accts",
+			urlExpanderTest{
+				params:   []string{"accts"},
+				contains: "accounts_mgmt/v1/accounts",
+			},
+		),
+		Entry(
+			"Valid list parameters - accounts",
+			urlExpanderTest{
+				params:   []string{"accounts"},
+				contains: "accounts_mgmt/v1/accounts",
+			},
+		),
+		Entry(
+			"Valid resource parameters - acct",
+			urlExpanderTest{
+				params:   []string{"acct", "foo"},
+				contains: "accounts_mgmt/v1/accounts",
+			},
+		),
+		Entry(
+			"Valid resource parameters - account",
+			urlExpanderTest{
+				params:   []string{"account", "foo"},
+				contains: "accounts_mgmt/v1/accounts",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - acct",
+			urlExpanderTest{
+				params:      []string{"acct"},
+				expectError: true,
+			},
+		),
+		Entry(
+			"Invalid resource parameters - account",
+			urlExpanderTest{
+				params:      []string{"account"},
+				expectError: true,
+			},
+		),
+	)
+
+	DescribeTable(
+		"Subscriptions",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - subs",
+			urlExpanderTest{
+				params:   []string{"subs"},
+				contains: "accounts_mgmt/v1/subscriptions",
+			},
+		),
+		Entry(
+			"Valid list parameters - subscriptions",
+			urlExpanderTest{
+				params:   []string{"subscriptions"},
+				contains: "accounts_mgmt/v1/subscriptions",
+			},
+		),
+		Entry(
+			"Valid resource parameters - sub",
+			urlExpanderTest{
+				params:   []string{"sub", "foo"},
+				contains: "accounts_mgmt/v1/subscriptions",
+			},
+		),
+		Entry(
+			"Valid resource parameters - subscription",
+			urlExpanderTest{
+				params:   []string{"subscription", "foo"},
+				contains: "accounts_mgmt/v1/subscriptions",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - sub",
+			urlExpanderTest{
+				params:      []string{"subscription"},
+				expectError: true,
+			},
+		),
+		Entry(
+			"Invalid resource parameters - subscription",
+			urlExpanderTest{
+				params:      []string{"subscription"},
+				expectError: true,
+			},
+		),
+	)
+
+	DescribeTable(
+		"Organizations",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - orgs",
+			urlExpanderTest{
+				params:   []string{"orgs"},
+				contains: "accounts_mgmt/v1/organizations",
+			},
+		),
+		Entry(
+			"Valid list parameters - organizations",
+			urlExpanderTest{
+				params:   []string{"organizations"},
+				contains: "accounts_mgmt/v1/organizations",
+			},
+		),
+		Entry(
+			"Valid resource parameters - org",
+			urlExpanderTest{
+				params:   []string{"org", "foo"},
+				contains: "accounts_mgmt/v1/organizations",
+			},
+		),
+		Entry(
+			"Valid resource parameters - organization",
+			urlExpanderTest{
+				params:   []string{"organization", "foo"},
+				contains: "accounts_mgmt/v1/organizations",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - org",
+			urlExpanderTest{
+				params:      []string{"org"},
+				expectError: true,
+			},
+		),
+		Entry(
+			"Invalid resource parameters - organization",
+			urlExpanderTest{
+				params:      []string{"organization"},
+				expectError: true,
+			},
+		),
+	)
+
+	DescribeTable(
+		"Passthrough",
+		urlExpanderTestVerify,
+		Entry(
+			"Paths w/o an alias are passed through",
+			urlExpanderTest{
+				params:   []string{"/api/accounts_mgmt/v1/quota"},
+				contains: "accounts_mgmt/v1/quota",
+			},
+		),
+	)
+
+	DescribeTable(
+		"Clusters",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - clusters",
+			urlExpanderTest{
+				params:   []string{"clusters"},
+				contains: "clusters_mgmt/v1/clusters",
+			},
+		),
+		Entry(
+			"Valid resource parameters - cluster",
+			urlExpanderTest{
+				params:   []string{"cluster", "foo"},
+				contains: "clusters_mgmt/v1/clusters",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - cluster",
+			urlExpanderTest{
+				params:      []string{"cluster"},
+				expectError: true,
+			},
+		),
+	)
+})
