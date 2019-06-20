@@ -3,6 +3,17 @@
 This document describes the relevant changes between releases of the
 `uhc` command line tool.
 
+== 0.1.14 Jun 20 2019.
+
+- Added the `config get` and `config set` commands to get and set configuration
+  settings.
+
+- Added support for shortcuts to the raw HTTP commands.
+
+- Added the `whoami` command.
+
+- Added support for custom columns in the `cluster list` command.
+
 == 0.1.13 Jun 12 2019.
 
 - Added the `cluster login` command.
