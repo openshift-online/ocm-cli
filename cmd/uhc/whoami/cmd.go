@@ -14,45 +14,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package status
+package whoami
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/openshift-online/uhc-cli/pkg/config"
-	"github.com/openshift-online/uhc-cli/pkg/util"
 	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 	"github.com/spf13/cobra"
+
+	"github.com/openshift-online/uhc-cli/pkg/config"
+	"github.com/openshift-online/uhc-cli/pkg/dump"
+	"github.com/openshift-online/uhc-cli/pkg/util"
 )
 
-var args struct {
-	debug bool
-}
-
 var Cmd = &cobra.Command{
-	Use:   "status CLUSTERID",
-	Short: "Status of a cluster",
-	Long:  "Get the status of a cluster identified by its cluster ID",
+	Use:   "whoami",
+	Short: "Prints user information",
+	Long:  "Prints user information.",
 	Run:   run,
 }
+
+var debug bool
 
 func init() {
 	flags := Cmd.Flags()
 	flags.BoolVar(
-		&args.debug,
+		&debug,
 		"debug",
 		false,
 		"Enable debug mode.",
 	)
 }
+
 func run(cmd *cobra.Command, argv []string) {
-
-	if len(argv) != 1 {
-		fmt.Fprintf(os.Stderr, "Expected exactly one cluster\n")
-		os.Exit(1)
-	}
-
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
@@ -64,7 +59,7 @@ func run(cmd *cobra.Command, argv []string) {
 		os.Exit(1)
 	}
 
-	// Check that the configuration has credentials or tokens that haven't have expired:
+	// Check that the configuration has credentials or tokens that don't have expired:
 	armed, err := config.Armed(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
@@ -76,13 +71,11 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create the connection:
-	logger, err := util.NewLogger(args.debug)
+	logger, err := util.NewLogger(debug)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't create logger: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Create the connection, and remember to close it:
 	connection, err := client.NewConnectionBuilder().
 		Logger(logger).
 		TokenURL(cfg.TokenURL).
@@ -97,35 +90,24 @@ func run(cmd *cobra.Command, argv []string) {
 		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
 		os.Exit(1)
 	}
-	defer connection.Close()
 
-	// Get the client for the resource that manages the collection of clusters:
-	resource := connection.ClustersMgmt().V1().Clusters()
+	request := connection.Get().Path("/api/accounts_mgmt/v1/current_account")
 
-	// Get the resource that manages the cluster that we want to display:
-	clusterResource := resource.Cluster(argv[0])
-
-	// Retrieve the collection of clusters:
-	response, err := clusterResource.Get().
-		Send()
+	// Send the request:
+	response, err := request.Send()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Can't send request: %v\n", err)
 		os.Exit(1)
 	}
-
-	cluster := response.Body()
-
-	//Get data out of the response
-	clusterMemory := cluster.Metrics().Memory()
-	clusterCPU := cluster.Metrics().CPU()
-	memUsed := clusterMemory.Used().Value() / 1000000000
-	memTotal := clusterMemory.Total().Value() / 1000000000
-
-	fmt.Printf("State:   %s\n"+
-		"Memory:  %.2f/%.2f used\n"+
-		"CPU:     %.2f/%.2f used\n",
-		cluster.State(),
-		memUsed, memTotal,
-		clusterCPU.Used().Value(), clusterCPU.Total().Value(),
-	)
+	status := response.Status()
+	body := response.Bytes()
+	if status < 400 {
+		err = dump.Pretty(os.Stdout, body)
+	} else {
+		err = dump.Pretty(os.Stderr, body)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Can't print body: %v\n", err)
+		os.Exit(1)
+	}
 }

@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package status
+package login
 
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
 	"github.com/openshift-online/uhc-cli/pkg/util"
@@ -28,12 +29,13 @@ import (
 
 var args struct {
 	debug bool
+	user  string
 }
 
 var Cmd = &cobra.Command{
-	Use:   "status CLUSTERID",
-	Short: "Status of a cluster",
-	Long:  "Get the status of a cluster identified by its cluster ID",
+	Use:   "login CLUSTERID",
+	Short: "login to a cluster",
+	Long:  "login to a cluster by CLUSTERID using openshift oc",
 	Run:   run,
 }
 
@@ -45,11 +47,24 @@ func init() {
 		false,
 		"Enable debug mode.",
 	)
+	flags.StringVarP(
+		&args.user,
+		"username",
+		"u",
+		"",
+		"Username, will prompt if not provided",
+	)
+
 }
 func run(cmd *cobra.Command, argv []string) {
 
 	if len(argv) != 1 {
-		fmt.Fprintf(os.Stderr, "Expected exactly one cluster\n")
+		fmt.Fprint(os.Stderr, "Expected exactly one cluster\n")
+		os.Exit(1)
+	}
+	path, err := exec.LookPath("oc")
+	if err != nil {
+		fmt.Fprint(os.Stderr, "To run this, you need install openshfit oc first.\n")
 		os.Exit(1)
 	}
 
@@ -60,7 +75,7 @@ func run(cmd *cobra.Command, argv []string) {
 		os.Exit(1)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
+		fmt.Fprint(os.Stderr, "Not logged in, run the 'login' command\n")
 		os.Exit(1)
 	}
 
@@ -71,11 +86,11 @@ func run(cmd *cobra.Command, argv []string) {
 		os.Exit(1)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
+		fmt.Fprint(os.Stderr, "Tokens have expired, run the 'login' command\n")
 		os.Exit(1)
 	}
 
-	// Create the connection:
+	// Create the logger
 	logger, err := util.NewLogger(args.debug)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't create logger: %v\n", err)
@@ -105,27 +120,35 @@ func run(cmd *cobra.Command, argv []string) {
 	// Get the resource that manages the cluster that we want to display:
 	clusterResource := resource.Cluster(argv[0])
 
-	// Retrieve the collection of clusters:
+	// Retrieve the cluster info:
 	response, err := clusterResource.Get().
 		Send()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
 		os.Exit(1)
 	}
-
 	cluster := response.Body()
 
-	//Get data out of the response
-	clusterMemory := cluster.Metrics().Memory()
-	clusterCPU := cluster.Metrics().CPU()
-	memUsed := clusterMemory.Used().Value() / 1000000000
-	memTotal := clusterMemory.Total().Value() / 1000000000
+	// Get the cluster api for login:
+	url := cluster.API().URL()
+	if len(url) == 0 {
+		fmt.Fprintf(os.Stderr, "Cannot find the api url for cluster: %s\n", argv[0])
+		os.Exit(1)
+	}
+	ocArgs := []string{}
+	ocArgs = append(ocArgs, "login", url)
+	if args.user != "" {
+		ocArgs = append(ocArgs, "--username="+args.user)
+	}
 
-	fmt.Printf("State:   %s\n"+
-		"Memory:  %.2f/%.2f used\n"+
-		"CPU:     %.2f/%.2f used\n",
-		cluster.State(),
-		memUsed, memTotal,
-		clusterCPU.Used().Value(), clusterCPU.Total().Value(),
-	)
+	// #nosec G204
+	ocCmd := exec.Command(path, ocArgs...)
+	ocCmd.Stderr = os.Stderr
+	ocCmd.Stdin = os.Stdin
+	ocCmd.Stdout = os.Stdout
+	err = ocCmd.Run()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to login to cluster: %s\n", err)
+		os.Exit(1)
+	}
 }

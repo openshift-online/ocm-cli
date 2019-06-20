@@ -14,8 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This file contains information about the tool.
+package config
 
-package info
+import (
+	"github.com/spf13/cobra"
 
-const Version = "0.1.13"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/config/get"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/config/set"
+)
+
+var args struct {
+	debug bool
+}
+
+var Cmd = &cobra.Command{
+	Use:   "config COMMAND VARIABLE",
+	Short: "get or set configuration variables",
+}
+
+func init() {
+	flags := Cmd.Flags()
+	flags.BoolVar(
+		&args.debug,
+		"debug",
+		false,
+		"Enable debug mode.",
+	)
+	Cmd.AddCommand(get.Cmd)
+	Cmd.AddCommand(set.Cmd)
+}

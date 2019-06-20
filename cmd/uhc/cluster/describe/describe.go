@@ -131,7 +131,7 @@ func run(cmd *cobra.Command, argv []string) {
 	cluster := response.Body()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s", err)
+		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
 		os.Exit(1)
 	}
 
