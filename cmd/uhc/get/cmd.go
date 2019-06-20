@@ -31,9 +31,10 @@ import (
 )
 
 var args struct {
-	debug     bool
 	parameter []string
 	header    []string
+	debug     bool
+	single    bool
 }
 
 var Cmd = &cobra.Command{
@@ -68,6 +69,12 @@ func init() {
 			"followed by an optional equals sign and then the value of the "+
 			"header. Can be used multiple times to specify multiple headers "+
 			"or multiple values for the same header.",
+	)
+	flags.BoolVar(
+		&args.single,
+		"single",
+		false,
+		"Return the output as a single line.",
 	)
 }
 
@@ -159,9 +166,17 @@ func run(cmd *cobra.Command, argv []string) {
 	status := response.Status()
 	body := response.Bytes()
 	if status < 400 {
-		err = dump.Pretty(os.Stdout, body)
+		if args.single {
+			err = dump.Simple(os.Stdout, body)
+		} else {
+			err = dump.Pretty(os.Stdout, body)
+		}
 	} else {
-		err = dump.Pretty(os.Stderr, body)
+		if args.single {
+			err = dump.Simple(os.Stderr, body)
+		} else {
+			err = dump.Pretty(os.Stderr, body)
+		}
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't print body: %v\n", err)
