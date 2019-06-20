@@ -36,6 +36,7 @@ import (
 	"github.com/openshift-online/uhc-cli/cmd/uhc/post"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/token"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/version"
+	"github.com/openshift-online/uhc-cli/cmd/uhc/whoami"
 )
 
 var root = &cobra.Command{
@@ -66,6 +67,7 @@ func init() {
 	root.AddCommand(version.Cmd)
 	root.AddCommand(cluster.Cmd)
 	root.AddCommand(completion.Cmd)
+	root.AddCommand(whoami.Cmd)
 	root.AddCommand(config.Cmd)
 }
 
