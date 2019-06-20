@@ -40,6 +40,21 @@ func Pretty(stream io.Writer, body []byte) error {
 	return dumpJSON(stream, data)
 }
 
+// Simple functions exactly the same as Pretty except it uses jq's -c option to condense the
+// output to a single line, intended to be used with other resources that require single line
+// output.
+func Simple(stream io.Writer, body []byte) error {
+	var data map[string]interface{}
+	err := json.Unmarshal(body, &data)
+	if err != nil {
+		return dumpBytes(stream, body)
+	}
+	if haveJQ() {
+		return dumpCondensedJQ(stream, body)
+	}
+	return dumpJSON(stream, data)
+}
+
 func dumpBytes(stream io.Writer, data []byte) error {
 	_, err := stream.Write(data)
 	if err != nil {
@@ -52,6 +67,15 @@ func dumpBytes(stream io.Writer, data []byte) error {
 func dumpJQ(stream io.Writer, data []byte) error {
 	// #nosec 204
 	jq := exec.Command("jq", ".")
+	jq.Stdin = bytes.NewReader(data)
+	jq.Stdout = stream
+	jq.Stderr = os.Stderr
+	return jq.Run()
+}
+
+func dumpCondensedJQ(stream io.Writer, data []byte) error {
+	// #nosec 204
+	jq := exec.Command("jq", "-c", ".")
 	jq.Stdin = bytes.NewReader(data)
 	jq.Stdout = stream
 	jq.Stderr = os.Stderr
