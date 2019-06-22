@@ -14,32 +14,26 @@
 # limitations under the License.
 #
 
-.PHONY: \
-	cmds \
-	clean \
-	$(NULL)
-
+.PHONY: cmds
 cmds: vendor
 	for cmd in $$(ls cmd); do \
 		CGO_ENABLED=0 \
 		go build -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
 	done
 
+.PHONY: install
 install: vendor
 	go install ./cmd/uhc
 
-test: vendor
-	go test \
-		./cmd/... \
-		./pkg/... \
-		$(NULL)
+.PHONY: tools
+test: vendor tools
+	ginkgo -r cmd pkg
 
+.PHONY: fmt
 fmt:
-	gofmt -s -l -w \
-		cmd \
-		pkg \
-		$(NULL)
+	gofmt -s -l -w cmd pkg
 
+.PHONY: lint
 lint: vendor
 	golangci-lint run \
 		--no-config \
@@ -63,10 +57,14 @@ lint: vendor
 		--enable=varcheck \
 		$(NULL)
 
-
 vendor: Gopkg.lock
 	dep ensure -vendor-only -v
 
+.PHONY: tools
+tools:
+	which ginkgo || go get -v github.com/onsi/ginkgo/ginkgo
+
+.PHONY: tools
 clean:
 	rm -rf \
 		$$(ls cmd) \

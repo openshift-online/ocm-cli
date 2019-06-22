@@ -22,12 +22,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/openshift-online/uhc-cli/cmd/uhc/urls"
 	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
 	"github.com/openshift-online/uhc-cli/pkg/dump"
+	"github.com/openshift-online/uhc-cli/pkg/urls"
 	"github.com/openshift-online/uhc-cli/pkg/util"
 )
 
