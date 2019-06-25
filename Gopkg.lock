@@ -56,12 +56,44 @@
   version = "v1.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:cf68a79fd02ab0f6942b9567d03d054b6568212fcc22de2a4afdefd096923749"
+  name = "github.com/kballard/go-shellquote"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "95032a82bc518f77982ea72343cc1ade730072f0"
+
+[[projects]]
+  digest = "1:9785a54031460a402fab4e4bbb3124c8dd9e9f7b1982109fef605cb91632d480"
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "8029fb3788e5a4a9c00e415f586a6d033f5d38b3"
+  version = "v0.1.2"
+
+[[projects]]
+  digest = "1:666428435471609937bd13f56e2e31501b5660ffc44a786cf2217dc53291a604"
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "1311e847b0cb909da63b5fecfb5370aa66236465"
+  version = "v0.0.8"
+
+[[projects]]
   digest = "1:5985ef4caf91ece5d54817c11ea25f182697534f8ae6521eadcd628c142ac4b6"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
   pruneopts = "NUT"
   revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
   version = "v1.0.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:063d55b87e200bced5e2be658cc70acafb4c5bbc4afa04d4b82f66298b73d089"
+  name = "github.com/mgutz/ansi"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "9520e82c474b0a04dd04f8a40959027271bab992"
 
 [[projects]]
   digest = "1:2eb15c4c677756acdf6c7b0062168b6275b3cc8785f345904619c4037a90a4ac"
@@ -235,6 +267,18 @@
   version = "v0.3.2"
 
 [[projects]]
+  digest = "1:5018949c3c9aa8a427ec306d643180ea6b7b5c28cd67fdbd31908ff8cbd4fc55"
+  name = "gopkg.in/AlecAivazis/survey.v1"
+  packages = [
+    ".",
+    "core",
+    "terminal",
+  ]
+  pruneopts = "NUT"
+  revision = "3db8b5dd7b2875d268abf7c1feb59bd929f6b838"
+  version = "v1.8.5"
+
+[[projects]]
   digest = "1:1b91ae0dc69a41d4c2ed23ea5cffb721ea63f5037ca4b81e6d6771fbb8f45129"
   name = "gopkg.in/fsnotify.v1"
   packages = ["."]
@@ -269,9 +313,11 @@
     "github.com/onsi/ginkgo/extensions/table",
     "github.com/onsi/gomega",
     "github.com/openshift-online/uhc-sdk-go/pkg/client",
+    "github.com/openshift-online/uhc-sdk-go/pkg/client/accountsmgmt/v1",
     "github.com/openshift-online/uhc-sdk-go/pkg/client/clustersmgmt/v1",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
+    "gopkg.in/AlecAivazis/survey.v1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
