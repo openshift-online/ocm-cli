@@ -17,10 +17,12 @@ limitations under the License.
 package whoami
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
 	"github.com/openshift-online/uhc-sdk-go/pkg/client"
+	amsv1 "github.com/openshift-online/uhc-sdk-go/pkg/client/accountsmgmt/v1"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
@@ -91,23 +93,32 @@ func run(cmd *cobra.Command, argv []string) {
 		os.Exit(1)
 	}
 
-	request := connection.Get().Path("/api/accounts_mgmt/v1/current_account")
-
 	// Send the request:
-	response, err := request.Send()
+	response, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
+		Send()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't send request: %v\n", err)
 		os.Exit(1)
 	}
-	status := response.Status()
-	body := response.Bytes()
-	if status < 400 {
-		err = dump.Pretty(os.Stdout, body)
+
+	// Buffer for pretty output:
+	buf := new(bytes.Buffer)
+
+	// Output account info.
+	err = amsv1.MarshalAccount(response.Body(), buf)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to marshal account into JSON encoder: %v\n", err)
+		os.Exit(1)
+	}
+
+	if response.Status() < 400 {
+		err = dump.Pretty(os.Stdout, buf.Bytes())
 	} else {
-		err = dump.Pretty(os.Stderr, body)
+		err = dump.Pretty(os.Stderr, buf.Bytes())
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't print body: %v\n", err)
 		os.Exit(1)
 	}
+
 }
