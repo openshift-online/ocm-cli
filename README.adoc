@@ -15,8 +15,11 @@ $ go get -u github.com/openshift-online/uhc-cli/cmd/uhc
 == Log In
 
 The first step to use the tool is to log-in with your
-https://developers.redhat.com[developers.redhat.com] offline access token. To do
-that use the `login` command:
+Openshift Cluster Manager offline access token which you can get below:
+
+https://cloud.redhat.com/openshift/token[https://cloud.redhat.com/openshift/token]
+
+To do that use the `login` command:
 
 ....
 $ uhc login --token=eyJ...
@@ -34,7 +37,7 @@ However this option is deprecated, because it is less secure, and it will be
 removed in the future.
 
 This will use the provided token to request _OpenID_ access and refresh tokens
-to _developers.redhat.com_. The tokens will be saved to the `.uhc.json` file in
+to _sso.redhat.com_. The tokens will be saved to the `.uhc.json` file in
 your home directory, for future use.
 
 By default the user name and password won't be saved to the `.uhc.json` file,
