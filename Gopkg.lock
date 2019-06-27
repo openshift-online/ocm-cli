@@ -144,7 +144,7 @@
   revision = "v1.5.0"
 
 [[projects]]
-  digest = "1:551ee2de0490b3d14cf217a5db6164b223913e8935acd3e4261cca08bd8ff51b"
+  digest = "1:7f3690ce8f406684fc85b958cb5e483a19618374406d0755922845e848eb35a1"
   name = "github.com/openshift-online/uhc-sdk-go"
   packages = [
     "pkg/client",
@@ -157,19 +157,19 @@
     "pkg/client/internal",
   ]
   pruneopts = "NUT"
-  revision = "03e448edf5505c67bac1fd7725db2fca6ee87be8"
-  version = "v0.1.17"
+  revision = "92e97338dd0c3be5143c6324804e9ebc4eddf762"
+  version = "v0.1.22"
 
 [[projects]]
-  digest = "1:0f362379987ecc2cf4df1b8e4c1653a782f6f9f77f749547b734499b3c543080"
+  digest = "1:623090ece42820e4121c5c85a4373b10b922e79f3b8c44caad67a45a50e10054"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
     "prometheus/internal",
   ]
   pruneopts = "NUT"
-  revision = "2641b987480bca71fb39738eb8c8b0d577cb1d76"
-  version = "v0.9.4"
+  revision = "4ab88e80c249ed361d3299e2930427d9ac43ef8d"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -188,27 +188,27 @@
     "model",
   ]
   pruneopts = "NUT"
-  revision = "17f5ca1748182ddf24fc33a5a7caaaf790a52fcc"
-  version = "v0.4.1"
+  revision = "31bed53e4047fd6c510e43a941f90cb31be0972a"
+  version = "v0.6.0"
 
 [[projects]]
-  digest = "1:afe5de112e0ca26a37730f01bc4bac9aabe9843cbfd66034f0c16e5a1fbd045b"
+  digest = "1:19305fc369377c111c865a7a01e11c675c57c52a932353bbd4ea360bd5b72d99"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
     "internal/fs",
   ]
   pruneopts = "NUT"
-  revision = "833678b5bb319f2d20a475cb165c6cc59c2cc77c"
-  version = "v0.0.2"
+  revision = "3f98efb27840a48a7a2898ec80be07674d19f9c8"
+  version = "v0.0.3"
 
 [[projects]]
-  digest = "1:343d44e06621142ab09ae0c76c1799104cdfddd3ffb445d78b1adf8dc3ffaf3d"
+  digest = "1:d3533ee568fc00a971617ec09dc0f0b3eddfb4adbc1275f8f6332553d67506b4"
   name = "github.com/spf13/cobra"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
-  version = "v0.0.3"
+  revision = "f2b07da1e2c38d5f12845a4f607e2e1018cbb1f5"
+  version = "v0.0.5"
 
 [[projects]]
   digest = "1:9d8420bbf131d1618bde6530af37c3799340d3762cc47210c1d9532a4c3a2779"
@@ -228,15 +228,18 @@
     "html/charset",
   ]
   pruneopts = "NUT"
-  revision = "b5b0513f8c1bb7c1e3e6f168fba117131fe2614a"
+  revision = "3b0461eec859c4b73bb64fdc8285971fd33e3938"
 
 [[projects]]
   branch = "master"
-  digest = "1:de6f234ce0f2fd5d6dfc3d1f3dbbdf69c82f76d3f19c297859411be061e66863"
+  digest = "1:04a5fe5e30285936ae29208ad5752b5ad761f2638f96a45daa5fe0eee34a3547"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "NUT"
-  revision = "6f217b454f458f9c81d48c1fff9e6f5ea6b0bbf2"
+  revision = "04f50cda93cbb67f2afa353c52f342100e80e625"
 
 [[projects]]
   digest = "1:8a0baffd5559acaa560f854d7d525c02f4fec2d4f8a214398556fb661a10f6e0"

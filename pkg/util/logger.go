@@ -25,11 +25,17 @@ import (
 // NewLogger creates a new logger with the debug level enabled according to the given value.
 func NewLogger(debug bool) (logger client.Logger, err error) {
 	debugV := glog.Level(1)
+	infoV := glog.Level(1)
+	warnV := glog.Level(1)
 	if debug {
 		debugV = glog.Level(0)
+		infoV = glog.Level(0)
+		warnV = glog.Level(0)
 	}
 	logger, err = client.NewGlogLoggerBuilder().
 		DebugV(debugV).
+		InfoV(infoV).
+		WarnV(warnV).
 		Build()
 	return
 }

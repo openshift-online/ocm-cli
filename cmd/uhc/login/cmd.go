@@ -18,13 +18,32 @@ package login
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
 	"github.com/openshift-online/uhc-cli/pkg/util"
+)
+
+// Preferred OpenID details:
+const (
+	// #nosec G101
+	preferredTokenURL = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+	preferredClientID = "cloud-services"
+)
+
+// Deprecated OpenID details used only when trying to authenticate with a user name and a password
+// or with a token issued by the deprecated OpenID server:
+const (
+	// #nosec G101
+	deprecatedTokenURL = "https://developers.redhat.com/auth/realms/rhd/protocol/openid-connect/token"
+	deprecatedClientID = "uhc"
+	deprecatedIssuer   = "sso.redhat.com"
 )
 
 var args struct {
@@ -53,19 +72,29 @@ func init() {
 	flags.StringVar(
 		&args.tokenURL,
 		"token-url",
-		client.DefaultTokenURL,
-		"OpenID token URL.",
+		"",
+		fmt.Sprintf(
+			"OpenID token URL. The default value is '%s'. Except when authenticating "+
+				"with a user name and password or with a token issued by '%s'. "+
+				"In that case the default is '%s'.",
+			preferredTokenURL, deprecatedIssuer, deprecatedTokenURL,
+		),
 	)
 	flags.StringVar(
 		&args.clientID,
 		"client-id",
-		client.DefaultClientID,
-		"OpenID client identifier.",
+		"",
+		fmt.Sprintf(
+			"OpenID client identifier. The default value is '%s'. Except when "+
+				"authenticating with a user name and password or with a token "+
+				"issued by '%s'. In that case the default is '%s'.",
+			preferredClientID, deprecatedIssuer, deprecatedClientID,
+		),
 	)
 	flags.StringVar(
 		&args.clientSecret,
 		"client-secret",
-		client.DefaultClientSecret,
+		"",
 		"OpenID client secret.",
 	)
 	flags.StringSliceVar(
@@ -147,6 +176,48 @@ func run(cmd *cobra.Command, argv []string) {
 		os.Exit(1)
 	}
 
+	// Inform the user that it isn't recommended to authenticate with user name and password:
+	if havePassword {
+		fmt.Fprintf(
+			os.Stderr,
+			"Authenticating with a user name and password is deprecated. To avoid "+
+				"this warning go to 'https://cloud.redhat.com/openshift/token' "+
+				"to obtain your offline access token and then login using the "+
+				"'--token' option.\n",
+		)
+	}
+
+	// Initially the default OpenID details will be the preferred ones:
+	defaultTokenURL := preferredTokenURL
+	defaultClientID := preferredClientID
+
+	// If authentication is performed with a user name and password then select the deprecated
+	// OpenID details. Otherwise select them according to the issuer of the token.
+	if havePassword {
+		defaultTokenURL = deprecatedTokenURL
+		defaultClientID = deprecatedClientID
+	} else if haveToken {
+		issuerURL, err := tokenIssuer(args.token)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't get token issuer: %v\n", err)
+			os.Exit(1)
+		}
+		if issuerURL != nil && strings.EqualFold(issuerURL.Hostname(), deprecatedIssuer) {
+			defaultTokenURL = deprecatedTokenURL
+			defaultClientID = deprecatedClientID
+		}
+	}
+
+	// Apply the default OpenID details if not explicitly provided by the user:
+	tokenURL := defaultTokenURL
+	if args.tokenURL != "" {
+		tokenURL = args.tokenURL
+	}
+	clientID := defaultClientID
+	if args.clientID != "" {
+		clientID = args.clientID
+	}
+
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
@@ -156,8 +227,8 @@ func run(cmd *cobra.Command, argv []string) {
 	if cfg == nil {
 		cfg = new(config.Config)
 	}
-	cfg.TokenURL = args.tokenURL
-	cfg.ClientID = args.clientID
+	cfg.TokenURL = tokenURL
+	cfg.ClientID = clientID
 	cfg.ClientSecret = args.clientSecret
 	cfg.Scopes = args.scopes
 	cfg.URL = args.url
@@ -210,4 +281,33 @@ func run(cmd *cobra.Command, argv []string) {
 
 	// Bye:
 	os.Exit(0)
+}
+
+// tokenIssuer parses the given token and tries to extract the value of the `iss` claim. It then
+// returns tha value as a URL, or nil if there is no such claim.
+func tokenIssuer(token string) (issuer *url.URL, err error) {
+	// Parse the token:
+	parser := new(jwt.Parser)
+	parsed, _, err := parser.ParseUnverified(token, jwt.MapClaims{})
+	if err != nil {
+		return
+	}
+
+	// Try to get the `iss` claim:
+	claims, ok := parsed.Claims.(jwt.MapClaims)
+	if !ok {
+		err = fmt.Errorf("expected map claims but got %T", claims)
+		return
+	}
+	claim, ok := claims["iss"]
+	if !ok {
+		return
+	}
+	value, ok := claim.(string)
+	if !ok {
+		err = fmt.Errorf("expected string 'iss' but got %T", claim)
+		return
+	}
+	issuer, err = url.Parse(value)
+	return
 }
