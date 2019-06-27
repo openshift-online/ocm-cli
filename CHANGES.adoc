@@ -3,7 +3,18 @@
 This document describes the relevant changes between releases of the
 `uhc` command line tool.
 
-== 0.1.14 Jun 20 2019.
+== 0.1.15 Jun 27 2019
+
+- Added the `--single` option to the `get` command to format the output in one
+  single line.
+
+- Improvements in the `cluster login` command.
+
+- Changed the default authentication service from _developers.redhat.com_ to
+  _sso.redhat.com_. The old service will still be used when authenticating with
+  a user name and password or with token issued by _developers.redhat.com_.
+
+== 0.1.14 Jun 20 2019
 
 - Added the `config get` and `config set` commands to get and set configuration
   settings.
@@ -14,7 +25,7 @@ This document describes the relevant changes between releases of the
 
 - Added support for custom columns in the `cluster list` command.
 
-== 0.1.13 Jun 12 2019.
+== 0.1.13 Jun 12 2019
 
 - Added the `cluster login` command.
 
