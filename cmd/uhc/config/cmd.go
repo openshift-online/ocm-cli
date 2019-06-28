@@ -23,23 +23,12 @@ import (
 	"github.com/openshift-online/uhc-cli/cmd/uhc/config/set"
 )
 
-var args struct {
-	debug bool
-}
-
 var Cmd = &cobra.Command{
 	Use:   "config COMMAND VARIABLE",
 	Short: "get or set configuration variables",
 }
 
 func init() {
-	flags := Cmd.Flags()
-	flags.BoolVar(
-		&args.debug,
-		"debug",
-		false,
-		"Enable debug mode.",
-	)
 	Cmd.AddCommand(get.Cmd)
 	Cmd.AddCommand(set.Cmd)
 }

@@ -27,9 +27,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var args struct {
-	debug bool
-}
 var Cmd = &cobra.Command{
 	Use:   "cluster COMMAND",
 	Short: "Get information about clusters",
@@ -38,13 +35,6 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	flags := Cmd.Flags()
-	flags.BoolVar(
-		&args.debug,
-		"debug",
-		false,
-		"Enable debug mode.",
-	)
 	Cmd.AddCommand(list.Cmd)
 	Cmd.AddCommand(status.Cmd)
 	Cmd.AddCommand(describe.Cmd)

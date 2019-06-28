@@ -28,9 +28,10 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/golang/glog"
 	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 
-	"github.com/openshift-online/uhc-cli/pkg/util"
+	"github.com/openshift-online/uhc-cli/pkg/debug"
 )
 
 // Config is the type used to store the configuration of the client.
@@ -164,9 +165,17 @@ func (c *Config) Armed() (armed bool, err error) {
 }
 
 // Connection creates a connection using this configuration.
-func (c *Config) Connection(debug bool) (connection *client.Connection, err error) {
+func (c *Config) Connection() (connection *client.Connection, err error) {
 	// Create the logger:
-	logger, err := util.NewLogger(debug)
+	level := glog.Level(1)
+	if debug.Enabled() {
+		level = glog.Level(0)
+	}
+	logger, err := client.NewGlogLoggerBuilder().
+		DebugV(level).
+		InfoV(level).
+		WarnV(level).
+		Build()
 	if err != nil {
 		return
 	}

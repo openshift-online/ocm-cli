@@ -35,18 +35,6 @@ var Cmd = &cobra.Command{
 	Run:   run,
 }
 
-var debug bool
-
-func init() {
-	flags := Cmd.Flags()
-	flags.BoolVar(
-		&debug,
-		"debug",
-		false,
-		"Enable debug mode.",
-	)
-}
-
 func run(cmd *cobra.Command, argv []string) {
 	// Load the configuration file:
 	cfg, err := config.Load()
@@ -71,7 +59,7 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create the connection:
-	connection, err := cfg.Connection(debug)
+	connection, err := cfg.Connection()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
 		os.Exit(1)

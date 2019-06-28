@@ -31,8 +31,7 @@ import (
 )
 
 var args struct {
-	debug bool
-	user  string
+	user string
 }
 
 const ClustersPageSize = 50
@@ -48,12 +47,6 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.BoolVar(
-		&args.debug,
-		"debug",
-		false,
-		"Enable debug mode.",
-	)
 	flags.StringVarP(
 		&args.user,
 		"username",
@@ -98,7 +91,7 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create the connection, and remember to close it:
-	connection, err := cfg.Connection(args.debug)
+	connection, err := cfg.Connection()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
 		os.Exit(1)

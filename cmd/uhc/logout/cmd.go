@@ -25,25 +25,11 @@ import (
 	"github.com/openshift-online/uhc-cli/pkg/config"
 )
 
-var args struct {
-	debug bool
-}
-
 var Cmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Log out",
 	Long:  "Log out, removing the configuration file.",
 	Run:   run,
-}
-
-func init() {
-	flags := Cmd.Flags()
-	flags.BoolVar(
-		&args.debug,
-		"debug",
-		false,
-		"Enable debug mode.",
-	)
 }
 
 func run(cmd *cobra.Command, argv []string) {
