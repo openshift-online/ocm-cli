@@ -76,8 +76,6 @@ func run(cmd *cobra.Command, argv []string) {
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.RefreshToken)
 	case "scopes":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.Scopes)
-	case "token":
-		fmt.Fprintf(os.Stdout, "%s\n", cfg.Token)
 	case "token_url":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.TokenURL)
 	case "url":

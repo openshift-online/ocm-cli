@@ -28,6 +28,9 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/openshift-online/uhc-sdk-go/pkg/client"
+
+	"github.com/openshift-online/uhc-cli/pkg/util"
 )
 
 // Config is the type used to store the configuration of the client.
@@ -39,7 +42,6 @@ type Config struct {
 	Password     string   `json:"password,omitempty"`
 	RefreshToken string   `json:"refresh_token,omitempty"`
 	Scopes       []string `json:"scopes,omitempty"`
-	Token        string   `json:"token,omitempty"`
 	TokenURL     string   `json:"token_url,omitempty"`
 	URL          string   `json:"url,omitempty"`
 	User         string   `json:"user,omitempty"`
@@ -124,20 +126,20 @@ func Location() (path string, err error) {
 
 // Armed checks if the configuration contains either credentials or tokens that haven't expired, so
 // that it can be used to perform authenticated requests.
-func Armed(cfg *Config) (armed bool, err error) {
-	if cfg.User != "" && cfg.Password != "" {
+func (c *Config) Armed() (armed bool, err error) {
+	if c.User != "" && c.Password != "" {
 		armed = true
 		return
 	}
-	if cfg.ClientID != "" && cfg.ClientSecret != "" {
+	if c.ClientID != "" && c.ClientSecret != "" {
 		armed = true
 		return
 	}
 	now := time.Now()
-	if cfg.AccessToken != "" {
+	if c.AccessToken != "" {
 		var expires bool
 		var left time.Duration
-		expires, left, err = tokenExpiry(cfg.AccessToken, now)
+		expires, left, err = tokenExpiry(c.AccessToken, now)
 		if err != nil {
 			return
 		}
@@ -146,10 +148,10 @@ func Armed(cfg *Config) (armed bool, err error) {
 			return
 		}
 	}
-	if cfg.RefreshToken != "" {
+	if c.RefreshToken != "" {
 		var expires bool
 		var left time.Duration
-		expires, left, err = tokenExpiry(cfg.RefreshToken, now)
+		expires, left, err = tokenExpiry(c.RefreshToken, now)
 		if err != nil {
 			return
 		}
@@ -158,6 +160,54 @@ func Armed(cfg *Config) (armed bool, err error) {
 			return
 		}
 	}
+	return
+}
+
+// Connection creates a connection using this configuration.
+func (c *Config) Connection(debug bool) (connection *client.Connection, err error) {
+	// Create the logger:
+	logger, err := util.NewLogger(debug)
+	if err != nil {
+		return
+	}
+
+	// Prepare the builder for the connection adding only the properties that have explicit
+	// values in the configuration, so that default values won't be overridden:
+	builder := client.NewConnectionBuilder()
+	builder.Logger(logger)
+	if c.TokenURL != "" {
+		builder.TokenURL(c.TokenURL)
+	}
+	if c.ClientID != "" || c.ClientSecret != "" {
+		builder.Client(c.ClientID, c.ClientSecret)
+	}
+	if c.Scopes != nil {
+		builder.Scopes(c.Scopes...)
+	}
+	if c.URL != "" {
+		builder.URL(c.URL)
+	}
+	if c.User != "" || c.Password != "" {
+		builder.User(c.User, c.Password)
+	}
+	tokens := make([]string, 0, 2)
+	if c.AccessToken != "" {
+		tokens = append(tokens, c.AccessToken)
+	}
+	if c.RefreshToken != "" {
+		tokens = append(tokens, c.RefreshToken)
+	}
+	if len(tokens) > 0 {
+		builder.Tokens(tokens...)
+	}
+	builder.Insecure(c.Insecure)
+
+	// Create the connection:
+	connection, err = builder.Build()
+	if err != nil {
+		return
+	}
+
 	return
 }
 
