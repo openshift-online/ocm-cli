@@ -55,7 +55,6 @@ var args struct {
 	user         string
 	password     string
 	insecure     bool
-	debug        bool
 	persistent   bool
 }
 
@@ -133,12 +132,6 @@ func init() {
 		false,
 		"Enables insecure communication with the server. This disables verification of TLS "+
 			"certificates and host names.",
-	)
-	flags.BoolVar(
-		&args.debug,
-		"debug",
-		false,
-		"Enable debug mode.",
 	)
 	flags.BoolVar(
 		&args.persistent,
@@ -284,7 +277,7 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create a connection and get the token to verify that the crendentials are correct:
-	connection, err := cfg.Connection(args.debug)
+	connection, err := cfg.Connection()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
 		os.Exit(1)

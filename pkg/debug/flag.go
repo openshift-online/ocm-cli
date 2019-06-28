@@ -14,28 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+// This file contains functions used to implement the '--debug' command line option.
+
+package debug
 
 import (
-	"github.com/golang/glog"
-
-	"github.com/openshift-online/uhc-sdk-go/pkg/client"
+	"github.com/spf13/pflag"
 )
 
-// NewLogger creates a new logger with the debug level enabled according to the given value.
-func NewLogger(debug bool) (logger client.Logger, err error) {
-	debugV := glog.Level(1)
-	infoV := glog.Level(1)
-	warnV := glog.Level(1)
-	if debug {
-		debugV = glog.Level(0)
-		infoV = glog.Level(0)
-		warnV = glog.Level(0)
-	}
-	logger, err = client.NewGlogLoggerBuilder().
-		DebugV(debugV).
-		InfoV(infoV).
-		WarnV(warnV).
-		Build()
-	return
+// AddFlag adds the debug flag to the given set of command line flags.
+func AddFlag(flags *pflag.FlagSet) {
+	flags.BoolVar(
+		&enabled,
+		"debug",
+		false,
+		"Enable debug mode.",
+	)
 }
+
+// Enabled retursn a boolean flag that indicates if the debug mode is enabled.
+func Enabled() bool {
+	return enabled
+}
+
+// enabled is a boolean flag that indicates that the debug mode is enabled.
+var enabled bool

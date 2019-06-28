@@ -29,7 +29,6 @@ import (
 )
 
 var args struct {
-	debug     bool
 	header    bool
 	payload   bool
 	signature bool
@@ -68,12 +67,6 @@ func init() {
 		"refresh",
 		false,
 		"Print the refresh token instead of the access token.",
-	)
-	flags.BoolVar(
-		&args.debug,
-		"debug",
-		false,
-		"Enable debug mode.",
 	)
 }
 
@@ -126,7 +119,7 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create the connection:
-	connection, err := cfg.Connection(args.debug)
+	connection, err := cfg.Connection()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
 		os.Exit(1)

@@ -28,7 +28,6 @@ import (
 )
 
 var args struct {
-	debug  bool
 	json   bool
 	output bool
 }
@@ -43,12 +42,6 @@ var Cmd = &cobra.Command{
 func init() {
 	// Add flags to rootCmd:
 	flags := Cmd.Flags()
-	flags.BoolVar(
-		&args.debug,
-		"debug",
-		false,
-		"Enable debug mode.",
-	)
 	flags.BoolVar(
 		&args.output,
 		"output",
@@ -93,7 +86,7 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create the connection, and remember to close it:
-	connection, err := cfg.Connection(args.debug)
+	connection, err := cfg.Connection()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
 		os.Exit(1)
