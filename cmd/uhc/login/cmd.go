@@ -43,7 +43,7 @@ const (
 	// #nosec G101
 	deprecatedTokenURL = "https://developers.redhat.com/auth/realms/rhd/protocol/openid-connect/token"
 	deprecatedClientID = "uhc"
-	deprecatedIssuer   = "sso.redhat.com"
+	deprecatedIssuer   = "developers.redhat.com"
 )
 
 var args struct {
