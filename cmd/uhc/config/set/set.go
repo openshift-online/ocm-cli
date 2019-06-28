@@ -83,8 +83,6 @@ func run(cmd *cobra.Command, argv []string) {
 	case "scopes":
 		fmt.Fprintf(os.Stderr, "Setting scopes is unsupported")
 		os.Exit(1)
-	case "token":
-		cfg.Token = value
 	case "token_url":
 		cfg.TokenURL = value
 	case "url":

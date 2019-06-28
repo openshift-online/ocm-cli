@@ -27,7 +27,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
-	"github.com/openshift-online/uhc-cli/pkg/util"
 )
 
 // Preferred OpenID details:
@@ -153,6 +152,8 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) {
+	var err error
+
 	// Check mandatory options:
 	ok := true
 	if args.url == "" {
@@ -187,6 +188,17 @@ func run(cmd *cobra.Command, argv []string) {
 		)
 	}
 
+	// If a token has been provided parse it:
+	var token *jwt.Token
+	if haveToken {
+		parser := new(jwt.Parser)
+		token, _, err = parser.ParseUnverified(args.token, jwt.MapClaims{})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't parse token '%s': %v\n", args.token, err)
+			os.Exit(1)
+		}
+	}
+
 	// Initially the default OpenID details will be the preferred ones:
 	defaultTokenURL := preferredTokenURL
 	defaultClientID := preferredClientID
@@ -197,7 +209,7 @@ func run(cmd *cobra.Command, argv []string) {
 		defaultTokenURL = deprecatedTokenURL
 		defaultClientID = deprecatedClientID
 	} else if haveToken {
-		issuerURL, err := tokenIssuer(args.token)
+		issuerURL, err := tokenIssuer(token)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Can't get token issuer: %v\n", err)
 			os.Exit(1)
@@ -227,34 +239,52 @@ func run(cmd *cobra.Command, argv []string) {
 	if cfg == nil {
 		cfg = new(config.Config)
 	}
+
+	// Update the configuration with the values given in the command line:
 	cfg.TokenURL = tokenURL
 	cfg.ClientID = clientID
 	cfg.ClientSecret = args.clientSecret
 	cfg.Scopes = args.scopes
 	cfg.URL = args.url
 	cfg.User = args.user
-	cfg.Token = args.token
 	cfg.Password = args.password
 	cfg.Insecure = args.insecure
 
+	// Put the token in the place of the configuration that corresponds to its type:
+	if haveToken {
+		typ, err := tokenType(token)
+		if err != nil {
+			fmt.Fprintf(
+				os.Stderr,
+				"Can't extract type from 'typ' claim of token '%s': %v\n",
+				args.token, err,
+			)
+			os.Exit(1)
+		}
+		switch typ {
+		case "Bearer":
+			cfg.AccessToken = args.token
+		case "Refresh", "Offline":
+			cfg.RefreshToken = args.token
+		case "":
+			fmt.Fprintf(
+				os.Stderr,
+				"Don't know how to handle empty type '%s' in token '%s'\n",
+				args.token,
+			)
+			os.Exit(1)
+		default:
+			fmt.Fprintf(
+				os.Stderr,
+				"Don't know how to handle token type '%s' in token '%s'\n",
+				typ, args.token,
+			)
+			os.Exit(1)
+		}
+	}
+
 	// Create a connection and get the token to verify that the crendentials are correct:
-	logger, err := util.NewLogger(args.debug)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create logger: %v\n", err)
-		os.Exit(1)
-	}
-	builder := client.NewConnectionBuilder().
-		Logger(logger).
-		TokenURL(cfg.TokenURL).
-		Client(cfg.ClientID, cfg.ClientSecret).
-		Scopes(cfg.Scopes...).
-		URL(cfg.URL).
-		User(cfg.User, cfg.Password).
-		Insecure(cfg.Insecure)
-	if cfg.Token != "" {
-		builder.Tokens(cfg.Token)
-	}
-	connection, err := builder.Build()
+	connection, err := cfg.Connection(args.debug)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
 		os.Exit(1)
@@ -283,18 +313,10 @@ func run(cmd *cobra.Command, argv []string) {
 	os.Exit(0)
 }
 
-// tokenIssuer parses the given token and tries to extract the value of the `iss` claim. It then
-// returns tha value as a URL, or nil if there is no such claim.
-func tokenIssuer(token string) (issuer *url.URL, err error) {
-	// Parse the token:
-	parser := new(jwt.Parser)
-	parsed, _, err := parser.ParseUnverified(token, jwt.MapClaims{})
-	if err != nil {
-		return
-	}
-
-	// Try to get the `iss` claim:
-	claims, ok := parsed.Claims.(jwt.MapClaims)
+// tokenIssuer extracts the value of the `iss` claim. It then returns tha value as a URL, or nil if
+// there is no such claim.
+func tokenIssuer(token *jwt.Token) (issuer *url.URL, err error) {
+	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		err = fmt.Errorf("expected map claims but got %T", claims)
 		return
@@ -309,5 +331,26 @@ func tokenIssuer(token string) (issuer *url.URL, err error) {
 		return
 	}
 	issuer, err = url.Parse(value)
+	return
+}
+
+// tokenType extracts the value of the `typ` claim. It returns the value as a string, or the empty
+// string if there is no such claim.
+func tokenType(token *jwt.Token) (typ string, err error) {
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		err = fmt.Errorf("expected map claims but got %T", claims)
+		return
+	}
+	claim, ok := claims["typ"]
+	if !ok {
+		return
+	}
+	value, ok := claim.(string)
+	if !ok {
+		err = fmt.Errorf("expected string 'typ' but got %T", claim)
+		return
+	}
+	typ = value
 	return
 }
