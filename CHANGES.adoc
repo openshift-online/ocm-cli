@@ -3,6 +3,11 @@
 This document describes the relevant changes between releases of the
 `uhc` command line tool.
 
+== 0.1.16 Jun 28 2019
+
+- Fix deprecated issuer: should be _developers.redhat.com_ instead of
+  _sso.redhat.com_.
+
 == 0.1.15 Jun 27 2019
 
 - Added the `--single` option to the `get` command to format the output in one
