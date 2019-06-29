@@ -18,14 +18,13 @@ package patch
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
 	"github.com/openshift-online/uhc-cli/pkg/dump"
+	"github.com/openshift-online/uhc-cli/pkg/flags"
 	"github.com/openshift-online/uhc-cli/pkg/urls"
 )
 
@@ -43,32 +42,10 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	flags := Cmd.Flags()
-	flags.StringArrayVar(
-		&args.parameter,
-		"parameter",
-		nil,
-		"Query parameters to add to the request. The value must be the name of the "+
-			"parameter, followed by an optional equals sign and then the value "+
-			"of the parameter. Can be used multiple times to specify multiple "+
-			"parameters or multiple values for the same parameter.",
-	)
-	flags.StringArrayVar(
-		&args.header,
-		"header",
-		nil,
-		"Headers to add to the request. The value must be the name of the header "+
-			"followed by an optional equals sign and then the value of the "+
-			"header. Can be used multiple times to specify multiple headers "+
-			"or multiple values for the same header.",
-	)
-	flags.StringVar(
-		&args.body,
-		"body",
-		"",
-		"Name fo the file containing the request body. If this isn't given then "+
-			"the body will be taken from the standard input.",
-	)
+	fs := Cmd.Flags()
+	flags.AddParameterFlag(fs, &args.parameter)
+	flags.AddHeaderFlag(fs, &args.header)
+	flags.AddBodyFlag(fs, &args.body)
 }
 
 func run(cmd *cobra.Command, argv []string) {
@@ -109,43 +86,13 @@ func run(cmd *cobra.Command, argv []string) {
 
 	// Create and populate the request:
 	request := connection.Patch().Path(path)
-	for _, parameter := range args.parameter {
-		var name string
-		var value string
-		position := strings.Index(parameter, "=")
-		if position != -1 {
-			name = parameter[:position]
-			value = parameter[position+1:]
-		} else {
-			name = parameter
-			value = ""
-		}
-		request.Parameter(name, value)
-	}
-	for _, header := range args.header {
-		var name string
-		var value string
-		position := strings.Index(header, "=")
-		if position != -1 {
-			name = header[:position]
-			value = header[position+1:]
-		} else {
-			name = header
-			value = ""
-		}
-		request.Header(name, value)
-	}
-	var body []byte
-	if args.body != "" {
-		body, err = ioutil.ReadFile(args.body)
-	} else {
-		body, err = ioutil.ReadAll(os.Stdin)
-	}
+	flags.ApplyParameterFlag(request, args.parameter)
+	flags.ApplyHeaderFlag(request, args.header)
+	err = flags.ApplyBodyFlag(request, args.body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't read body: %v\n", err)
 		os.Exit(1)
 	}
-	request.Bytes(body)
 
 	// Send the request:
 	response, err := request.Send()
@@ -154,7 +101,7 @@ func run(cmd *cobra.Command, argv []string) {
 		os.Exit(1)
 	}
 	status := response.Status()
-	body = response.Bytes()
+	body := response.Bytes()
 	if status < 400 {
 		err = dump.Pretty(os.Stdout, body)
 	} else {
