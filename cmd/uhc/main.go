@@ -37,7 +37,7 @@ import (
 	"github.com/openshift-online/uhc-cli/cmd/uhc/token"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/version"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/whoami"
-	"github.com/openshift-online/uhc-cli/pkg/debug"
+	"github.com/openshift-online/uhc-cli/pkg/flags"
 )
 
 var root = &cobra.Command{
@@ -58,8 +58,8 @@ func init() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	// Add the command line flags:
-	flags := root.PersistentFlags()
-	debug.AddFlag(flags)
+	fs := root.PersistentFlags()
+	flags.AddDebugFlag(fs)
 
 	// Register the subcommands:
 	root.AddCommand(delete.Cmd)

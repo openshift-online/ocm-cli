@@ -19,12 +19,12 @@ package get
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
 	"github.com/openshift-online/uhc-cli/pkg/dump"
+	"github.com/openshift-online/uhc-cli/pkg/flags"
 	"github.com/openshift-online/uhc-cli/pkg/urls"
 )
 
@@ -42,26 +42,10 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	flags := Cmd.Flags()
-	flags.StringArrayVar(
-		&args.parameter,
-		"parameter",
-		nil,
-		"Query parameters to add to the request. The value must be the name of the "+
-			"parameter, followed by an optional equals sign and then the value "+
-			"of the parameter. Can be used multiple times to specify multiple "+
-			"parameters or multiple values for the same parameter.",
-	)
-	flags.StringArrayVar(
-		&args.header,
-		"header",
-		nil,
-		"Headers to add to the request. The value must be the name of the header "+
-			"followed by an optional equals sign and then the value of the "+
-			"header. Can be used multiple times to specify multiple headers "+
-			"or multiple values for the same header.",
-	)
-	flags.BoolVar(
+	fs := Cmd.Flags()
+	flags.AddParameterFlag(fs, &args.parameter)
+	flags.AddHeaderFlag(fs, &args.header)
+	fs.BoolVar(
 		&args.single,
 		"single",
 		false,
@@ -107,32 +91,8 @@ func run(cmd *cobra.Command, argv []string) {
 
 	// Create and populate the request:
 	request := connection.Get().Path(path)
-	for _, parameter := range args.parameter {
-		var name string
-		var value string
-		position := strings.Index(parameter, "=")
-		if position != -1 {
-			name = parameter[:position]
-			value = parameter[position+1:]
-		} else {
-			name = parameter
-			value = ""
-		}
-		request.Parameter(name, value)
-	}
-	for _, header := range args.header {
-		var name string
-		var value string
-		position := strings.Index(header, "=")
-		if position != -1 {
-			name = header[:position]
-			value = header[position+1:]
-		} else {
-			name = header
-			value = ""
-		}
-		request.Header(name, value)
-	}
+	flags.ApplyParameterFlag(request, args.parameter)
+	flags.ApplyHeaderFlag(request, args.header)
 
 	// Send the request:
 	response, err := request.Send()

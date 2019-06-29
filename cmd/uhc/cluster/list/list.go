@@ -30,10 +30,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
+	"github.com/openshift-online/uhc-cli/pkg/flags"
 )
 
 var args struct {
 	parameter []string
+	header    []string
 	managed   bool
 	step      bool
 	columns   string
@@ -160,29 +162,22 @@ func findMapValue(data map[string]interface{}, key string) (string, bool) {
 }
 
 func init() {
-	flags := Cmd.Flags()
-	flags.StringArrayVar(
-		&args.parameter,
-		"parameter",
-		nil,
-		"Query parameters to add to the request. The value must be the name of the "+
-			"parameter, followed by an optional equals sign and then the value "+
-			"of the parameter. Can be used multiple times to specifprintTopy multiple "+
-			"parameters or multiple values for the same parameter.",
-	)
-	flags.BoolVar(
+	fs := Cmd.Flags()
+	flags.AddParameterFlag(fs, &args.parameter)
+	flags.AddHeaderFlag(fs, &args.header)
+	fs.BoolVar(
 		&args.managed,
 		"managed",
 		false,
 		"Filter managed/unmanaged clusters",
 	)
-	flags.BoolVar(
+	fs.BoolVar(
 		&args.step,
 		"step",
 		false,
 		"Load pages one step at a time",
 	)
-	flags.StringVar(
+	fs.StringVar(
 		&args.columns,
 		"columns",
 		"id, name, api.url, version.id, region.id",
@@ -190,7 +185,7 @@ func init() {
 			"'id, name, api.url, version.id, region.id' "+
 			"will output the default values.",
 	)
-	flags.IntVar(
+	fs.IntVar(
 		&args.padding,
 		"padding",
 		45,
@@ -199,10 +194,6 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) {
-
-	pageSize := 100
-	pageIndex := 1
-
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
@@ -252,9 +243,21 @@ func run(cmd *cobra.Command, argv []string) {
 	// Print Header Row:
 	printTop(columnNames, paddingByColumn)
 
+	size := 100
+	index := 1
 	for {
 		// Fetch the next page:
-		response := getResponse(collection, managed, args.parameter, pageSize, pageIndex)
+		request := collection.List().Size(size).Page(index)
+		flags.ApplyParameterFlag(request, args.parameter)
+		flags.ApplyHeaderFlag(request, args.header)
+		if managed {
+			request.Search("managed = 't'")
+		}
+		response, err := request.Send()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
+			os.Exit(1)
+		}
 
 		// Display the fetched page:
 		response.Items().Each(func(cluster *v1.Cluster) bool {
@@ -300,7 +303,7 @@ func run(cmd *cobra.Command, argv []string) {
 
 		// if step was flagged, load only one page at a time:
 		if args.step {
-			if response.Size() < pageSize {
+			if response.Size() < size {
 				break
 			}
 			fmt.Println()
@@ -317,48 +320,11 @@ func run(cmd *cobra.Command, argv []string) {
 
 		// If the number of fetched results is less than requested, then
 		// this was the last page, otherwise process the next one:
-		if response.Size() < pageSize {
+		if response.Size() < size {
 			break
 		}
-		pageIndex++
+		index++
 	}
 
 	fmt.Println()
-}
-
-func getResponse(collection *v1.ClustersClient,
-	managed bool,
-	parameter []string,
-	pageSize int,
-	pageIndex int) *v1.ClustersListResponse {
-
-	listRequest := collection.List().
-		Size(pageSize).
-		Page(pageIndex)
-
-	if managed {
-		listRequest.Search("managed='true'")
-	} else if len(parameter) > 0 {
-		for _, parameter := range args.parameter {
-			var name string
-			var value string
-			position := strings.Index(parameter, "=")
-			if position != -1 {
-				name = parameter[:position]
-				value = parameter[position+1:]
-			} else {
-				name = parameter
-				value = ""
-			}
-			listRequest.Parameter(name, value)
-		}
-	}
-
-	response, err := listRequest.Send()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
-		os.Exit(1)
-	}
-
-	return response
 }
