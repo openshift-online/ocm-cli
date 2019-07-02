@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/openshift-online/uhc-cli/cmd/uhc/account"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/cluster"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/completion"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/config"
@@ -62,6 +63,7 @@ func init() {
 	debug.AddFlag(flags)
 
 	// Register the subcommands:
+	root.AddCommand(account.Cmd)
 	root.AddCommand(delete.Cmd)
 	root.AddCommand(get.Cmd)
 	root.AddCommand(login.Cmd)
