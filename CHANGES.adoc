@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `uhc` command line tool.
 
+== 0.1.17 Jul 2 2019
+
+- Added the `account` command.
+
 == 0.1.16 Jun 28 2019
 
 - Fix deprecated issuer: should be _developers.redhat.com_ instead of
