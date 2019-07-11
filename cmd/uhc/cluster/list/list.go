@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 
 	v1 "github.com/openshift-online/uhc-sdk-go/pkg/client/clustersmgmt/v1"
@@ -123,28 +122,13 @@ func findMapValue(data map[string]interface{}, key string) (string, bool) {
 
 			switch typed := val.(type) {
 
-			// If key points to string:
-			case string:
-				return typed, true
-
 			// If key points to interface insance:
 			case map[string]interface{}:
 				data = typed
 
-			// If key points to an integer:
-			case int:
-				return strconv.Itoa(typed), true
-
-			// If key points to a float:
-			case float32:
-				return fmt.Sprintf("%f", typed), true
-
-			case float64:
-				return fmt.Sprintf("%f", typed), true
-
-			// If key points to bool:
-			case bool:
-				return strconv.FormatBool(typed), true
+			// If key points to an end value:
+			case string, int, float32, float64, bool:
+				return fmt.Sprintf("%v", typed), true
 
 			// Not dealing with other possible datatypes:
 			default:
@@ -152,8 +136,7 @@ func findMapValue(data map[string]interface{}, key string) (string, bool) {
 
 			}
 
-			// Key not in map
-		} else {
+		} else { // Key not in map
 			return "", false
 		}
 	}
