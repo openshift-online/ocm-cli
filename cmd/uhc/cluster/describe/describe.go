@@ -17,10 +17,12 @@ limitations under the License.
 package describe
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 
+	"github.com/openshift-online/uhc-cli/pkg/dump"
 	v1 "github.com/openshift-online/uhc-sdk-go/pkg/client/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 
@@ -135,17 +137,27 @@ func run(cmd *cobra.Command, argv []string) {
 
 	// Get full API response (JSON):
 	if args.json {
-		// Get JSON encoder:
+		// Buffer for pretty output:
+		buf := new(bytes.Buffer)
 		fmt.Println()
-		encoder := json.NewEncoder(os.Stdout)
-		encoder.SetIndent("", " ")
 
 		// Convert cluster to JSON and dump to encoder:
-		err = v1.MarshalCluster(cluster, encoder)
+		err = v1.MarshalCluster(cluster, buf)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to Marshal cluster into JSON encoder: %v\n", err)
 			os.Exit(1)
 		}
+
+		if response.Status() < 400 {
+			err = dump.Pretty(os.Stdout, buf.Bytes())
+		} else {
+			err = dump.Pretty(os.Stderr, buf.Bytes())
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't print body: %v\n", err)
+			os.Exit(1)
+		}
+
 	} else {
 		// Get creation date info:
 		clusterTimetamp := cluster.CreationTimestamp()
