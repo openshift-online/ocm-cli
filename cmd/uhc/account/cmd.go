@@ -22,12 +22,14 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/uhc-cli/cmd/uhc/account/orgs"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/account/quota"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/account/roles"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/account/status"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/account/users"
 )
 
+// Cmd ...
 var Cmd = &cobra.Command{
 	Use:   "account COMMAND",
 	Short: "Get information about users.",
@@ -37,6 +39,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	Cmd.AddCommand(quota.Cmd)
+	Cmd.AddCommand(orgs.Cmd)
 	Cmd.AddCommand(status.Cmd)
 	Cmd.AddCommand(roles.Cmd)
 	Cmd.AddCommand(users.Cmd)
