@@ -30,6 +30,7 @@ import (
 
 	"github.com/openshift-online/uhc-cli/pkg/config"
 	"github.com/openshift-online/uhc-cli/pkg/flags"
+	table "github.com/openshift-online/uhc-cli/pkg/table"
 )
 
 var args struct {
@@ -49,99 +50,6 @@ var Cmd = &cobra.Command{
 	Short: "List clusters",
 	Long:  "List clusters by ID and Name",
 	Run:   run,
-}
-
-// printTop prints top of list.
-func printTop(columns []string, padding []int) {
-	fmt.Println()
-	prettyPrint(updateRowPad(padding, columns))
-	fmt.Println()
-}
-
-// clearPage clears the page.
-func clearPage() {
-	// #nosec 204
-	cmd := exec.Command("clear")
-	cmd.Stdout = os.Stdout
-	err := cmd.Run()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to clear page: %s\n", err)
-		os.Exit(1)
-	}
-}
-
-// prettyPrint prints a string array without brackets.
-func prettyPrint(arrStr ...[]string) {
-	for fi := range arrStr {
-		finalString := ""
-		for item := range arrStr[fi] {
-			finalString = fmt.Sprint(finalString, arrStr[fi][item])
-		}
-		fmt.Println(finalString)
-	}
-}
-
-// updateRowPad updates the length of all strings in a given list
-// to match wanted length.
-func updateRowPad(columnPad []int, columnList []string) []string {
-	// Make sure padding list is at least as long as row list
-	st := columnList
-	fixLen := len(columnPad) - len(st)
-	if fixLen < 0 {
-		// Get last value of column pad and simply re-use it to fill columnPad up
-		valueToUse := columnPad[len(columnPad)-1]
-		for i := 0; i < fixLen*(-1); i++ {
-			columnPad = append(columnPad, valueToUse)
-		}
-	}
-	for i := range st {
-		// Add padding
-		if len(st[i]) < columnPad[i] {
-			st[i] = st[i] + strings.Repeat(" ", columnPad[i]-len(st[i]))
-			// Clip
-		} else {
-			st[i] = st[i][:columnPad[i]-2] + "  "
-		}
-	}
-	return st
-}
-
-// findMapValue will find a key and retrieve its value from the given map. The key has to be
-// a string and can be multilayered, for example `foo.bar`. Returns the value and a boolean
-// indicating if the value was found.
-func findMapValue(data map[string]interface{}, key string) (string, bool) {
-
-	// Split key into array
-	keys := strings.Split(key, ".")
-
-	// loop though elements in sliced string:
-	for _, element := range keys {
-
-		// if key is found, continue:
-		if val, ok := data[element]; ok {
-
-			switch typed := val.(type) {
-
-			// If key points to interface insance:
-			case map[string]interface{}:
-				data = typed
-
-			// If key points to an end value:
-			case string, int, float32, float64, bool:
-				return fmt.Sprintf("%v", typed), true
-
-			// Not dealing with other possible datatypes:
-			default:
-				return "", false
-
-			}
-
-		} else { // Key not in map
-			return "", false
-		}
-	}
-
-	return "", false
 }
 
 func init() {
@@ -165,7 +73,7 @@ func init() {
 		"columns",
 		"id, name, api.url, version.id, region.id",
 		"Specify which columns to display separated by commas, path is based on Cluster struct i.e. "+
-			"'id, name, api.url, version.id, region.id' "+
+			"id,name,api.url,version.id,region.id"+
 			"will output the default values.",
 	)
 	fs.IntVar(
@@ -216,15 +124,19 @@ func run(cmd *cobra.Command, argv []string) {
 		managed = false
 	}
 
-	// Update our column name displaying variable:
+	// Update our column name and padding variables:
 	args.columns = strings.Replace(args.columns, " ", "", -1)
 	colUpper := strings.ToUpper(args.columns)
 	colUpper = strings.Replace(colUpper, ".", " ", -1)
 	columnNames := strings.Split(colUpper, ",")
-	paddingByColumn := []int{args.padding}
+	paddingByColumn := []int{35, 25, 70, 25, 15}
+	if args.columns != "id,name,api.url,version.id,region.id" {
+		paddingByColumn = []int{args.padding}
+	}
 
 	// Print Header Row:
-	printTop(columnNames, paddingByColumn)
+	table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
+	fmt.Println()
 
 	size := 100
 	index := 1
@@ -259,27 +171,24 @@ func run(cmd *cobra.Command, argv []string) {
 				os.Exit(1)
 			}
 
-			// Get JSON from Cluster bytes
+			// Get JSON from Cluster bytes:
 			err = json.Unmarshal(boddyBuffer.Bytes(), &jsonBody)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to turn cluster bytes into JSON map: %s\n", err)
 				os.Exit(1)
 			}
 
-			// Loop through wanted columns and populate a cluster instance
+			// Loop through wanted columns and populate a cluster instance:
 			iter := strings.Split(args.columns, ",")
 			thisCluster := []string{}
 			for _, element := range iter {
-				value, status := findMapValue(jsonBody, element)
+				value, status := table.FindMapValue(jsonBody, element)
 				if !status {
 					value = "NONE"
 				}
 				thisCluster = append(thisCluster, value)
-				thisCluster = updateRowPad([]int{args.padding}, thisCluster)
 			}
-
-			// Print current cluster:
-			prettyPrint(thisCluster)
+			table.PrintPadded(os.Stdout, thisCluster, paddingByColumn)
 			return true
 
 		})
@@ -298,7 +207,8 @@ func run(cmd *cobra.Command, argv []string) {
 				os.Exit(1)
 			}
 			clearPage()
-			printTop(columnNames, paddingByColumn)
+			table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
+			fmt.Println()
 		}
 
 		// If the number of fetched results is less than requested, then
@@ -310,4 +220,16 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	fmt.Println()
+}
+
+// clearPage clears the page.
+func clearPage() {
+	// #nosec 204
+	cmd := exec.Command("clear")
+	cmd.Stdout = os.Stdout
+	err := cmd.Run()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to clear page: %s\n", err)
+		os.Exit(1)
+	}
 }
