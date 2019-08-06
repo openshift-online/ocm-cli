@@ -22,6 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	acc_util "github.com/openshift-online/uhc-cli/pkg/account"
 	"github.com/openshift-online/uhc-cli/pkg/config"
 )
 
@@ -91,4 +92,7 @@ func run(cmd *cobra.Command, argv []string) {
 	currAccount := response.Body()
 	fmt.Println(fmt.Sprintf("%s on %s", currAccount.Username(), cfg.URL))
 
+	// Display roles currently assigned to the user
+	roleSlice := acc_util.GetRolesFromUser(currAccount, connection)
+	fmt.Printf("Roles: %v\n", roleSlice)
 }

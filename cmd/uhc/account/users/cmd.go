@@ -23,8 +23,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	acc_util "github.com/openshift-online/uhc-cli/pkg/account"
 	"github.com/openshift-online/uhc-cli/pkg/config"
-	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 	amv1 "github.com/openshift-online/uhc-sdk-go/pkg/client/accountsmgmt/v1"
 )
 
@@ -136,7 +136,7 @@ func run(cmd *cobra.Command, argv []string) {
 			if args.org == account.Organization().ID() {
 				username := stringPad(account.Username(), namePad)
 				userID := stringPad(account.ID(), namePad)
-				accountRoleList := getRolesFromUser(account, connection)
+				accountRoleList := acc_util.GetRolesFromUser(account, connection)
 				fmt.Println(username, userID, printArray(accountRoleList))
 			}
 			return true
@@ -149,56 +149,6 @@ func run(cmd *cobra.Command, argv []string) {
 		pageIndex++
 	}
 
-}
-
-// getRolesFromUser gets all roles a specific user possesses.
-func getRolesFromUser(account *amv1.Account, conn *client.Connection) []string {
-
-	pageIndex := 1
-	var roles []string
-
-	// Get all roles in each role page:
-	for {
-		rolesList := conn.AccountsMgmt().V1().RoleBindings().List().Page(pageIndex)
-		// Format search request:
-		searchRequest := ""
-		searchRequest = fmt.Sprintf("account_id='%s'", account.ID())
-		// Add parameter to search for role with matching user id:
-		rolesList.Parameter("search", searchRequest)
-		// Get response:
-		response, err := rolesList.Send()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't retrieve roles: %v\n", err)
-			os.Exit(1)
-		}
-		// Loop through roles and save their ids
-		// iff it is not in the list yet:
-		response.Items().Each(func(item *amv1.RoleBinding) bool {
-			if !stringInList(roles, item.Role().ID()) {
-				roles = append(roles, item.Role().ID())
-			}
-			return true
-		})
-
-		// Break
-		if response.Size() < 100 {
-			break
-		}
-
-		pageIndex++
-	}
-	return roles
-}
-
-// stringInList returns a bool signifying whether
-// a string is in a string array.
-func stringInList(strArr []string, key string) bool {
-	for _, str := range strArr {
-		if str == key {
-			return true
-		}
-	}
-	return false
 }
 
 // stringPad will add whitespace or clip a string
