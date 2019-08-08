@@ -15,18 +15,18 @@
 #
 
 .PHONY: cmds
-cmds: vendor
+cmds:
 	for cmd in $$(ls cmd); do \
 		CGO_ENABLED=0 \
-		go build -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
+		go build -mod=readonly -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
 	done
 
 .PHONY: install
-install: vendor
+install:
 	go install ./cmd/uhc
 
-.PHONY: tools
-test: vendor tools
+.PHONY: test
+test:
 	ginkgo -r cmd pkg
 
 .PHONY: fmt
@@ -34,7 +34,7 @@ fmt:
 	gofmt -s -l -w cmd pkg
 
 .PHONY: lint
-lint: vendor
+lint:
 	golangci-lint run \
 		--no-config \
 		--issues-exit-code=1 \
@@ -57,16 +57,8 @@ lint: vendor
 		--enable=varcheck \
 		$(NULL)
 
-vendor: Gopkg.lock
-	dep ensure -vendor-only -v
-
-.PHONY: tools
-tools:
-	which ginkgo || go get -v github.com/onsi/ginkgo/ginkgo
-
-.PHONY: tools
+.PHONY: clean
 clean:
 	rm -rf \
 		$$(ls cmd) \
-		vendor \
 		$(NULL)
