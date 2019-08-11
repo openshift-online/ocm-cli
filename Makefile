@@ -14,6 +14,9 @@
 # limitations under the License.
 #
 
+# Ensure go modules are enabled:
+export GO111MODULE=on
+
 .PHONY: cmds
 cmds:
 	for cmd in $$(ls cmd); do \
