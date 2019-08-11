@@ -46,9 +46,10 @@ var managed bool
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:   "list [flags] ",
+	Use:   "list [flags] [partial cluster ID or name]",
 	Short: "List clusters",
 	Long:  "List clusters by ID and Name",
+	Args:  cobra.RangeArgs(0, 1),
 	Run:   run,
 }
 
@@ -124,6 +125,12 @@ func run(cmd *cobra.Command, argv []string) {
 		managed = false
 	}
 
+	// If there is a parameter specified, assume its a filter:
+	var argFilter string
+	if len(argv) == 1 && argv[0] != "" {
+		argFilter = fmt.Sprintf("(name like '%%%s%%' or id like '%%%s%%')", argv[0], argv[0])
+	}
+
 	// Update our column name and padding variables:
 	args.columns = strings.Replace(args.columns, " ", "", -1)
 	colUpper := strings.ToUpper(args.columns)
@@ -145,9 +152,20 @@ func run(cmd *cobra.Command, argv []string) {
 		request := collection.List().Size(size).Page(index)
 		flags.ApplyParameterFlag(request, args.parameter)
 		flags.ApplyHeaderFlag(request, args.header)
+		var search strings.Builder
 		if managed {
-			request.Search("managed = 't'")
+			if search.Len() > 0 {
+				search.WriteString(" and ")
+			}
+			search.WriteString("managed = 't'")
 		}
+		if argFilter != "" {
+			if search.Len() > 0 {
+				search.WriteString(" and ")
+			}
+			search.WriteString(argFilter)
+		}
+		request.Search(strings.TrimSpace(search.String()))
 		response, err := request.Send()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
