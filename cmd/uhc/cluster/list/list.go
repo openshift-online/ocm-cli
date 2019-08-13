@@ -131,7 +131,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	colUpper := strings.ToUpper(args.columns)
 	colUpper = strings.Replace(colUpper, ".", " ", -1)
 	columnNames := strings.Split(colUpper, ",")
-	paddingByColumn := []int{35, 25, 70, 25, 15}
+	paddingByColumn := []int{35, 60, 70, 60, 15}
 	if args.columns != "id,name,api.url,version.id,region.id" {
 		paddingByColumn = []int{args.padding}
 	}
