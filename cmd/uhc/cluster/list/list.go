@@ -46,10 +46,11 @@ var managed bool
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:   "list [flags] ",
+	Use:   "list [flags] [partial cluster ID or name]",
 	Short: "List clusters",
 	Long:  "List clusters by ID and Name",
-	Run:   run,
+	Args:  cobra.RangeArgs(0, 1),
+	RunE:  run,
 }
 
 func init() {
@@ -84,34 +85,29 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection, and remember to close it:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -122,6 +118,12 @@ func run(cmd *cobra.Command, argv []string) {
 		managed = args.managed
 	} else {
 		managed = false
+	}
+
+	// If there is a parameter specified, assume its a filter:
+	var argFilter string
+	if len(argv) == 1 && argv[0] != "" {
+		argFilter = fmt.Sprintf("(name like '%%%s%%' or id like '%%%s%%')", argv[0], argv[0])
 	}
 
 	// Update our column name and padding variables:
@@ -145,13 +147,35 @@ func run(cmd *cobra.Command, argv []string) {
 		request := collection.List().Size(size).Page(index)
 		flags.ApplyParameterFlag(request, args.parameter)
 		flags.ApplyHeaderFlag(request, args.header)
+		var search strings.Builder
 		if managed {
-			request.Search("managed = 't'")
+			if search.Len() > 0 {
+				_, err = search.WriteString(" and ")
+				if err != nil {
+					return fmt.Errorf("Can't write to string: %v", err)
+				}
+			}
+			_, err = search.WriteString("managed = 't'")
+			if err != nil {
+				return fmt.Errorf("Can't write to string: %v", err)
+			}
 		}
+		if argFilter != "" {
+			if search.Len() > 0 {
+				_, err = search.WriteString(" and ")
+				if err != nil {
+					return fmt.Errorf("Can't write to string: %v", err)
+				}
+			}
+			_, err = search.WriteString(argFilter)
+			if err != nil {
+				return fmt.Errorf("Can't write to string: %v", err)
+			}
+		}
+		request.Search(strings.TrimSpace(search.String()))
 		response, err := request.Send()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't retrieve clusters: %v", err)
 		}
 
 		// Display the fetched page:
@@ -203,10 +227,12 @@ func run(cmd *cobra.Command, argv []string) {
 			_, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 			// var input string
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to retrieve input: %s\n", err)
-				os.Exit(1)
+				return fmt.Errorf("Failed to retrieve input: %v", err)
 			}
-			clearPage()
+			err = clearPage()
+			if err != nil {
+				return fmt.Errorf("Failed to clear page: %v", err)
+			}
 			table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
 			fmt.Println()
 		}
@@ -220,16 +246,19 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	fmt.Println()
+
+	return nil
 }
 
 // clearPage clears the page.
-func clearPage() {
+func clearPage() error {
 	// #nosec 204
 	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
 	err := cmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to clear page: %s\n", err)
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }
