@@ -80,8 +80,8 @@ func init() {
 	fs.IntVar(
 		&args.padding,
 		"padding",
-		45,
-		"Takes padding for custom columns, default to 35.",
+		-1,
+		"Change all column sizes.",
 	)
 }
 
@@ -132,7 +132,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	colUpper = strings.Replace(colUpper, ".", " ", -1)
 	columnNames := strings.Split(colUpper, ",")
 	paddingByColumn := []int{35, 60, 70, 60, 15}
-	if args.columns != "id,name,api.url,version.id,region.id" {
+	if args.padding != -1 {
+		if args.padding < 2 {
+			fmt.Printf("Padding flag needs to be an integer greater than 2\n")
+			os.Exit(1)
+		}
 		paddingByColumn = []int{args.padding}
 	}
 
