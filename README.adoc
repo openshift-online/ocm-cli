@@ -326,3 +326,23 @@ $ uhc config get url
 ....
 $ uhc config set url https://api.openshift.com
 ....
+
+=== Releasing
+*Requirements:*
+
+https://goreleaser.com/install/[GoRelease]
+
+https://github.com/settings/tokens[GitHub Token] *(More below)*
+
+*Steps:*
+
+- Generate a new GitHub https://github.com/settings/tokens[GitHub token] with *repo* scope. Make sure to copy and save your new personal access token now. You won’t be able to see it again!
+- Declare token: `GITHUB_TOKEN=<token>`
+- GoReleaser will use the latest Git tag of your repository. Create a tag and push it to GitHub:
+
+```
+$ git tag -a <version> -m "Release Message"
+$ git push origin <version>
+```
+
+- Now you can run GoReleaser at the root of the repository `goreleaser --rm-dist`

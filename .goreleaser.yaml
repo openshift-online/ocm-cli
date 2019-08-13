@@ -15,12 +15,26 @@
 # limitations under the License.
 #
 
-# This script is executed by a Jenkins job for each change request. If it
-# doesn't succeed the change won't be merged.
-
-# make and rename binary
-make
-mv uhc uhc-linux-amd64
-
-# calculate SHA 256 hash of the uhc binary
-sha256sum uhc-linux-amd64 > uhc-linux-amd64.sha256
+project_name: uhc
+builds:
+- 
+  env:
+    - CGO_ENABLED=0
+  goarch:
+    - amd64
+  ignore:
+      - goos: darwin
+archives:
+  -
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+checksum:
+  name_template: 'uhc-linux-amd64.sha256'
+  algorithm: sha256
+release:
+  name_template: "Release {{.Tag}}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
