@@ -263,7 +263,7 @@ func run(cmd *cobra.Command, argv []string) {
 			fmt.Fprintf(
 				os.Stderr,
 				"Don't know how to handle empty type '%s' in token '%s'\n",
-				args.token,
+				typ, args.token,
 			)
 			os.Exit(1)
 		default:
