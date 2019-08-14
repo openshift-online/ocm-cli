@@ -42,7 +42,7 @@ var Cmd = &cobra.Command{
 	Long: "login to a cluster by ID or Name or cluster name search string according to the api: " +
 		"https://api.openshift.com/#/clusters/get_api_clusters_mgmt_v1_clusters",
 	Example: " uhc cluster login <id>\n uhc cluster login %test%",
-	Run:     run,
+	RunE:    run,
 }
 
 func init() {
@@ -56,45 +56,38 @@ func init() {
 	)
 
 }
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 
 	if len(argv) != 1 {
-		fmt.Fprint(os.Stderr, "Expected exactly one cluster\n")
-		os.Exit(1)
+		return fmt.Errorf("Expected exactly one cluster")
 	}
 	path, err := exec.LookPath("oc")
 	if err != nil {
-		fmt.Fprint(os.Stderr, "To run this, you need install openshfit oc first.\n")
-		os.Exit(1)
+		return fmt.Errorf("To run this, you need install the OpenShift CLI (oc) first")
 	}
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprint(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprint(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection, and remember to close it:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -102,8 +95,7 @@ func run(cmd *cobra.Command, argv []string) {
 	collection := connection.ClustersMgmt().V1().Clusters()
 	clusters, total, err := findClusters(collection, argv[0], ClustersPageSize)
 	if err != nil || len(clusters) == 0 {
-		fmt.Fprintf(os.Stderr, "Can't find clusters: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't find clusters: %v", err)
 	}
 
 	// If there are more clusters than `ClustersPageSize`, print a msg out
@@ -125,8 +117,7 @@ func run(cmd *cobra.Command, argv []string) {
 	} else {
 		cluster, err := doSurvey(clusters)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't find clusters: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't find clusters: %v", err)
 		}
 		url = cluster.API().URL()
 		clusterid = cluster.ID()
@@ -134,8 +125,7 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 
 	if len(url) == 0 {
-		fmt.Fprintf(os.Stderr, "Cannot find the api url for cluster: %s\n", clusterName)
-		os.Exit(1)
+		return fmt.Errorf("Cannot find the api url for cluster: %s", clusterName)
 	}
 	fmt.Printf("Will login to cluster:\n Name: %s\n ID: %s\n", clusterName, clusterid)
 	ocArgs := []string{}
@@ -151,9 +141,10 @@ func run(cmd *cobra.Command, argv []string) {
 	ocCmd.Stdout = os.Stdout
 	err = ocCmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to login to cluster: %s\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Failed to login to cluster: %s", err)
 	}
+
+	return nil
 }
 
 // doSurvey will ask user to choose one if there are more than one clusters match the query

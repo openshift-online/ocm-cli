@@ -18,7 +18,6 @@ package logout
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -29,17 +28,15 @@ var Cmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Log out",
 	Long:  "Log out, removing the configuration file.",
-	Run:   run,
+	RunE:  run,
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 	// Remove the configuration file:
 	err := config.Remove()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't remove config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't remove config file: %v", err)
 	}
 
-	// Bye:
-	os.Exit(0)
+	return nil
 }

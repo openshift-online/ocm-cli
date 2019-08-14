@@ -18,14 +18,13 @@ package account
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/openshift-online/uhc-sdk-go/pkg/client"
 	amv1 "github.com/openshift-online/uhc-sdk-go/pkg/client/accountsmgmt/v1"
 )
 
 // GetRolesFromUser gets all roles a specific user possesses.
-func GetRolesFromUser(account *amv1.Account, conn *client.Connection) []string {
+func GetRolesFromUser(account *amv1.Account, conn *client.Connection) ([]string, error) {
 
 	pageIndex := 1
 	var roles []string
@@ -41,8 +40,7 @@ func GetRolesFromUser(account *amv1.Account, conn *client.Connection) []string {
 		// Get response:
 		response, err := rolesList.Send()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't retrieve roles: %v\n", err)
-			os.Exit(1)
+			return roles, fmt.Errorf("Can't retrieve roles: %v", err)
 		}
 		// Loop through roles and save their ids
 		// iff it is not in the list yet:
@@ -60,7 +58,7 @@ func GetRolesFromUser(account *amv1.Account, conn *client.Connection) []string {
 
 		pageIndex++
 	}
-	return roles
+	return roles, nil
 }
 
 // stringInList returns a bool signifying whether

@@ -18,7 +18,6 @@ package status
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -34,7 +33,7 @@ var Cmd = &cobra.Command{
 	Use:   "status",
 	Short: "Status of current user.",
 	Long:  "Display status of current user.",
-	Run:   run,
+	RunE:  run,
 }
 
 func init() {
@@ -48,35 +47,30 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection, and remember to close it:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -84,8 +78,7 @@ func run(cmd *cobra.Command, argv []string) {
 	response, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 		Send()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't get current account: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't get current account: %v", err)
 	}
 
 	// Display user and which server they are logged into
@@ -93,6 +86,11 @@ func run(cmd *cobra.Command, argv []string) {
 	fmt.Println(fmt.Sprintf("%s on %s", currAccount.Username(), cfg.URL))
 
 	// Display roles currently assigned to the user
-	roleSlice := acc_util.GetRolesFromUser(currAccount, connection)
+	roleSlice, err := acc_util.GetRolesFromUser(currAccount, connection)
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Roles: %v\n", roleSlice)
+
+	return nil
 }

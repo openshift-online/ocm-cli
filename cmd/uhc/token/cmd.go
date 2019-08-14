@@ -39,7 +39,8 @@ var Cmd = &cobra.Command{
 	Use:   "token",
 	Short: "Generates a token",
 	Long:  "Uses the stored credentials to generate a token.",
-	Run:   run,
+	Args:  cobra.NoArgs,
+	RunE:  run,
 }
 
 func init() {
@@ -70,13 +71,7 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
-	// Check that there there are no command line arguments:
-	if len(argv) != 0 {
-		fmt.Fprintf(os.Stderr, "Expected zero argument\n")
-		os.Exit(1)
-	}
-
+func run(cmd *cobra.Command, argv []string) error {
 	// Check the options:
 	count := 0
 	if args.header {
@@ -89,47 +84,37 @@ func run(cmd *cobra.Command, argv []string) {
 		count++
 	}
 	if count > 1 {
-		fmt.Fprintf(
-			os.Stderr,
-			"Options '--payload', '--header' and '--signature' are mutually exclusive\n",
-		)
-		os.Exit(1)
+		return fmt.Errorf("Options '--payload', '--header' and '--signature' are mutually exclusive")
 	}
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that don't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 
 	// Get the tokens:
 	accessToken, refreshToken, err := connection.Tokens()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't get token: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't get token: %v", err)
 	}
 
 	// Select the token according to the options:
@@ -142,44 +127,37 @@ func run(cmd *cobra.Command, argv []string) {
 	parser := new(jwt.Parser)
 	_, parts, err := parser.ParseUnverified(selectedToken, jwt.MapClaims{})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't parse token: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't parse token: %v", err)
 	}
 	encoding := base64.RawURLEncoding
 	header, err := encoding.DecodeString(parts[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't decode header: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't decode header: %v", err)
 	}
 	payload, err := encoding.DecodeString(parts[1])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't decode payload: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't decode payload: %v", err)
 	}
 	signature, err := encoding.DecodeString(parts[2])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't decode signature: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't decode signature: %v", err)
 	}
 
 	// Print the data:
 	if args.header {
 		err = dump.Pretty(os.Stdout, header)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't dump header: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't dump header: %v", err)
 		}
 	} else if args.payload {
 		err = dump.Pretty(os.Stdout, payload)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't dump payload: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't dump payload: %v", err)
 		}
 	} else if args.signature {
 		err = dump.Pretty(os.Stdout, signature)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't dump signature: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't dump signature: %v", err)
 		}
 	} else {
 		fmt.Fprintf(os.Stdout, "%s\n", selectedToken)
@@ -190,10 +168,9 @@ func run(cmd *cobra.Command, argv []string) {
 	cfg.RefreshToken = refreshToken
 	err = config.Save(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't save config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't save config file: %v", err)
 	}
 
 	// Bye:
-	os.Exit(0)
+	return nil
 }

@@ -90,9 +90,7 @@ func main() {
 
 	// Execute the root command:
 	root.SetArgs(os.Args[1:])
-	err = root.Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to execute root command: %v\n", err)
+	if err = root.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

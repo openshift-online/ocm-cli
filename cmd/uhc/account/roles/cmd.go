@@ -35,7 +35,7 @@ var Cmd = &cobra.Command{
 	Use:   "roles [role-name]",
 	Short: "Retrieve information of the different roles",
 	Long:  "Get description of a role or list of all roles ",
-	Run:   run,
+	RunE:  run,
 }
 
 func init() {
@@ -49,35 +49,30 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection, and remember to close it:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -89,8 +84,7 @@ func run(cmd *cobra.Command, argv []string) {
 			rolesListRequest := connection.AccountsMgmt().V1().Roles().List().Page(pageIndex)
 			response, err := rolesListRequest.Send()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Can't send request: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("Can't send request: %v", err)
 			}
 			response.Items().Each(func(item *amv1.Role) bool {
 				rolesList = append(rolesList, item.ID())
@@ -116,8 +110,7 @@ func run(cmd *cobra.Command, argv []string) {
 		roleResponse, err := connection.AccountsMgmt().V1().Roles().Role(argv[0]).Get().
 			Send()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't send request: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't send request: %v", err)
 		}
 		role := roleResponse.Body()
 
@@ -125,17 +118,16 @@ func run(cmd *cobra.Command, argv []string) {
 		byteRole, err := connection.Get().Path(role.HREF()).
 			Send()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't send request: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't send request: %v", err)
 		}
 
 		// Dump pretty:
 		err = dump.Pretty(os.Stdout, byteRole.Bytes())
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to display role JSON: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Failed to display role JSON: %v", err)
 		}
 
 	}
 
+	return nil
 }

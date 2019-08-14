@@ -32,45 +32,39 @@ var Cmd = &cobra.Command{
 	Use:   "whoami",
 	Short: "Prints user information",
 	Long:  "Prints user information.",
-	Run:   run,
+	RunE:  run,
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that don't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 
 	// Send the request:
 	response, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 		Send()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't send request: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't send request: %v", err)
 	}
 
 	// Buffer for pretty output:
@@ -79,8 +73,7 @@ func run(cmd *cobra.Command, argv []string) {
 	// Output account info.
 	err = amsv1.MarshalAccount(response.Body(), buf)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to marshal account into JSON encoder: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Failed to marshal account into JSON encoder: %v", err)
 	}
 
 	if response.Status() < 400 {
@@ -89,8 +82,8 @@ func run(cmd *cobra.Command, argv []string) {
 		err = dump.Pretty(os.Stderr, buf.Bytes())
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't print body: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't print body: %v", err)
 	}
 
+	return nil
 }

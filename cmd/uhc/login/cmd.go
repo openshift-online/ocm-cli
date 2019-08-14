@@ -62,10 +62,12 @@ var Cmd = &cobra.Command{
 	Use:   "login",
 	Short: "Log in",
 	Long:  "Log in, saving the credentials to the configuration file.",
-	Run:   run,
+	RunE:  run,
 }
 
 func init() {
+	var err error
+
 	flags := Cmd.Flags()
 	flags.StringVar(
 		&args.tokenURL,
@@ -108,6 +110,11 @@ func init() {
 		client.DefaultURL,
 		"URL of the API gateway.",
 	)
+	err = Cmd.MarkFlagRequired("url")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Can't mark flag as required: %v\n", err)
+		os.Exit(1)
+	}
 	flags.StringVar(
 		&args.token,
 		"token",
@@ -144,30 +151,16 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 	var err error
-
-	// Check mandatory options:
-	ok := true
-	if args.url == "" {
-		fmt.Fprintf(os.Stderr, "Option '--url' is mandatory\n")
-		ok = false
-	}
-	if !ok {
-		os.Exit(1)
-	}
 
 	// Check that we have some kind of credentials:
 	havePassword := args.user != "" && args.password != ""
 	haveSecret := args.clientID != "" && args.clientSecret != ""
 	haveToken := args.token != ""
 	if !havePassword && !haveSecret && !haveToken {
-		fmt.Fprintf(
-			os.Stderr,
-			"In order to log in it is mandatory to use '--token', '--user' and "+
-				"'--password', or '--client-id' and '--client-secret'.\n",
-		)
-		os.Exit(1)
+		return fmt.Errorf("In order to log in it is mandatory to use '--token', '--user' and " +
+			"'--password', or '--client-id' and '--client-secret'.")
 	}
 
 	// Inform the user that it isn't recommended to authenticate with user name and password:
@@ -187,8 +180,7 @@ func run(cmd *cobra.Command, argv []string) {
 		parser := new(jwt.Parser)
 		token, _, err = parser.ParseUnverified(args.token, jwt.MapClaims{})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't parse token '%s': %v\n", args.token, err)
-			os.Exit(1)
+			return fmt.Errorf("Can't parse token '%s': %v", args.token, err)
 		}
 	}
 
@@ -204,8 +196,7 @@ func run(cmd *cobra.Command, argv []string) {
 	} else if haveToken {
 		issuerURL, err := tokenIssuer(token)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't get token issuer: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't get token issuer: %v", err)
 		}
 		if issuerURL != nil && strings.EqualFold(issuerURL.Hostname(), deprecatedIssuer) {
 			defaultTokenURL = deprecatedTokenURL
@@ -226,8 +217,7 @@ func run(cmd *cobra.Command, argv []string) {
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
 		cfg = new(config.Config)
@@ -247,12 +237,7 @@ func run(cmd *cobra.Command, argv []string) {
 	if haveToken {
 		typ, err := tokenType(token)
 		if err != nil {
-			fmt.Fprintf(
-				os.Stderr,
-				"Can't extract type from 'typ' claim of token '%s': %v\n",
-				args.token, err,
-			)
-			os.Exit(1)
+			return fmt.Errorf("Can't extract type from 'typ' claim of token '%s': %v", args.token, err)
 		}
 		switch typ {
 		case "Bearer":
@@ -260,32 +245,20 @@ func run(cmd *cobra.Command, argv []string) {
 		case "Refresh", "Offline":
 			cfg.RefreshToken = args.token
 		case "":
-			fmt.Fprintf(
-				os.Stderr,
-				"Don't know how to handle empty type '%s' in token '%s'\n",
-				args.token,
-			)
-			os.Exit(1)
+			return fmt.Errorf("Don't know how to handle empty type in token '%s'", args.token)
 		default:
-			fmt.Fprintf(
-				os.Stderr,
-				"Don't know how to handle token type '%s' in token '%s'\n",
-				typ, args.token,
-			)
-			os.Exit(1)
+			return fmt.Errorf("Don't know how to handle token type '%s' in token '%s'", typ, args.token)
 		}
 	}
 
 	// Create a connection and get the token to verify that the crendentials are correct:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	accessToken, refreshToken, err := connection.Tokens()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't get token: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't get token: %v", err)
 	}
 
 	// Save the configuration, but clear the user name and password before unless we have
@@ -298,12 +271,10 @@ func run(cmd *cobra.Command, argv []string) {
 	}
 	err = config.Save(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't save config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't save config file: %v", err)
 	}
 
-	// Bye:
-	os.Exit(0)
+	return nil
 }
 
 // tokenIssuer extracts the value of the `iss` claim. It then returns tha value as a URL, or nil if

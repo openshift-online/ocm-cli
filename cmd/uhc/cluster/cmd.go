@@ -17,9 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/openshift-online/uhc-cli/cmd/uhc/cluster/describe"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/cluster/list"
 	"github.com/openshift-online/uhc-cli/cmd/uhc/cluster/login"
@@ -31,7 +28,7 @@ var Cmd = &cobra.Command{
 	Use:   "cluster COMMAND",
 	Short: "Get information about clusters",
 	Long:  "Get status or information about a single cluster, or a list of clusters",
-	Run:   run,
+	Args:  cobra.MinimumNArgs(1),
 }
 
 func init() {
@@ -39,12 +36,4 @@ func init() {
 	Cmd.AddCommand(status.Cmd)
 	Cmd.AddCommand(describe.Cmd)
 	Cmd.AddCommand(login.Cmd)
-}
-
-func run(cmd *cobra.Command, argv []string) {
-	// Check there is at least one argument
-	if len(argv) < 1 {
-		fmt.Fprintf(os.Stderr, "Expected at least one argument\n")
-		os.Exit(1)
-	}
 }
