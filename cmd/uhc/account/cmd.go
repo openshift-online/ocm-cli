@@ -17,9 +17,6 @@ limitations under the License.
 package account
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/uhc-cli/cmd/uhc/account/orgs"
@@ -34,7 +31,7 @@ var Cmd = &cobra.Command{
 	Use:   "account COMMAND",
 	Short: "Get information about users.",
 	Long:  "Get status or information about a single or list of users.",
-	Run:   run,
+	Args:  cobra.MinimumNArgs(1),
 }
 
 func init() {
@@ -43,12 +40,4 @@ func init() {
 	Cmd.AddCommand(status.Cmd)
 	Cmd.AddCommand(roles.Cmd)
 	Cmd.AddCommand(users.Cmd)
-}
-
-func run(cmd *cobra.Command, argv []string) {
-	// Check there is at least one argument
-	if len(argv) < 1 {
-		fmt.Fprintf(os.Stderr, "Expected at least one argument\n")
-		os.Exit(1)
-	}
 }

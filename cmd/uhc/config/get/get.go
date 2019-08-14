@@ -32,7 +32,8 @@ var args struct {
 var Cmd = &cobra.Command{
 	Use:   "get VARIABLE",
 	Short: "Prints the config variable",
-	Run:   run,
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  run,
 }
 
 func init() {
@@ -45,20 +46,13 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
-	if len(argv) < 1 {
-		fmt.Fprintf(os.Stderr, "Expected at least one argument\n")
-		os.Exit(1)
-	}
-
+func run(cmd *cobra.Command, argv []string) error {
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	switch argv[0] {
@@ -84,5 +78,5 @@ func run(cmd *cobra.Command, argv []string) {
 		fmt.Fprintf(os.Stderr, "Uknown setting\n")
 	}
 
-	os.Exit(0)
+	return nil
 }

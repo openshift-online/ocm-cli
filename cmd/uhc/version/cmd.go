@@ -29,13 +29,12 @@ var Cmd = &cobra.Command{
 	Use:   "version",
 	Short: "Prints the version",
 	Long:  "Prints the version number of the client.",
-	Run:   run,
+	RunE:  run,
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 	// Print the version:
 	fmt.Fprintf(os.Stdout, "%s\n", info.Version)
 
-	// Bye:
-	os.Exit(0)
+	return nil
 }

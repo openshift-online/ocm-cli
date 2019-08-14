@@ -134,8 +134,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	paddingByColumn := []int{35, 60, 70, 60, 15}
 	if args.padding != -1 {
 		if args.padding < 2 {
-			fmt.Printf("Padding flag needs to be an integer greater than 2\n")
-			os.Exit(1)
+			return fmt.Errorf("Padding flag needs to be an integer greater than 2")
 		}
 		paddingByColumn = []int{args.padding}
 	}

@@ -37,7 +37,7 @@ var Cmd = &cobra.Command{
 	Use:   "quota",
 	Short: "Retrieve cluster quota information.",
 	Long:  "Retrieve cluster quota information of a specific organization.",
-	Run:   run,
+	RunE:  run,
 }
 
 func init() {
@@ -57,35 +57,30 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection, and remember to close it:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -97,8 +92,7 @@ func run(cmd *cobra.Command, argv []string) {
 		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 			Send()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't retrieve current user information: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't retrieve current user information: %v", err)
 		}
 		userOrg, _ := userConn.Body().GetOrganization()
 		orgID = userOrg.ID()
@@ -108,8 +102,7 @@ func run(cmd *cobra.Command, argv []string) {
 	orgCollection := connection.AccountsMgmt().V1().Organizations().Organization(orgID)
 	orgResponse, err := orgCollection.Get().Send()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve organization information: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't retrieve organization information: %v", err)
 	}
 	quotaClient := orgCollection.ResourceQuota()
 
@@ -120,8 +113,7 @@ func run(cmd *cobra.Command, argv []string) {
 		quotasListResponse, err := quotaClient.List().
 			Send()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to retrieve quota: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Failed to retrieve quota: %v", err)
 		}
 
 		// Display quota information:
@@ -133,7 +125,7 @@ func run(cmd *cobra.Command, argv []string) {
 			return true
 		})
 
-		return
+		return nil
 
 	}
 
@@ -142,13 +134,13 @@ func run(cmd *cobra.Command, argv []string) {
 		fmt.Sprintf("/api/accounts_mgmt/v1/organizations/%s/resource_quota", orgID)).
 		Send()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to get resource quota: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Failed to get resource quota: %v", err)
 	}
 	jsonDisplay.Bytes()
 	err = dump.Pretty(os.Stdout, jsonDisplay.Bytes())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to display quota JSON: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Failed to display quota JSON: %v", err)
 	}
+
+	return nil
 }

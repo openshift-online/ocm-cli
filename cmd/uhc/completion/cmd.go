@@ -35,13 +35,14 @@ To configure your bash shell to load completions for each session add to your ba
 # ~/.bashrc or ~/.profile
 . <(uhc completion)
 `,
-	Run: run,
+	RunE: run,
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 	err := cmd.Root().GenBashCompletion(os.Stdout)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to generate bash completions: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Unable to generate bash completions: %v", err)
 	}
+
+	return nil
 }

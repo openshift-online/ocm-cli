@@ -37,7 +37,7 @@ var Cmd = &cobra.Command{
 	Use:   "users",
 	Short: "Retrieve users and their roles",
 	Long:  "Retrieve information of all users/roles in the same organization",
-	Run:   run,
+	RunE:  run,
 }
 
 func init() {
@@ -57,35 +57,30 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection, and remember to close it:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -100,13 +95,11 @@ func run(cmd *cobra.Command, argv []string) {
 		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 			Send()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't retrieve current user information: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't retrieve current user information: %v", err)
 		}
 		userOrg, ok := userConn.Body().GetOrganization()
 		if !ok {
-			fmt.Println("Failed to get current user organization")
-			os.Exit(1)
+			return fmt.Errorf("Failed to get current user organization")
 		}
 		args.org = userOrg.ID()
 	}
@@ -128,15 +121,18 @@ func run(cmd *cobra.Command, argv []string) {
 			Parameter("search", searchQuery).
 			Send()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't retrieve accounts: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't retrieve accounts: %v", err)
 		}
 		// Go through users found in page and display info:
 		usersResponse.Items().Each(func(account *amv1.Account) bool {
 			if args.org == account.Organization().ID() {
 				username := stringPad(account.Username(), namePad)
 				userID := stringPad(account.ID(), namePad)
-				accountRoleList := acc_util.GetRolesFromUser(account, connection)
+				accountRoleList, err := acc_util.GetRolesFromUser(account, connection)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to get roles for user: %s\n", err)
+					os.Exit(1)
+				}
 				fmt.Println(username, userID, printArray(accountRoleList))
 			}
 			return true
@@ -149,6 +145,7 @@ func run(cmd *cobra.Command, argv []string) {
 		pageIndex++
 	}
 
+	return nil
 }
 
 // stringPad will add whitespace or clip a string

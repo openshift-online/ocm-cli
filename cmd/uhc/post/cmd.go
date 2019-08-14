@@ -38,7 +38,7 @@ var Cmd = &cobra.Command{
 	Use:   "post PATH",
 	Short: "Send a POST request",
 	Long:  "Send a POST request to the given path.",
-	Run:   run,
+	RunE:  run,
 }
 
 func init() {
@@ -48,40 +48,34 @@ func init() {
 	flags.AddBodyFlag(fs, &args.body)
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 	path, err := urls.Expand(argv)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not create URI: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Could not create URI: %v", err)
 	}
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that don't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 
 	// Create and populate the request:
@@ -90,15 +84,13 @@ func run(cmd *cobra.Command, argv []string) {
 	flags.ApplyHeaderFlag(request, args.parameter)
 	err = flags.ApplyBodyFlag(request, args.body)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't read body: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't read body: %v", err)
 	}
 
 	// Send the request:
 	response, err := request.Send()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't send request: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't send request: %v", err)
 	}
 	status := response.Status()
 	body := response.Bytes()
@@ -108,26 +100,23 @@ func run(cmd *cobra.Command, argv []string) {
 		err = dump.Pretty(os.Stderr, body)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't print body: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't print body: %v", err)
 	}
 
 	// Save the configuration:
 	cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't get tokens: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't get tokens: %v", err)
 	}
 	err = config.Save(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't save config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't save config file: %v", err)
 	}
 
 	// Bye:
-	if status < 400 {
-		os.Exit(0)
-	} else {
-		os.Exit(1)
+	if status >= 400 {
+		return fmt.Errorf("Received unexpected status code: %v", status)
 	}
+
+	return nil
 }

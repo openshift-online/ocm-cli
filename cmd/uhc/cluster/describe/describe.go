@@ -38,7 +38,7 @@ var Cmd = &cobra.Command{
 	Use:   "describe CLUSTERID [--output] [--short]",
 	Short: "Describe a cluster",
 	Long:  "Get info about a cluster identified by its cluster ID",
-	Run:   run,
+	RunE:  run,
 }
 
 func init() {
@@ -58,40 +58,34 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
+func run(cmd *cobra.Command, argv []string) error {
 
 	if len(argv) != 1 {
-		fmt.Fprintf(os.Stderr, "Expected exactly one cluster\n")
-		os.Exit(1)
+		return fmt.Errorf("Expected exactly one cluster")
 	}
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
 	armed, err := cfg.Armed()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't check if tokens have expired: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't check if tokens have expired: %v", err)
 	}
 	if !armed {
-		fmt.Fprintf(os.Stderr, "Tokens have expired, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Tokens have expired, run the 'login' command")
 	}
 
 	// Create the connection, and remember to close it:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't create connection: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -108,8 +102,7 @@ func run(cmd *cobra.Command, argv []string) {
 	cluster := response.Body()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't retrieve clusters: %s", err)
 	}
 
 	if args.output {
@@ -119,8 +112,7 @@ func run(cmd *cobra.Command, argv []string) {
 		// Attempt to create file:
 		myFile, err := os.Create(filename)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to create file: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Failed to create file: %v", err)
 		}
 
 		// Reasign encoder io.Writer to file writer:
@@ -130,8 +122,7 @@ func run(cmd *cobra.Command, argv []string) {
 		// Dump encoder content into file:
 		err = v1.MarshalCluster(cluster, encoder)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to Marshal cluster into file: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Failed to Marshal cluster into file: %v", err)
 		}
 	}
 
@@ -144,8 +135,7 @@ func run(cmd *cobra.Command, argv []string) {
 		// Convert cluster to JSON and dump to encoder:
 		err = v1.MarshalCluster(cluster, buf)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to Marshal cluster into JSON encoder: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Failed to Marshal cluster into JSON encoder: %v", err)
 		}
 
 		if response.Status() < 400 {
@@ -154,8 +144,7 @@ func run(cmd *cobra.Command, argv []string) {
 			err = dump.Pretty(os.Stderr, buf.Bytes())
 		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't print body: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("Can't print body: %v", err)
 		}
 
 	} else {
@@ -190,4 +179,6 @@ func run(cmd *cobra.Command, argv []string) {
 		)
 		fmt.Println()
 	}
+
+	return nil
 }

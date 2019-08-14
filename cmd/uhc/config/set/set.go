@@ -18,7 +18,6 @@ package set
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -33,7 +32,8 @@ var args struct {
 var Cmd = &cobra.Command{
 	Use:   "set VARIABLE VALUE",
 	Short: "Sets the variable's value",
-	Run:   run,
+	Args:  cobra.MinimumNArgs(2),
+	RunE:  run,
 }
 
 func init() {
@@ -46,20 +46,13 @@ func init() {
 	)
 }
 
-func run(cmd *cobra.Command, argv []string) {
-	if len(argv) < 2 {
-		fmt.Fprintf(os.Stderr, "Expected at least two arguments\n")
-		os.Exit(1)
-	}
-
+func run(cmd *cobra.Command, argv []string) error {
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Fprintf(os.Stderr, "Not logged in, run the 'login' command\n")
-		os.Exit(1)
+		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 	value := argv[1]
 
@@ -73,30 +66,26 @@ func run(cmd *cobra.Command, argv []string) {
 	case "insecure":
 		cfg.Insecure, err = strconv.ParseBool(value)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to set insecure: %v", value)
-			os.Exit(1)
+			return fmt.Errorf("Failed to set insecure: %v", value)
 		}
 	case "password":
 		cfg.Password = value
 	case "refresh_token":
 		cfg.RefreshToken = value
 	case "scopes":
-		fmt.Fprintf(os.Stderr, "Setting scopes is unsupported")
-		os.Exit(1)
+		return fmt.Errorf("Setting scopes is unsupported")
 	case "token_url":
 		cfg.TokenURL = value
 	case "url":
 		cfg.URL = value
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown setting")
-		os.Exit(1)
+		return fmt.Errorf("Unknown setting")
 	}
 
 	err = config.Save(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't save config file: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("Can't save config file: %v", err)
 	}
 
-	os.Exit(0)
+	return nil
 }
