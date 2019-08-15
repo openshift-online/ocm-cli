@@ -66,8 +66,6 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	var err error
-
 	flags := Cmd.Flags()
 	flags.StringVar(
 		&args.tokenURL,
@@ -110,11 +108,6 @@ func init() {
 		client.DefaultURL,
 		"URL of the API gateway.",
 	)
-	err = Cmd.MarkFlagRequired("url")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't mark flag as required: %v\n", err)
-		os.Exit(1)
-	}
 	flags.StringVar(
 		&args.token,
 		"token",
@@ -153,6 +146,11 @@ func init() {
 
 func run(cmd *cobra.Command, argv []string) error {
 	var err error
+
+	// Check mandatory options:
+	if args.url == "" {
+		return fmt.Errorf("Option '--url' is mandatory")
+	}
 
 	// Check that we have some kind of credentials:
 	havePassword := args.user != "" && args.password != ""
