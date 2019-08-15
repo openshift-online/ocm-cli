@@ -3,6 +3,11 @@
 This document describes the relevant changes between releases of the
 `uhc` command line tool.
 
+== 0.1.19 Aug 15 2019
+
+- Fixed issue https://github.com/openshift-online/uhc-cli/pull/62[#62]: the
+  `--url` option of the `login` command should not be mandatory.
+
 == 0.1.18 Aug 14 2019
 
 - Improvements in the `cluster list` command, including increasing the size of
