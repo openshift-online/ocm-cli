@@ -90,7 +90,20 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Roles: %v\n", roleSlice)
+	fmt.Printf("Roles: %v\n", nicePrint(roleSlice))
 
 	return nil
+}
+
+// prints array as string without brackets
+func nicePrint(stringArr []string) string {
+	var finalString string
+	for i, element := range stringArr {
+		if i > 0 {
+			finalString = fmt.Sprintf(`%s, %s`, finalString, element)
+		} else {
+			finalString = element
+		}
+	}
+	return finalString
 }
