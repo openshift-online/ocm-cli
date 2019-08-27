@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.20 Aug 27 2019
+
+- Rename the tool to `ocm`.
+
 == 0.1.19 Aug 15 2019
 
 - Fixed issue https://github.com/openshift-online/uhc-cli/pull/62[#62]: the
