@@ -29,9 +29,9 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/glog"
-	"github.com/openshift-online/uhc-sdk-go/pkg/client"
+	"github.com/openshift-online/ocm-sdk-go"
 
-	"github.com/openshift-online/uhc-cli/pkg/debug"
+	"github.com/openshift-online/ocm-cli/pkg/debug"
 )
 
 // Config is the type used to store the configuration of the client.
@@ -121,7 +121,7 @@ func Location() (path string, err error) {
 		err = fmt.Errorf("can't find home directory, HOME environment variable is empty")
 		return
 	}
-	path = filepath.Join(home, ".uhc.json")
+	path = filepath.Join(home, ".ocm.json")
 	return
 }
 
@@ -165,13 +165,13 @@ func (c *Config) Armed() (armed bool, err error) {
 }
 
 // Connection creates a connection using this configuration.
-func (c *Config) Connection() (connection *client.Connection, err error) {
+func (c *Config) Connection() (connection *sdk.Connection, err error) {
 	// Create the logger:
 	level := glog.Level(1)
 	if debug.Enabled() {
 		level = glog.Level(0)
 	}
-	logger, err := client.NewGlogLoggerBuilder().
+	logger, err := sdk.NewGlogLoggerBuilder().
 		DebugV(level).
 		InfoV(level).
 		WarnV(level).
@@ -182,7 +182,7 @@ func (c *Config) Connection() (connection *client.Connection, err error) {
 
 	// Prepare the builder for the connection adding only the properties that have explicit
 	// values in the configuration, so that default values won't be overridden:
-	builder := client.NewConnectionBuilder()
+	builder := sdk.NewConnectionBuilder()
 	builder.Logger(logger)
 	if c.TokenURL != "" {
 		builder.TokenURL(c.TokenURL)

@@ -24,10 +24,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/openshift-online/uhc-sdk-go/pkg/client"
+	"github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
 
-	"github.com/openshift-online/uhc-cli/pkg/debug"
+	"github.com/openshift-online/ocm-cli/pkg/debug"
 )
 
 // AddDebugFlag adds the '--debug' flag to the given set of command line flags.
@@ -112,7 +112,7 @@ func applyNVFlag(request interface{}, method string, values []string) {
 }
 
 // ApplyBodyFlag applies the value of the '--body' command line flag to the given request.
-func ApplyBodyFlag(request *client.Request, value string) error {
+func ApplyBodyFlag(request *sdk.Request, value string) error {
 	var body []byte
 	var err error
 	if value != "" {

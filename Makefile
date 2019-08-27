@@ -26,7 +26,7 @@ cmds:
 
 .PHONY: install
 install:
-	go install ./cmd/uhc
+	go install ./cmd/ocm
 
 .PHONY: test
 test:

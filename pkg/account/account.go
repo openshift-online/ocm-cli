@@ -19,12 +19,12 @@ package account
 import (
 	"fmt"
 
-	"github.com/openshift-online/uhc-sdk-go/pkg/client"
-	amv1 "github.com/openshift-online/uhc-sdk-go/pkg/client/accountsmgmt/v1"
+	"github.com/openshift-online/ocm-sdk-go"
+	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
 
 // GetRolesFromUser gets all roles a specific user possesses.
-func GetRolesFromUser(account *amv1.Account, conn *client.Connection) ([]string, error) {
+func GetRolesFromUser(account *amv1.Account, conn *sdk.Connection) ([]string, error) {
 
 	pageIndex := 1
 	var roles []string

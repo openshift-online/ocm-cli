@@ -1,4 +1,4 @@
-module github.com/openshift-online/uhc-cli
+module github.com/openshift-online/ocm-cli
 
 go 1.12
 
@@ -8,7 +8,7 @@ require (
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
-	github.com/openshift-online/uhc-sdk-go v0.1.23
+	github.com/openshift-online/ocm-sdk-go v0.1.30
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/spf13/cobra v0.0.5

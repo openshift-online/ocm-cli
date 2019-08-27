@@ -1,14 +1,14 @@
-= UHC API Command Line Tools
+= OCM API Command Line Tools
 
-This project contains the `uhc` command line tool that simplifies the use
-of the _UHC_ API available in `api.openshift.com`.
+This project contains the `ocm` command line tool that simplifies the use
+of the _OCM_ API available in `api.openshift.com`.
 
 == Installation
 
 To install the tool run this command:
 
 ....
-$ go get -u github.com/openshift-online/uhc-cli/cmd/uhc
+$ go get -u github.com/openshift-online/ocm-cli/cmd/ocm
 ....
 
 
@@ -22,7 +22,7 @@ https://cloud.redhat.com/openshift/token[https://cloud.redhat.com/openshift/toke
 To do that use the `login` command:
 
 ....
-$ uhc login --token=eyJ...
+$ ocm login --token=eyJ...
 ....
 
 Alternatively, if you don't have an offline access token, you can log-in using
@@ -30,17 +30,17 @@ your https://developers.redhat.com[developers.redhat.com] user name and
 password:
 
 ....
-$ uhc login --user=... --password=...
+$ ocm login --user=... --password=...
 ....
 
 However this option is deprecated, because it is less secure, and it will be
 removed in the future.
 
 This will use the provided token to request _OpenID_ access and refresh tokens
-to _sso.redhat.com_. The tokens will be saved to the `.uhc.json` file in
+to _sso.redhat.com_. The tokens will be saved to the `.ocm.json` file in
 your home directory, for future use.
 
-By default the user name and password won't be saved to the `.uhc.json` file,
+By default the user name and password won't be saved to the `.ocm.json` file,
 unless the `--persistent` option is explicitly used.
 
 When the tokens expire (usually after several hours) the tool will ask the user
@@ -51,7 +51,7 @@ you have a service running in your local environment and you want to use the
 tool to test it, you can log-in like this:
 
 ....
-$ uhc login \
+$ ocm login \
 --token=eyJ... \
 --url=https://localhost:8000 \
 --insecure
@@ -66,7 +66,7 @@ If you need the _OpenID_ access token to use it with some other tool, you can
 use the `token` command:
 
 ....
-$ uhc token
+$ ocm token
 ....
 
 That will print the raw _OpenID_ access token, which you can then use to send
@@ -76,7 +76,7 @@ following:
 
 ....
 $ curl \
---header "Authorization: Bearer $(uhc token)" \
+--header "Authorization: Bearer $(ocm token)" \
 https://api.openshift.com/api/clusters_mgmt/v1/clusters
 ....
 
@@ -84,7 +84,7 @@ The details of the _OpenID_ access token, in JSON format, can be displayed using
 the `--payload` option:
 
 ....
-$ uhc token --payload
+$ ocm token --payload
 ....
 
 That will JSON representation of the access token, which is useful to diagnose
@@ -95,10 +95,10 @@ authentication issues.
 To log out run the `logout` command:
 
 ....
-$ uhc logout
+$ ocm logout
 ....
 
-That will remove the `.uhc.json` file, so next time you want to use the tool you
+That will remove the `.ocm.json` file, so next time you want to use the tool you
 will need to log-in again. You can also remove that file manually; the effect is
 exactly the same.
 
@@ -109,7 +109,7 @@ to retrieve the list of clusters with a name that starts with `my` you can use
 the following command:
 
 ....
-$ uhc get /api/clusters_mgmt/v1/clusters --parameter search="name like 'my%'"
+$ ocm get /api/clusters_mgmt/v1/clusters --parameter search="name like 'my%'"
 ....
 
 The `--parameter` option is used to specify query parameters. It is most useful
@@ -126,28 +126,28 @@ created in a DNS domain ending with `example.com` the complete command can be
 the following:
 
 ....
-$ uhc get /api/clusters_mgmt/v1/clusters \
+$ ocm get /api/clusters_mgmt/v1/clusters \
 --parameter search="name like 'my%' and dns.base_domain like '%.example.com'"
 ....
 
 To find the AWS regions in the US:
 
 ....
-$ uhc get /api/clusters_mgmt/v1/cloud_providers/aws/regions \
+$ ocm get /api/clusters_mgmt/v1/cloud_providers/aws/regions \
 --parameter search="name like 'US %'"
 ....
 
 To find the clusters created after March 1st 2019:
 
 ....
-$ uhc get /api/clusters_mgmt/v1/clusters \
+$ ocm get /api/clusters_mgmt/v1/clusters \
 --parameter search="creation_timestamp >= '2019-03-01'"
 ....
 
 To find the clusters that are either ready or installing:
 
 ....
-$ uhc get /api/clusters_mgmt/v1/clusters \
+$ ocm get /api/clusters_mgmt/v1/clusters \
 --parameter search="state in ('ready', 'installing')"
 ....
 
@@ -186,7 +186,7 @@ need. For example, if you want to get the list of identifiers of your clusters
 you can do the following:
 
 ....
-$ uhc get /api/clusters_mgmt/v1/clusters | jq -r .items[].id
+$ ocm get /api/clusters_mgmt/v1/clusters | jq -r .items[].id
 ....
 
 That will return something like this:
@@ -204,7 +204,7 @@ sub-resource. So if your cluster identifier is `123` you can retrieve the
 credentials with this command:
 
 ....
-$ uhc get /api/clusters_mgmt/v1/clusters/123/credentials
+$ ocm get /api/clusters_mgmt/v1/clusters/123/credentials
 ....
 
 Again the https://stedolan.github.io/jq[jq] tool is very useful here. For
@@ -213,7 +213,7 @@ used directly with the `oc` command:
 
 ....
 $ # Get the file:
-$ uhc get /api/clusters_mgmt/v1/clusters/123/credentials \
+$ ocm get /api/clusters_mgmt/v1/clusters/123/credentials \
 | jq -r .kubeconfig > mycluster.config
 
 $ # Use it:
@@ -253,13 +253,13 @@ file with this content:
 And then use the `post` command:
 
 ....
-$ uhc post < mycluster.json
+$ ocm post < mycluster.json
 ....
 
 Or with the `--body` option:
 
 ....
-$ uhc post --body=mycluster.json
+$ ocm post --body=mycluster.json
 ....
 
 That will send the request to the server, which will initiate the process of
@@ -278,14 +278,14 @@ creating a cluster you will have to periodically check till the cluster is
 ready. To do so first get the `id` returned by the `post` command:
 
 ....
-$ uhc post /api/clusters_mgmt/v1/clusters --body=mycluster.json | jq -r .id
+$ ocm post /api/clusters_mgmt/v1/clusters --body=mycluster.json | jq -r .id
 ....
 
 The use that identifier to check the value of the `state` attribute, till it is
 `ready`:
 
 ....
-$ uhc get /api/clusters_mgmt/v1/clusters/123 | jq -r .state
+$ ocm get /api/clusters_mgmt/v1/clusters/123 | jq -r .state
 ....
 
 == Deleting Objects
@@ -294,7 +294,7 @@ Objects can be deleted using the `delete` command. For example to delete the
 cluster with identifier `123` use the following command:
 
 ....
-$ uhc delete /api/clusters_mgmt/v1/clusters/123
+$ ocm delete /api/clusters_mgmt/v1/clusters/123
 ....
 
 Some objects can be deleted in different ways. For example, a cluster can be
@@ -306,7 +306,7 @@ add the `--parameter` option. For example, to delete the cluster with identifier
 `123` only from the database, use the following command:
 
 ....
-$ uhc delete /api/clusters_mgmt/v1/clusters/123 --parameter "deprovision=false"
+$ ocm delete /api/clusters_mgmt/v1/clusters/123 --parameter "deprovision=false"
 ....
 
 Deletion, like creation, is a lengthy process for complicated objects like
@@ -317,14 +317,14 @@ the `get` command till it returns a `404 Not Found` response.
 === Config
 
 The configuration variables can be read and set via the `get` and `set` commands.
-These settings will be persisted in the `.uhc.json` file in your home directory.
+These settings will be persisted in the `.ocm.json` file in your home directory.
 
 ....
-$ uhc config get url
+$ ocm config get url
 ....
 
 ....
-$ uhc config set url https://api.openshift.com
+$ ocm config set url https://api.openshift.com
 ....
 
 === Releasing
