@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-project_name: uhc
+project_name: ocm
 builds:
 - 
   env:
@@ -28,7 +28,7 @@ archives:
   -
     name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
 checksum:
-  name_template: 'uhc-linux-amd64.sha256'
+  name_template: 'ocm-linux-amd64.sha256'
   algorithm: sha256
 release:
   name_template: "Release {{.Tag}}"

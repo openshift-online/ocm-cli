@@ -1,7 +1,7 @@
 = Changes
 
 This document describes the relevant changes between releases of the
-`uhc` command line tool.
+`ocm` command line tool.
 
 == 0.1.19 Aug 15 2019
 
