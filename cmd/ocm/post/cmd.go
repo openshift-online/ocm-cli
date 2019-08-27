@@ -115,7 +115,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Bye:
 	if status >= 400 {
-		return fmt.Errorf("Received unexpected status code: %v", status)
+		os.Exit(1)
 	}
 
 	return nil
