@@ -44,4 +44,7 @@ lint:
 clean:
 	rm -rf \
 		$$(ls cmd) \
+		*-darwin-amd64 \
+		*-linux-amd64 \
+		*.sha256 \
 		$(NULL)
