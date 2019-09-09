@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"gopkg.in/AlecAivazis/survey.v1"
 
@@ -31,7 +32,8 @@ import (
 )
 
 var args struct {
-	user string
+	user    string
+	console bool
 }
 
 const ClustersPageSize = 50
@@ -53,6 +55,13 @@ func init() {
 		"u",
 		"",
 		"Username, will prompt if not provided",
+	)
+	flags.BoolVarP(
+		&args.console,
+		"console",
+		"",
+		false,
+		"Open the OpenShift console for the cluster in the default browser",
 	)
 
 }
@@ -106,30 +115,31 @@ func run(cmd *cobra.Command, argv []string) error {
 			total, argv[0], len(clusters),
 		)
 	}
-	var clusterid, clusterName, url string
+	var cluster *v1.Cluster
 	if len(clusters) == 1 {
-		for _, v := range clusters {
-			clusterid = v.ID()
-			clusterName = v.Name()
-		}
-		url = clusters[0].API().URL()
-		fmt.Printf("Only one cluster match the args, will login to cluster:\n Name: %s\n ID: %s\n", clusterName, clusterid)
+		cluster = clusters[0]
 	} else {
-		cluster, err := doSurvey(clusters)
+		cluster, err = doSurvey(clusters)
 		if err != nil {
 			return fmt.Errorf("Can't find clusters: %v", err)
 		}
-		url = cluster.API().URL()
-		clusterid = cluster.ID()
-		clusterName = cluster.Name()
+	}
+	fmt.Printf("Will login to cluster:\n Name: %s\n ID: %s\n", cluster.Name(), cluster.ID())
+
+	if args.console {
+		if len(cluster.Console().URL()) == 0 {
+			return fmt.Errorf("Cannot find the console URL for cluster: %s", cluster.Name())
+		}
+
+		// Open the console url in the broswer, return any errors
+		return browser.OpenURL(cluster.Console().URL())
 	}
 
-	if len(url) == 0 {
-		return fmt.Errorf("Cannot find the api url for cluster: %s", clusterName)
+	if len(cluster.API().URL()) == 0 {
+		return fmt.Errorf("Cannot find the api URL for cluster: %s", cluster.Name())
 	}
-	fmt.Printf("Will login to cluster:\n Name: %s\n ID: %s\n", clusterName, clusterid)
 	ocArgs := []string{}
-	ocArgs = append(ocArgs, "login", url)
+	ocArgs = append(ocArgs, "login", cluster.API().URL())
 	if args.user != "" {
 		ocArgs = append(ocArgs, "--username="+args.user)
 	}
