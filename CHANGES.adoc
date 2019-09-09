@@ -3,6 +3,12 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.2.12 Sep 9 2019
+
+- Change default version field to point to current version.
+
+- Add ability to open the console URL in browser.
+
 == 0.1.21 Aug 28 2019
 
 - Don't print usage message when the `get`, `post`, `patch` and `delete`
