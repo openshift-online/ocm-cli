@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/openshift-online/ocm-sdk-go"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
@@ -230,6 +230,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.User = args.user
 	cfg.Password = args.password
 	cfg.Insecure = args.insecure
+	cfg.AccessToken = ""
+	cfg.RefreshToken = ""
 
 	// Put the token in the place of the configuration that corresponds to its type:
 	if haveToken {
