@@ -3,7 +3,11 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
-== 0.2.12 Sep 9 2019
+== 0.1.23 Sep 12 2019
+
+- Fix `login` command so that it clears old tokens.
+
+== 0.1.22 Sep 9 2019
 
 - Change default version field to point to current version.
 
