@@ -104,7 +104,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return fmt.Errorf("Can't retrieve organization information: %v", err)
 	}
-	quotaClient := orgCollection.ResourceQuota()
+	quotaClient := orgCollection.QuotaSummary()
 
 	// Simple output:
 	if !args.json {
@@ -119,9 +119,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		// Display quota information:
 		fmt.Printf("Cluster quota for organization '%s' ID: '%s'\n",
 			orgResponse.Body().Name(), orgResponse.Body().ID())
-		quotasListResponse.Items().Each(func(quota *amv1.ResourceQuota) bool {
-			fmt.Printf("%s-AZ: %d/%d\n", strings.ToUpper(quota.AvailabilityZoneType()),
-				quota.Reserved(), quota.Allowed())
+		quotasListResponse.Items().Each(func(quota *amv1.QuotaSummary) bool {
+			var byoc string
+			if quota.BYOC() {
+				byoc = " BYOC"
+			}
+			fmt.Printf("%s-AZ%s: %d/%d\n", strings.ToUpper(quota.AvailabilityZoneType()),
+				byoc, quota.Reserved(), quota.Allowed())
 			return true
 		})
 
