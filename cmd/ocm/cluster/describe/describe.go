@@ -22,11 +22,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openshift-online/ocm-cli/pkg/dump"
-	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/dump"
 )
 
 var args struct {
@@ -120,7 +121,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		encoder.SetIndent("", " ")
 
 		// Dump encoder content into file:
-		err = v1.MarshalCluster(cluster, encoder)
+		err = cmv1.MarshalCluster(cluster, encoder)
 		if err != nil {
 			return fmt.Errorf("Failed to Marshal cluster into file: %v", err)
 		}
@@ -133,7 +134,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Println()
 
 		// Convert cluster to JSON and dump to encoder:
-		err = v1.MarshalCluster(cluster, buf)
+		err = cmv1.MarshalCluster(cluster, buf)
 		if err != nil {
 			return fmt.Errorf("Failed to Marshal cluster into JSON encoder: %v", err)
 		}
@@ -156,6 +157,52 @@ func run(cmd *cobra.Command, argv []string) error {
 		api := cluster.API()
 		apiURL, _ := api.GetURL()
 
+		// Retrieve the details of the subscription:
+		var sub *amv1.Subscription
+		subID := cluster.Subscription().ID()
+		if subID != "" {
+			subResponse, err := connection.AccountsMgmt().V1().
+				Subscriptions().
+				Subscription(subID).
+				Get().
+				Send()
+			if err != nil {
+				if subResponse == nil || subResponse.Status() != 404 {
+					return fmt.Errorf(
+						"can't get subscription '%s': %v",
+						subID, err,
+					)
+				}
+			}
+			sub = subResponse.Body()
+		}
+
+		// Retrieve the details of the account:
+		var account *amv1.Account
+		accountID := sub.Creator().ID()
+		if accountID != "" {
+			accountResponse, err := connection.AccountsMgmt().V1().
+				Accounts().
+				Account(accountID).
+				Get().
+				Send()
+			if err != nil {
+				if accountResponse == nil || accountResponse.Status() != 404 {
+					return fmt.Errorf(
+						"can't get account '%s': %v",
+						accountID, err,
+					)
+				}
+			}
+			account = accountResponse.Body()
+		}
+
+		// Find the details of the creator:
+		creator := account.Username()
+		if creator == "" {
+			creator = "N/A"
+		}
+
 		// Print short cluster description:
 		fmt.Printf("\nID:       %s\n"+
 			"Name:     %s.%s\n"+
@@ -174,7 +221,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			cluster.Nodes().Compute(),
 			cluster.Region().ID(),
 			cluster.MultiAZ(),
-			cluster.Creator(),
+			creator,
 			month.String(), day, year,
 		)
 		fmt.Println()

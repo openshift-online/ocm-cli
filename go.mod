@@ -8,7 +8,7 @@ require (
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
-	github.com/openshift-online/ocm-sdk-go v0.1.35
+	github.com/openshift-online/ocm-sdk-go v0.1.36
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
