@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/create"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/describe"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/list"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/login"
@@ -32,8 +33,9 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	Cmd.AddCommand(list.Cmd)
-	Cmd.AddCommand(status.Cmd)
+	Cmd.AddCommand(create.Cmd)
 	Cmd.AddCommand(describe.Cmd)
+	Cmd.AddCommand(list.Cmd)
 	Cmd.AddCommand(login.Cmd)
+	Cmd.AddCommand(status.Cmd)
 }
