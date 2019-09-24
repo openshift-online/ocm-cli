@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"os"
 
-	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 
+	clusterpkg "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 )
@@ -149,82 +149,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 
 	} else {
-		// Get creation date info:
-		clusterTimetamp := cluster.CreationTimestamp()
-		year, month, day := clusterTimetamp.Date()
-
-		// Get API URL:
-		api := cluster.API()
-		apiURL, _ := api.GetURL()
-
-		// Retrieve the details of the subscription:
-		var sub *amv1.Subscription
-		subID := cluster.Subscription().ID()
-		if subID != "" {
-			subResponse, err := connection.AccountsMgmt().V1().
-				Subscriptions().
-				Subscription(subID).
-				Get().
-				Send()
-			if err != nil {
-				if subResponse == nil || subResponse.Status() != 404 {
-					return fmt.Errorf(
-						"can't get subscription '%s': %v",
-						subID, err,
-					)
-				}
-			}
-			sub = subResponse.Body()
+		err = clusterpkg.PrintClusterDesctipion(connection, cluster)
+		if err != nil {
+			return err
 		}
-
-		// Retrieve the details of the account:
-		var account *amv1.Account
-		accountID := sub.Creator().ID()
-		if accountID != "" {
-			accountResponse, err := connection.AccountsMgmt().V1().
-				Accounts().
-				Account(accountID).
-				Get().
-				Send()
-			if err != nil {
-				if accountResponse == nil || accountResponse.Status() != 404 {
-					return fmt.Errorf(
-						"can't get account '%s': %v",
-						accountID, err,
-					)
-				}
-			}
-			account = accountResponse.Body()
-		}
-
-		// Find the details of the creator:
-		creator := account.Username()
-		if creator == "" {
-			creator = "N/A"
-		}
-
-		// Print short cluster description:
-		fmt.Printf("\nID:       %s\n"+
-			"Name:     %s.%s\n"+
-			"API URL:  %s\n"+
-			"Masters:  %d\n"+
-			"Computes: %d\n"+
-			"Region:   %s\n"+
-			"Multi-az: %t\n"+
-			"Creator:  %s\n"+
-			"Created:  %s %d %d\n",
-			cluster.ID(),
-			cluster.Name(),
-			cluster.DNS().BaseDomain(),
-			apiURL,
-			cluster.Nodes().Master(),
-			cluster.Nodes().Compute(),
-			cluster.Region().ID(),
-			cluster.MultiAZ(),
-			creator,
-			month.String(), day, year,
-		)
-		fmt.Println()
 	}
 
 	return nil
