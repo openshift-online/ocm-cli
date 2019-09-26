@@ -45,6 +45,14 @@ const (
 	deprecatedIssuer   = "developers.redhat.com"
 )
 
+// When the value of the `--url` option is one of the keys of this map it will be replaced by the
+// corresponding value.
+var urlAliases = map[string]string{
+	"production":  "https://api.openshift.com",
+	"staging":     "https://api.stage.openshift.com",
+	"integration": "https://api-integration.6943.hive-integration.openshiftapps.com",
+}
+
 var args struct {
 	tokenURL     string
 	clientID     string
@@ -106,7 +114,8 @@ func init() {
 		&args.url,
 		"url",
 		sdk.DefaultURL,
-		"URL of the API gateway.",
+		"URL of the API gateway. The value can be the complete URL or an alias. The "+
+			"valid aliases are 'production', 'staging' and 'integration'.",
 	)
 	flags.StringVar(
 		&args.token,
@@ -212,6 +221,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		clientID = args.clientID
 	}
 
+	// If the value of the `--url` is any of the aliases then replace it with the corresponding
+	// real URL:
+	gatewayURL, ok := urlAliases[args.url]
+	if !ok {
+		gatewayURL = args.url
+	}
+
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
@@ -226,7 +242,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.ClientID = clientID
 	cfg.ClientSecret = args.clientSecret
 	cfg.Scopes = args.scopes
-	cfg.URL = args.url
+	cfg.URL = gatewayURL
 	cfg.User = args.user
 	cfg.Password = args.password
 	cfg.Insecure = args.insecure
