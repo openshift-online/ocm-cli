@@ -3,6 +3,13 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.25 Sep 26 2019
+
+- Added new `cluster create` command.
+
+- Added support for `production`, `staging` and `integration` as values of the
+  `--url` parameter.
+
 == 0.1.24 Sep 14 2019
 
 - Fix quota output to look at correct API field.
