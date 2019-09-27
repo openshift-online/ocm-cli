@@ -6,7 +6,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/mattn/go-colorable v0.1.2 // indirect
-	github.com/onsi/ginkgo v1.8.0
+	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.5.0
 	github.com/openshift-online/ocm-sdk-go v0.1.36
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
