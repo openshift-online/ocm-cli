@@ -3,6 +3,11 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.26 Oct 3 2019
+
+- Fixed the `cluster create` command so that it retrieves all the enabled
+  versions.
+
 == 0.1.25 Sep 26 2019
 
 - Added new `cluster create` command.
