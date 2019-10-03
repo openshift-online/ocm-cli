@@ -102,19 +102,16 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Retrieve valid/default versions
 	versionList := sets.NewString()
 	var defaultVersion string
-
-	versionsResponse, err := cmv1Client.Versions().List().Search("enabled = 'true'").Send()
+	versions, err := fetchEnabledVersions(cmv1Client)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve versions: %s", err)
 	}
-	versionsResponse.Items().Each(func(version *cmv1.Version) bool {
+	for _, version := range versions {
 		versionList.Insert(version.ID())
 		if version.Default() {
 			defaultVersion = version.ID()
 		}
-
-		return true
-	})
+	}
 
 	// Check and set the cluster version
 	var clusterVersion string
@@ -163,4 +160,27 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	return nil
+}
+
+func fetchEnabledVersions(client *cmv1.RootClient) (versions []*cmv1.Version, err error) {
+	collection := client.Versions()
+	page := 1
+	size := 100
+	for {
+		var response *cmv1.VersionsListResponse
+		response, err = collection.List().
+			Search("enabled = 'true'").
+			Page(page).
+			Size(size).
+			Send()
+		if err != nil {
+			return
+		}
+		versions = append(versions, response.Items().Slice()...)
+		if response.Size() < size {
+			break
+		}
+		page++
+	}
+	return
 }
