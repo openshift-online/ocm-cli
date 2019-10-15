@@ -82,9 +82,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 
 		response.Items().Each(func(version *v1.Version) bool {
-			// strip leading "openshift-v" string
-			v := strings.Replace(version.ID(), "openshift-v", "", 1)
-			fmt.Fprintf(os.Stdout, "%s\n", v)
+			if version.Enabled() {
+				// strip leading "openshift-v" string
+				v := strings.Replace(version.ID(), "openshift-v", "", 1)
+				fmt.Fprintf(os.Stdout, "%s\n", v)
+			}
 			return true
 		})
 
