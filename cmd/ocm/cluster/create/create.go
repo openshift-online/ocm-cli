@@ -162,7 +162,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	return nil
 }
 
-func fetchEnabledVersions(client *cmv1.RootClient) (versions []*cmv1.Version, err error) {
+func fetchEnabledVersions(client *cmv1.Client) (versions []*cmv1.Version, err error) {
 	collection := client.Versions()
 	page := 1
 	size := 100
