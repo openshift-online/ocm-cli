@@ -29,6 +29,9 @@ import (
 // JSON document then it will be indented before printing it. If the `jq` tools is available in the
 // path then it will be used for syntax highlighting.
 func Pretty(stream io.Writer, body []byte) error {
+	if len(body) == 0 {
+		return nil
+	}
 	var data map[string]interface{}
 	err := json.Unmarshal(body, &data)
 	if err != nil {
@@ -44,6 +47,9 @@ func Pretty(stream io.Writer, body []byte) error {
 // output to a single line, intended to be used with other resources that require single line
 // output.
 func Simple(stream io.Writer, body []byte) error {
+	if len(body) == 0 {
+		return nil
+	}
 	var data map[string]interface{}
 	err := json.Unmarshal(body, &data)
 	if err != nil {
