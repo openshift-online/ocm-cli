@@ -18,31 +18,13 @@ package login
 
 import (
 	"fmt"
-	"net/url"
 	"os"
-	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
-)
-
-// Preferred OpenID details:
-const (
-	// #nosec G101
-	preferredTokenURL = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
-	preferredClientID = "cloud-services"
-)
-
-// Deprecated OpenID details used only when trying to authenticate with a user name and a password
-// or with a token issued by the deprecated OpenID server:
-const (
-	// #nosec G101
-	deprecatedTokenURL = "https://developers.redhat.com/auth/realms/rhd/protocol/openid-connect/token"
-	deprecatedClientID = "ocm"
-	deprecatedIssuer   = "developers.redhat.com"
 )
 
 // When the value of the `--url` option is one of the keys of this map it will be replaced by the
@@ -80,10 +62,8 @@ func init() {
 		"token-url",
 		"",
 		fmt.Sprintf(
-			"OpenID token URL. The default value is '%s'. Except when authenticating "+
-				"with a user name and password or with a token issued by '%s'. "+
-				"In that case the default is '%s'.",
-			preferredTokenURL, deprecatedIssuer, deprecatedTokenURL,
+			"OpenID token URL. The default value is '%s'.",
+			sdk.DefaultTokenURL,
 		),
 	)
 	flags.StringVar(
@@ -91,10 +71,8 @@ func init() {
 		"client-id",
 		"",
 		fmt.Sprintf(
-			"OpenID client identifier. The default value is '%s'. Except when "+
-				"authenticating with a user name and password or with a token "+
-				"issued by '%s'. In that case the default is '%s'.",
-			preferredClientID, deprecatedIssuer, deprecatedClientID,
+			"OpenID client identifier. The default value is '%s'.",
+			sdk.DefaultClientID,
 		),
 	)
 	flags.StringVar(
@@ -191,32 +169,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
-	// Initially the default OpenID details will be the preferred ones:
-	defaultTokenURL := preferredTokenURL
-	defaultClientID := preferredClientID
-
-	// If authentication is performed with a user name and password then select the deprecated
-	// OpenID details. Otherwise select them according to the issuer of the token.
-	if havePassword {
-		defaultTokenURL = deprecatedTokenURL
-		defaultClientID = deprecatedClientID
-	} else if haveToken {
-		issuerURL, err := tokenIssuer(token)
-		if err != nil {
-			return fmt.Errorf("Can't get token issuer: %v", err)
-		}
-		if issuerURL != nil && strings.EqualFold(issuerURL.Hostname(), deprecatedIssuer) {
-			defaultTokenURL = deprecatedTokenURL
-			defaultClientID = deprecatedClientID
-		}
-	}
-
 	// Apply the default OpenID details if not explicitly provided by the user:
-	tokenURL := defaultTokenURL
+	tokenURL := sdk.DefaultTokenURL
 	if args.tokenURL != "" {
 		tokenURL = args.tokenURL
 	}
-	clientID := defaultClientID
+	clientID := sdk.DefaultClientID
 	if args.clientID != "" {
 		clientID = args.clientID
 	}
@@ -291,27 +249,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	return nil
-}
-
-// tokenIssuer extracts the value of the `iss` claim. It then returns tha value as a URL, or nil if
-// there is no such claim.
-func tokenIssuer(token *jwt.Token) (issuer *url.URL, err error) {
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		err = fmt.Errorf("expected map claims but got %T", claims)
-		return
-	}
-	claim, ok := claims["iss"]
-	if !ok {
-		return
-	}
-	value, ok := claim.(string)
-	if !ok {
-		err = fmt.Errorf("expected string 'iss' but got %T", claim)
-		return
-	}
-	issuer, err = url.Parse(value)
-	return
 }
 
 // tokenType extracts the value of the `typ` claim. It returns the value as a string, or the empty

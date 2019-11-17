@@ -106,6 +106,8 @@ github.com/onsi/ginkgo v0.0.0-20170829012221-11459a886d9c/go.mod h1:lLunBs/Ym6LB
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.8.0 h1:VkHVNpR4iVnU8XQR6DBm8BqYjN7CRzw+xKUbVVbbW9w=
 github.com/onsi/ginkgo v1.8.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
+github.com/onsi/ginkgo v1.10.3 h1:OoxbjfXVZyod1fmWYhI7SEyaD8B00ynP3T+D5GiyHOY=
+github.com/onsi/ginkgo v1.10.3/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v1.5.0 h1:izbySO9zDPmjJ8rDjLvkA2zJHIo+HkYXHnf7eN7SSyo=
 github.com/onsi/gomega v1.5.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
@@ -113,6 +115,8 @@ github.com/openshift-online/ocm-sdk-go v0.1.36 h1:8Rp7WYgNQYeo7o1VwG/M2Rgox9eScN
 github.com/openshift-online/ocm-sdk-go v0.1.36/go.mod h1:rUF3jK/T4pieeafrKdBZ2TLnjqAUt7MxgvsmCdzXVQw=
 github.com/openshift-online/ocm-sdk-go v0.1.49 h1:E19sOmT3S0z69cIW309+b0dxB4VBFi9zbJgETjuof1o=
 github.com/openshift-online/ocm-sdk-go v0.1.49/go.mod h1:rUF3jK/T4pieeafrKdBZ2TLnjqAUt7MxgvsmCdzXVQw=
+github.com/openshift-online/ocm-sdk-go v0.1.54 h1:Rh6yCxbuWgpJuwTHE0TYGpw5wmPKPwMNXv2paQhJydk=
+github.com/openshift-online/ocm-sdk-go v0.1.54/go.mod h1:rUF3jK/T4pieeafrKdBZ2TLnjqAUt7MxgvsmCdzXVQw=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4 h1:49lOXmGaUpV9Fz3gd7TFZY106KVlPVa5jcYD1gaQf98=
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
