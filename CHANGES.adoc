@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.28 Nov 17 2019
+
+- Dropped support for _developers.redhat.com_.
+
 == 0.1.27 Oct 15 2019
 
 - Added `oc cluster versions` command.
