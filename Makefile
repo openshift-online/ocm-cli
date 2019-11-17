@@ -16,12 +16,15 @@
 
 # Ensure go modules are enabled:
 export GO111MODULE=on
+export GOPROXY=https://proxy.golang.org
+
+# Disable CGO so that we always generate static binaries:
+export CGO_ENABLED=0
 
 .PHONY: cmds
 cmds:
 	for cmd in $$(ls cmd); do \
-		CGO_ENABLED=0 \
-		go build -mod=readonly -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
+		go build -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
 	done
 
 .PHONY: install

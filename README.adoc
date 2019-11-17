@@ -25,17 +25,6 @@ To do that use the `login` command:
 $ ocm login --token=eyJ...
 ....
 
-Alternatively, if you don't have an offline access token, you can log-in using
-your https://developers.redhat.com[developers.redhat.com] user name and
-password:
-
-....
-$ ocm login --user=... --password=...
-....
-
-However this option is deprecated, because it is less secure, and it will be
-removed in the future.
-
 This will use the provided token to request _OpenID_ access and refresh tokens
 to _sso.redhat.com_. The tokens will be saved to the `.ocm.json` file in
 your home directory, for future use.
