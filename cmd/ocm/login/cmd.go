@@ -35,6 +35,9 @@ var urlAliases = map[string]string{
 	"integration": "https://api-integration.6943.hive-integration.openshiftapps.com",
 }
 
+// #nosec G101
+const uiTokenPage = "https://cloud.redhat.com/openshift/token"
+
 var args struct {
 	tokenURL     string
 	clientID     string
@@ -51,8 +54,9 @@ var args struct {
 var Cmd = &cobra.Command{
 	Use:   "login",
 	Short: "Log in",
-	Long:  "Log in, saving the credentials to the configuration file.",
-	RunE:  run,
+	Long: "Log in, saving the credentials to the configuration file.\n" +
+		"The recommend way is using '--token', which you can obtain at: " + uiTokenPage,
+	RunE: run,
 }
 
 func init() {
@@ -144,8 +148,16 @@ func run(cmd *cobra.Command, argv []string) error {
 	haveSecret := args.clientID != "" && args.clientSecret != ""
 	haveToken := args.token != ""
 	if !havePassword && !haveSecret && !haveToken {
-		return fmt.Errorf("In order to log in it is mandatory to use '--token', '--user' and " +
-			"'--password', or '--client-id' and '--client-secret'.")
+		// Allow bare `ocm login` to suggest the token page without noise of full help.
+		fmt.Fprintf(
+			os.Stderr,
+			"In order to log in it is mandatory to use '--token', '--user' and "+
+				"'--password', or '--client-id' and '--client-secret'.\n"+
+				"You can obtain a token at: %s .\n"+
+				"See 'ocm login --help' for full help.\n",
+			uiTokenPage,
+		)
+		os.Exit(1)
 	}
 
 	// Inform the user that it isn't recommended to authenticate with user name and password:
