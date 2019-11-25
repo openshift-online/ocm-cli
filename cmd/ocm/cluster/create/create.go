@@ -33,6 +33,7 @@ var args struct {
 	header    []string
 	region    string
 	version   string
+	flavour   string
 }
 
 // Cmd Constant:
@@ -59,6 +60,12 @@ func init() {
 		"version",
 		"",
 		"The OpenShift version to create the cluster at (for example, \"4.1.16\")",
+	)
+	fs.StringVar(
+		&args.flavour,
+		"flavour",
+		"osd-4",
+		"The OCM flavour to create the cluster with",
 	)
 }
 
@@ -124,11 +131,31 @@ func run(cmd *cobra.Command, argv []string) error {
 		clusterVersion = defaultVersion
 	}
 
+	// Retrieve valid/default flavours
+	flavourList := sets.NewString()
+	flavours, err := fetchFlavours(cmv1Client)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve flavours: %s", err)
+	}
+	for _, flavour := range flavours {
+		flavourList.Insert(flavour.ID())
+	}
+
+	// Check and set the cluster flavour
+	var clusterFlavour string
+	if args.flavour != "" {
+
+		if !flavourList.Has(args.flavour) {
+			return fmt.Errorf("A valid flavour number must be specified\nValid flavours: %+v", flavourList.List())
+		}
+		clusterFlavour = args.flavour
+	}
+
 	cluster, err := cmv1.NewCluster().
 		Name(clusterName).
 		Flavour(
 			cmv1.NewFlavour().
-				ID("osd-4"),
+				ID(clusterFlavour),
 		).
 		Region(
 			cmv1.NewCloudRegion().
@@ -177,6 +204,28 @@ func fetchEnabledVersions(client *cmv1.Client) (versions []*cmv1.Version, err er
 			return
 		}
 		versions = append(versions, response.Items().Slice()...)
+		if response.Size() < size {
+			break
+		}
+		page++
+	}
+	return
+}
+
+func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
+	collection := client.Flavours()
+	page := 1
+	size := 100
+	for {
+		var response *cmv1.FlavoursListResponse
+		response, err = collection.List().
+			Page(page).
+			Size(size).
+			Send()
+		if err != nil {
+			return
+		}
+		flavours = append(flavours, response.Items().Slice()...)
 		if response.Size() < size {
 			break
 		}
