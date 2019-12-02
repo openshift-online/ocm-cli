@@ -29,6 +29,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/glog"
+	"github.com/mitchellh/go-homedir"
 	"github.com/openshift-online/ocm-sdk-go"
 
 	"github.com/openshift-online/ocm-cli/pkg/debug"
@@ -116,9 +117,8 @@ func Remove() error {
 
 // Location returns the location of the configuration file.
 func Location() (path string, err error) {
-	home := os.Getenv("HOME")
-	if home == "" {
-		err = fmt.Errorf("can't find home directory, HOME environment variable is empty")
+	home, err := homedir.Dir()
+	if err != nil {
 		return
 	}
 	path = filepath.Join(home, ".ocm.json")
