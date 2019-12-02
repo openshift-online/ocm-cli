@@ -5,17 +5,48 @@ of the _OCM_ API available in `api.openshift.com`.
 
 == Installation
 
-To install the tool run this command:
+The preferred way to install the tool in _Fedora_ and _CentOS_ is to use the
+RPM packages built in https://copr.fedorainfracloud.org/coprs/ocm/tools[Fedora
+Copr]. To enable that repository and install the tool use the following commands:
+
+....
+# dnf copr enable ocm/tools
+# dnf install ocm-cli
+....
+
+This will install the `ocm` command and will keep it updated using the same
+mechanism used to update all the other packages of the distribution.
+
+If you are not using one of this distributions or you don't want to use the RPM
+packages then you can alternatively get the release binaries from the _GitHub_
+https://github.com/openshift-online/ocm-cli/releases[releases page]. For
+example, to install version 0.1.30 to your personal `bin` directory you can use
+the following commands:
+
+....
+$ mkdir -p ~/bin/ocm
+$ curl -o ~/bin/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.30/ocm-linux-amd64
+$ chmod +x ~/bin/ocm
+....
+
+Finally, if none of the installation options described above works for you then
+you can install it using `go get`:
 
 ....
 $ go get -u github.com/openshift-online/ocm-cli/cmd/ocm
 ....
 
+But take into account that the results of installing with `go get` depend on the
+version of _Go_ that you use and on the values of certain environment variables.
+It is particularly problematic to install with `go get` if the version of _Go_
+used doesn't support modules, because the dependencies used may not be the ones
+tested by the developers. In general installations done with `go get` aren't
+supported or recommended.
 
 == Log In
 
 The first step to use the tool is to log-in with your
-Openshift Cluster Manager offline access token which you can get below:
+OpenShift Cluster Manager offline access token which you can get below:
 
 https://cloud.redhat.com/openshift/token[https://cloud.redhat.com/openshift/token]
 
@@ -303,7 +334,7 @@ clusters, and it happens asynchronously. After the `delete` command finishes it
 will take some time to actually delete the cluster. That can be checking using
 the `get` command till it returns a `404 Not Found` response.
 
-=== Config
+== Config
 
 The configuration variables can be read and set via the `get` and `set` commands.
 These settings will be persisted in the `.ocm.json` file in your home directory.
@@ -316,22 +347,83 @@ $ ocm config get url
 $ ocm config set url https://api.openshift.com
 ....
 
-=== Releasing
-*Requirements:*
+== Building RPMs
 
-https://goreleaser.com/install/[GoRelease]
+Currently RPMs are built for _Fedora_ and _CentOS_ using
+https://copr.fedorainfracloud.org/coprs/ocm/tools[Fedora Copr].
 
-https://github.com/settings/tokens[GitHub Token] *(More below)*
+The mechanism selected to do the build is a the following custom script that
+generates the RPM `.spec` file:
 
-*Steps:*
+[source,bash]
+----
+# Check that the event payload exists:
+if [[ ! -f hook_payload ]]; then
+    echo "Event payload file 'hook_payload' doesn't exist"
+    exit 1
+fi
 
-- Generate a new GitHub https://github.com/settings/tokens[GitHub token] with *repo* scope. Make sure to copy and save your new personal access token now. You won’t be able to see it again!
-- Declare token: `GITHUB_TOKEN=<token>`
-- GoReleaser will use the latest Git tag of your repository. Create a tag and push it to GitHub:
+# Check that the event is the creation of a tag:
+ref_type=$(cat hook_payload | jq -r .ref_type)
+if [[ "${ref_type}" != "tag" ]]; then
+    echo "Expected reference type 'tag' but got '${ref_type}'"
+    exit 1
+fi
 
-```
-$ git tag -a <version> -m "Release Message"
-$ git push origin <version>
-```
+# Check that the tag is well formed:
+ref=$(cat hook_payload | jq -r .ref)
+if [[ ! "${ref}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Reference '${ref}' isn't well formed"
+    exit 1
+fi
 
-- Now you can run GoReleaser at the root of the repository `goreleaser --rm-dist`
+# Set the version to use:
+version="${ref:1}"
+
+# Generate the .spec file:
+cat > ocm-cli.spec <<.
+%global debug_package %{nil}
+
+Name: ocm-cli
+Version: ${version}
+Release: 1%{?dist}
+Summary: CLI for the Red Hat OpenShift Cluster Manager
+License: ASL 2.0
+URL: https://github.com/openshift-online/ocm-cli
+Source: https://github.com/openshift-online/ocm-cli/archive/v${version}.tar.gz
+
+BuildRequires: git
+BuildRequires: golang-bin
+
+%description
+CLI for the Red Hat OpenShift Cluster Manager
+
+%prep
+%setup
+
+%build
+make
+
+%install
+install -m 0755 -d %{buildroot}%{_bindir}
+install -m 0755 ocm %{buildroot}%{_bindir}
+
+%files
+%license LICENSE.txt
+%doc README.adoc
+%{_bindir}/*
+.
+
+# Bye:
+exit 0
+----
+
+If this script needs to be changed you will need to go to the _copr_ user
+interface and update it manually.
+
+The _GitHub_ repository is configured with a webhook that will trigger the
+_copr_ build when a new tag is pushed to the repository.
+
+The _build dependencies_ section of the _copr_ configuration should include the
+`jq` package is it is needed to extract the version number from the payload of
+the event sent by the _GitHub_ webhook.
