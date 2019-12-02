@@ -49,5 +49,6 @@ clean:
 		$$(ls cmd) \
 		*-darwin-amd64 \
 		*-linux-amd64 \
+		*-windows-amd64 \
 		*.sha256 \
 		$(NULL)
