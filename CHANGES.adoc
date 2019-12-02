@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.31 Dec 2 2019
+
+- Add support for _Windows_.
+
 == 0.1.30 Dec 2 2019
 
 - Add `--flavour` option to `ocm cluster create`.
