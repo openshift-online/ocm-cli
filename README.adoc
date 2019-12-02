@@ -24,12 +24,12 @@ example, to install version 0.1.30 to your personal `bin` directory you can use
 the following commands:
 
 ....
-$ mkdir -p ~/bin/ocm
+$ mkdir -p ~/bin
 $ curl -o ~/bin/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.30/ocm-linux-amd64
 $ chmod +x ~/bin/ocm
 ....
 
-Finally, if none of the installation options described above works for you then
+Finally, if none of the installation options described above work for you then
 you can install it using `go get`:
 
 ....
@@ -59,12 +59,6 @@ $ ocm login --token=eyJ...
 This will use the provided token to request _OpenID_ access and refresh tokens
 to _sso.redhat.com_. The tokens will be saved to the `.ocm.json` file in
 your home directory, for future use.
-
-By default the user name and password won't be saved to the `.ocm.json` file,
-unless the `--persistent` option is explicitly used.
-
-When the tokens expire (usually after several hours) the tool will ask the user
-to run the `login` command again.
 
 The `login` command has options to log-in to other environments. For example, if
 you have a service running in your local environment and you want to use the
@@ -107,8 +101,8 @@ the `--payload` option:
 $ ocm token --payload
 ....
 
-That will JSON representation of the access token, which is useful to diagnose
-authentication issues.
+That will display the JSON representation of the access token, which is useful
+to diagnose authentication issues.
 
 == Log Out
 
@@ -201,7 +195,7 @@ clusters, for example:
 ----
 
 As the server will always return JSON documents it is very convenient to use the
-https://stedolan.github.io/jq[jq] tool to extract that information that you
+https://stedolan.github.io/jq[jq] tool to extract the information that you
 need. For example, if you want to get the list of identifiers of your clusters
 you can do the following:
 
@@ -245,9 +239,9 @@ https://api.openshift.com[reference documentation].
 
 == Creating Objects
 
-To create objects use the `post` command, and put the JSON representation of
-the object either in the standard input or else in a file indicated by the
-`--body` option. For example, to create a new cluster prepare a `mycluster.json`
+To create objects use the `post` command, and put the JSON representation of the
+object either in the standard input or else in a file indicated by the `--body`
+option. For example, to create a new managed cluster prepare a `mycluster.json`
 file with this content:
 
 [source,json]
@@ -255,18 +249,12 @@ file with this content:
 {
   "name": "mycluster",
   "flavour": {
-    "id": "4"
+    "id": "osd-4"
   },
   "region": {
     "id": "us-east-1"
   },
-  "aws": {
-    "access_key_id": "...",
-    "secret_access_key": "..."
-  },
-  "dns": {
-    "base_domain": "example.com"
-  }
+  "managed": true
 }
 ----
 
@@ -285,11 +273,6 @@ $ ocm post --body=mycluster.json
 That will send the request to the server, which will initiate the process of
 creating the object, and will return a JSON document containing the
 representation.
-
-NOTE: In the above example the AWS credentials are empty, but they are
-mandatory. Also the DNS base domain needs to be an existing
-https://aws.amazon.com/route53[Route53] domain. See
-the https://api.openshift.com[reference documentation] for details.
 
 Complicated objects, like a cluster, are usually created asynchronously, so the
 fact that the server returns a response doesn't mean that the object is ready to
