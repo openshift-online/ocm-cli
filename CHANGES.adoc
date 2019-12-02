@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.30 Dec 2 2019
+
+- Add `--flavour` option to `ocm cluster create`.
+
 == 0.1.28 Nov 18 2019
 
 - Allow bare `ocm login` to suggest the token page without extra noise.
