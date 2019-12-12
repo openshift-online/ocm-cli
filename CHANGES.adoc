@@ -3,6 +3,11 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.32 Dec 12 2019
+
+- Add shortcuts for role bindings and resource quota.
+- Add shortcuts for roles and SKUs.
+
 == 0.1.31 Dec 2 2019
 
 - Add support for _Windows_.
