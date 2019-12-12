@@ -243,4 +243,50 @@ var _ = Describe("Expand", func() {
 			},
 		),
 	)
+
+	DescribeTable(
+		"RoleBindings",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - role_bindings",
+			urlExpanderTest{
+				params:   []string{"role_bindings"},
+				contains: "accounts_mgmt/v1/role_bindings",
+			},
+		),
+		Entry(
+			"Valid resource parameters - role_binding",
+			urlExpanderTest{
+				params:   []string{"role_binding", "foo"},
+				contains: "accounts_mgmt/v1/role_bindings",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - role_binding",
+			urlExpanderTest{
+				params:      []string{"role_binding"},
+				expectError: true,
+			},
+		),
+	)
+
+	DescribeTable(
+		"ResourceQuota",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - resource_quota",
+			urlExpanderTest{
+				params:   []string{"resource_quota"},
+				contains: "accounts_mgmt/v1/resource_quota",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - resource_quota",
+			urlExpanderTest{
+				params:   []string{"resource_quota", "foo"},
+				contains: "accounts_mgmt/v1/resource_quota",
+			},
+		),
+	)
+
 })
