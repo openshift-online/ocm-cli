@@ -46,6 +46,10 @@ func Expand(argv []string) (string, error) {
 		path = "/api/accounts_mgmt/v1/organizations"
 	case "clusters":
 		path = "/api/clusters_mgmt/v1/clusters"
+	case "role_bindings":
+		path = "/api/accounts_mgmt/v1/role_bindings"
+	case "resource_quota":
+		path = "/api/accounts_mgmt/v1/resource_quota"
 
 	// Individual resources:
 	case "account", "acct":
@@ -56,6 +60,8 @@ func Expand(argv []string) (string, error) {
 		path, err = expandResourceWithID("/api/accounts_mgmt/v1/organizations/", argv)
 	case "cluster":
 		path, err = expandResourceWithID("/api/clusters_mgmt/v1/clusters/", argv)
+	case "role_binding":
+		path, err = expandResourceWithID("/api/accounts_mgmt/v1/role_bindings/", argv)
 	}
 
 	if err != nil {
