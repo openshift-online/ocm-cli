@@ -289,4 +289,55 @@ var _ = Describe("Expand", func() {
 		),
 	)
 
+	DescribeTable(
+		"SKUs",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - skus",
+			urlExpanderTest{
+				params:   []string{"skus"},
+				contains: "accounts_mgmt/v1/skus",
+			},
+		),
+		Entry(
+			"Valid resource parameters - sku",
+			urlExpanderTest{
+				params:   []string{"sku", "foo"},
+				contains: "accounts_mgmt/v1/skus",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - sku",
+			urlExpanderTest{
+				params:      []string{"sku"},
+				expectError: true,
+			},
+		),
+	)
+
+	DescribeTable(
+		"Roles",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - roles",
+			urlExpanderTest{
+				params:   []string{"roles"},
+				contains: "accounts_mgmt/v1/roles",
+			},
+		),
+		Entry(
+			"Valid resource parameters - role",
+			urlExpanderTest{
+				params:   []string{"role", "foo"},
+				contains: "accounts_mgmt/v1/roles",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - role",
+			urlExpanderTest{
+				params:      []string{"role"},
+				expectError: true,
+			},
+		),
+	)
 })
