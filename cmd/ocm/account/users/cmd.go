@@ -25,29 +25,26 @@ import (
 
 	acc_util "github.com/openshift-online/ocm-cli/pkg/account"
 	"github.com/openshift-online/ocm-cli/pkg/config"
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
 
-var (
-	pageIndex = 1
-	namePad   = 40
-)
-
 var args struct {
-	debug    bool
-	org      string
-	roles    []string
-	workers  int
-	pageSize int
+	debug bool
+	org   string
+	roles []string
 }
 
-// Cmd defines a new cobra Command
+// Cmd configures a new Cobra Command
 var Cmd = &cobra.Command{
 	Use:   "users",
 	Short: "Retrieve users and their roles",
 	Long:  "Retrieve information of all users/roles in the same organization",
 	RunE:  run,
+}
+
+type userModel struct {
+	userName string
+	userID   string
 }
 
 func init() {
@@ -70,18 +67,6 @@ func init() {
 		"roles",
 		[]string{},
 		"Role identifiers. Returns users with one or more of the specified roles. Multiple roles can be specified like: --roles=\"role1,role2,role2\".",
-	)
-	flags.IntVar(
-		&args.workers,
-		"workers",
-		1,
-		"Used with --roles. Number of workers to which we distribute the load. Queries run faster but use more CPU.",
-	)
-	flags.IntVar(
-		&args.pageSize,
-		"pagesize",
-		100,
-		"Size of page to return from the server. Larger page sizes equal faster search times with --roles.",
 	)
 }
 
@@ -112,10 +97,16 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	defer connection.Close()
 
+	// needed variables:
+	pageSize := 100
+	pageIndex := 1
+	namePad := 40
 	searchQuery := ""
 
-	// Organization to search in case one was not provided.
-	// Only used when we're not already searching all orgs.
+	if args.org != "" {
+		searchQuery = fmt.Sprintf("organization_id='%s'", args.org)
+	}
+	// Organization to search in case one was not provided:
 	if args.org == "" && len(args.roles) == 0 {
 		// Get organization of current user:
 		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
@@ -128,6 +119,8 @@ func run(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf("Failed to get current user organization")
 		}
 		args.org = userOrg.ID()
+
+		// Format search request:
 		searchQuery = fmt.Sprintf("organization_id='%s'", args.org)
 	}
 
@@ -135,17 +128,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	fmt.Println(stringPad("USER", namePad), stringPad("USER ID", namePad), "ROLES")
 	fmt.Println()
 
-	aChan := make(chan *amv1.Account)
-
-	// Optionally start additional goroutines to process accounts more quickly.
-	for w := 1; w <= args.workers; w++ {
-		go worker(aChan, connection)
-	}
-
+	// Display a list of all users in our organization and their roles:
 	for {
-		// Display a list of all users in our organization and their roles:
+		// Get all users within organization
 		usersResponse, err := connection.AccountsMgmt().V1().Accounts().List().
-			Size(args.pageSize).
+			Size(pageSize).
 			Page(pageIndex).
 			Parameter("search", searchQuery).
 			Send()
@@ -153,48 +140,56 @@ func run(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf("Can't retrieve accounts: %v", err)
 		}
 
-		// Go through users found in each page and display info:
+		accountList := []*amv1.Account{}
+		accountMap := make(map[*amv1.Account]*userModel)
+
+		// Go through users found in page and display info:
 		usersResponse.Items().Each(func(account *amv1.Account) bool {
-			aChan <- account
+			username := stringPad(account.Username(), namePad)
+			userID := stringPad(account.ID(), namePad)
+
+			accountList = append(accountList, account)
+			accountMap[account] = &userModel{
+				userName: username,
+				userID:   userID,
+			}
 			return true
 		})
 
+		accountRoleMap, err := acc_util.GetRolesFromUsers(accountList, connection)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to get roles for user: %s\n", err)
+			os.Exit(1)
+		}
+
+		for k, v := range accountRoleMap {
+			if len(args.roles) > 0 {
+				if checkRoles(v, args.roles) {
+					fmt.Println(accountMap[k].userName, accountMap[k].userID, printArray(v))
+				}
+			} else {
+				fmt.Println(accountMap[k].userName, accountMap[k].userID, printArray(v))
+			}
+		}
 		// Resume loop:
-		if usersResponse.Size() < args.pageSize {
+		if usersResponse.Size() < pageSize {
 			break
 		}
 		pageIndex++
 	}
+
 	return nil
 }
 
-func worker(jobs <-chan *amv1.Account, connection *sdk.Connection) {
-	for {
-		select {
-		case account := <-jobs:
-			username := stringPad(account.Username(), namePad)
-			userID := stringPad(account.ID(), namePad)
-			accountRoleList, err := acc_util.GetRolesFromUser(account, connection)
-
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to get roles for user: %s\n", err)
-				os.Exit(1)
-			}
-
-			if len(args.roles) > 0 {
-				for _, org := range accountRoleList {
-					for _, orgArg := range args.roles {
-						if orgArg == org {
-							fmt.Println(username, userID, printArray(accountRoleList))
-							break
-						}
-					}
-				}
-			} else {
-				fmt.Println(username, userID, printArray(accountRoleList))
+func checkRoles(roles, roleArgs []string) bool {
+	for _, role := range roles {
+		for _, roleArg := range roleArgs {
+			if role == roleArg {
+				return true
 			}
 		}
 	}
+	return false
 }
 
 // stringPad will add whitespace or clip a string
