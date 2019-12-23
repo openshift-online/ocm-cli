@@ -65,7 +65,6 @@ func GetRolesFromUsers(accounts []*amv1.Account, conn *sdk.Connection) (results 
 			account := accountsMap[item.Account().ID()]
 
 			itemID := item.Role().ID()
-			fmt.Println(accountsMap[item.Account().ID()].Username(), accountsMap[item.Account().ID()].Organization().ID(), itemID)
 
 			if _, ok := results[account]; ok {
 				if !stringInList(results[account], itemID) {
@@ -81,11 +80,9 @@ func GetRolesFromUsers(accounts []*amv1.Account, conn *sdk.Connection) (results 
 		// Break the loop if the page size is smaller than requested, as that indicates
 		// that this is the last page:
 		if response.Size() < size {
-			fmt.Println("account breaking at final page size", response.Size())
 			break
 		}
 		index++
-		fmt.Println("account index is now", index)
 	}
 
 	return
