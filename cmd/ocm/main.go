@@ -19,6 +19,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/whatami"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/whatcani"
 	"os"
 
 	_ "github.com/golang/glog"
@@ -75,6 +77,8 @@ func init() {
 	root.AddCommand(cluster.Cmd)
 	root.AddCommand(completion.Cmd)
 	root.AddCommand(whoami.Cmd)
+	root.AddCommand(whatami.Cmd)
+	root.AddCommand(whatcani.Cmd)
 	root.AddCommand(config.Cmd)
 }
 
