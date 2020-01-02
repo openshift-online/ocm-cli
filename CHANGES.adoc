@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.33 Jan 01 2020
+
+- Add commands `ocm whatami` and `ocm whatcani`.
+
 == 0.1.32 Dec 12 2019
 
 - Add shortcuts for role bindings and resource quota.
