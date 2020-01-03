@@ -83,7 +83,9 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Display user and which server they are logged into
 	currAccount := response.Body()
-	fmt.Println(fmt.Sprintf("%s on %s", currAccount.Username(), cfg.URL))
+	currOrg := currAccount.Organization()
+	fmt.Println(fmt.Sprintf("User %s on %s in org '%s' %s (external_id: %s)",
+		currAccount.Username(), cfg.URL, currOrg.Name(), currOrg.ID(), currOrg.ExternalID()))
 
 	// Display roles currently assigned to the user
 	roleSlice, err := acc_util.GetRolesFromUser(currAccount, connection)
