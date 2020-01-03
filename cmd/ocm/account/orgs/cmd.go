@@ -107,7 +107,6 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Print Header Row:
 	table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
-	fmt.Println()
 
 	for {
 		// Next page request:
@@ -169,7 +168,6 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		pageIndex++
 	}
-	fmt.Println()
 
 	return nil
 }
