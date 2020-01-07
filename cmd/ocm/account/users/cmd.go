@@ -106,7 +106,6 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Print top.
 	fmt.Println(stringPad("USER", namePad), stringPad("USER ID", namePad), "ROLES")
-	fmt.Println()
 
 	// Display a list of all users in our organization and their roles:
 	for {

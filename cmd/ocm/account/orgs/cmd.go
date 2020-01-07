@@ -52,7 +52,7 @@ func init() {
 	fs.StringVar(
 		&args.columns,
 		"columns",
-		"id,href,name", // Default value gets assigned later as connection is needed.
+		"id,name", // Default value gets assigned later as connection is needed.
 		"Organization identifier. Defaults to the organization of the current user.",
 	)
 	fs.IntVar(
@@ -101,13 +101,12 @@ func run(cmd *cobra.Command, argv []string) error {
 	colUpper = strings.Replace(colUpper, ".", " ", -1)
 	columnNames := strings.Split(colUpper, ",")
 	paddingByColumn := []int{29, 65, 70}
-	if args.columns != "id,href,name" {
+	if args.columns != "id,name" {
 		paddingByColumn = []int{args.padding}
 	}
 
 	// Print Header Row:
 	table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
-	fmt.Println()
 
 	for {
 		// Next page request:
@@ -169,7 +168,6 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		pageIndex++
 	}
-	fmt.Println()
 
 	return nil
 }

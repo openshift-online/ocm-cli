@@ -44,7 +44,8 @@ func AddParameterFlag(fs *pflag.FlagSet, values *[]string) {
 		"Query parameters to add to the request. The value must be the name of the "+
 			"parameter, followed by an optional equals sign and then the value "+
 			"of the parameter. Can be used multiple times to specify multiple "+
-			"parameters or multiple values for the same parameter.",
+			"parameters or multiple values for the same parameter. Example: "+
+			"--parameter search=\"username like 'myname%'\"",
 	)
 }
 
