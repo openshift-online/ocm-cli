@@ -3,6 +3,15 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.33 Jan 8 2020
+
+- Update to SDK 0.1.78.
+- Add quota resource name.
+- Tighten up list output.
+- Remove redundant `href` column from organization list.
+- Add parameter usage example.
+- Add organization details to account status command.
+
 == 0.1.32 Dec 12 2019
 
 - Add shortcuts for role bindings and resource quota.
