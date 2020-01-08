@@ -18,7 +18,6 @@ package describe
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -116,12 +115,8 @@ func run(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf("Failed to create file: %v", err)
 		}
 
-		// Reasign encoder io.Writer to file writer:
-		encoder := json.NewEncoder(myFile)
-		encoder.SetIndent("", " ")
-
 		// Dump encoder content into file:
-		err = cmv1.MarshalCluster(cluster, encoder)
+		err = cmv1.MarshalCluster(cluster, myFile)
 		if err != nil {
 			return fmt.Errorf("Failed to Marshal cluster into file: %v", err)
 		}
