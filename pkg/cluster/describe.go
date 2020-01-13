@@ -84,6 +84,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"Name:     %s.%s\n"+
 		"API URL:  %s\n"+
 		"Masters:  %d\n"+
+		"Infra:    %d\n"+
 		"Computes: %d\n"+
 		"Region:   %s\n"+
 		"Multi-az: %t\n"+
@@ -94,6 +95,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.DNS().BaseDomain(),
 		apiURL,
 		cluster.Nodes().Master(),
+		cluster.Nodes().Infra(),
 		cluster.Nodes().Compute(),
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
