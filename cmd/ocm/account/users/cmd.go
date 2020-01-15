@@ -31,13 +31,20 @@ import (
 var args struct {
 	debug bool
 	org   string
+	roles []string
 }
 
+// Cmd configures a new Cobra Command
 var Cmd = &cobra.Command{
 	Use:   "users",
 	Short: "Retrieve users and their roles",
 	Long:  "Retrieve information of all users/roles in the same organization",
 	RunE:  run,
+}
+
+type userModel struct {
+	userName string
+	userID   string
 }
 
 func init() {
@@ -54,6 +61,13 @@ func init() {
 		"org",
 		"", // Default value gets assigned later as connection is needed.
 		"Organization identifier. Defaults to the organization of the current user.",
+	)
+	flags.StringSliceVar(
+		&args.roles,
+		"roles",
+		[]string{},
+		`Role identifiers. Returns users with one or more of the specified roles.
+		Multiple roles can be specified like: --roles="role1,role2,role2".`,
 	)
 }
 
@@ -88,9 +102,13 @@ func run(cmd *cobra.Command, argv []string) error {
 	pageSize := 100
 	pageIndex := 1
 	namePad := 40
+	searchQuery := ""
 
+	if args.org != "" {
+		searchQuery = fmt.Sprintf("organization_id='%s'", args.org)
+	}
 	// Organization to search in case one was not provided:
-	if args.org == "" {
+	if args.org == "" && len(args.roles) == 0 {
 		// Get organization of current user:
 		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 			Send()
@@ -102,6 +120,9 @@ func run(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf("Failed to get current user organization")
 		}
 		args.org = userOrg.ID()
+
+		// Format search request:
+		searchQuery = fmt.Sprintf("organization_id='%s'", args.org)
 	}
 
 	// Print top.
@@ -109,10 +130,6 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Display a list of all users in our organization and their roles:
 	for {
-
-		// Format search request:
-		searchQuery := fmt.Sprintf("organization_id='%s'", args.org)
-
 		// Get all users within organization
 		usersResponse, err := connection.AccountsMgmt().V1().Accounts().List().
 			Size(pageSize).
@@ -122,21 +139,38 @@ func run(cmd *cobra.Command, argv []string) error {
 		if err != nil {
 			return fmt.Errorf("Can't retrieve accounts: %v", err)
 		}
+
+		accountList := []*amv1.Account{}
+		accountMap := make(map[*amv1.Account]*userModel)
+
 		// Go through users found in page and display info:
 		usersResponse.Items().Each(func(account *amv1.Account) bool {
-			if args.org == account.Organization().ID() {
-				username := stringPad(account.Username(), namePad)
-				userID := stringPad(account.ID(), namePad)
-				accountRoleList, err := acc_util.GetRolesFromUser(account, connection)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Failed to get roles for user: %s\n", err)
-					os.Exit(1)
-				}
-				fmt.Println(username, userID, printArray(accountRoleList))
+			username := stringPad(account.Username(), namePad)
+			userID := stringPad(account.ID(), namePad)
+
+			accountList = append(accountList, account)
+			accountMap[account] = &userModel{
+				userName: username,
+				userID:   userID,
 			}
 			return true
 		})
 
+		accountRoleMap, err := acc_util.GetRolesFromUsers(accountList, connection)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to get roles for user: %s\n", err)
+			os.Exit(1)
+		}
+
+		for k, v := range accountRoleMap {
+			if len(args.roles) > 0 {
+				if checkRoles(v, args.roles) {
+					fmt.Println(accountMap[k].userName, accountMap[k].userID, printArray(v))
+				}
+			} else {
+				fmt.Println(accountMap[k].userName, accountMap[k].userID, printArray(v))
+			}
+		}
 		// Resume loop:
 		if usersResponse.Size() < pageSize {
 			break
@@ -145,6 +179,17 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	return nil
+}
+
+func checkRoles(roles, roleArgs []string) bool {
+	for _, role := range roles {
+		for _, roleArg := range roleArgs {
+			if role == roleArg {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // stringPad will add whitespace or clip a string

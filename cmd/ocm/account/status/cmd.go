@@ -23,12 +23,14 @@ import (
 
 	acc_util "github.com/openshift-online/ocm-cli/pkg/account"
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
 
 var args struct {
 	debug bool
 }
 
+// Cmd is a new Cobra Command
 var Cmd = &cobra.Command{
 	Use:   "status",
 	Short: "Status of current user.",
@@ -88,11 +90,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		currAccount.Username(), cfg.URL, currOrg.Name(), currOrg.ID(), currOrg.ExternalID()))
 
 	// Display roles currently assigned to the user
-	roleSlice, err := acc_util.GetRolesFromUser(currAccount, connection)
+	roleSlice, err := acc_util.GetRolesFromUsers([]*amv1.Account{currAccount}, connection)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Roles: %v\n", nicePrint(roleSlice))
+	fmt.Printf("Roles: %v\n", nicePrint(roleSlice[currAccount]))
 
 	return nil
 }

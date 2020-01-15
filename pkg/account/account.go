@@ -17,48 +17,75 @@ limitations under the License.
 package account
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
 
-// GetRolesFromUser gets all roles a specific user possesses.
-func GetRolesFromUser(account *amv1.Account, conn *sdk.Connection) ([]string, error) {
+// GetRolesFromUsers gets all roles a specific user possesses.
+func GetRolesFromUsers(accounts []*amv1.Account, conn *sdk.Connection) (results map[*amv1.Account][]string, error error) {
+	// Prepare the results:
+	results = map[*amv1.Account][]string{}
 
-	pageIndex := 1
-	var roles []string
+	// Prepare a map of accounts indexed by identifier:
+	accountsMap := map[string]*amv1.Account{}
+	for _, account := range accounts {
+		accountsMap[account.ID()] = account
+	}
 
-	// Get all roles in each role page:
-	for {
-		rolesList := conn.AccountsMgmt().V1().RoleBindings().List().Page(pageIndex)
-		// Format search request:
-		searchRequest := ""
-		searchRequest = fmt.Sprintf("account_id='%s'", account.ID())
-		// Add parameter to search for role with matching user id:
-		rolesList.Parameter("search", searchRequest)
-		// Get response:
-		response, err := rolesList.Send()
-		if err != nil {
-			return roles, fmt.Errorf("Can't retrieve roles: %v", err)
+	// Prepare a query to retrieve all the role bindings that correspond to any of the
+	// accounts:
+	ids := &bytes.Buffer{}
+	for i, account := range accounts {
+		if i > 0 {
+			ids.WriteString(", ")
 		}
-		// Loop through roles and save their ids
-		// iff it is not in the list yet:
+		fmt.Fprintf(ids, "'%s'", account.ID())
+	}
+	query := fmt.Sprintf("account_id in (%s)", ids)
+
+	index := 1
+	size := 100
+
+	for {
+		// Prepare the request:
+		response, err := conn.AccountsMgmt().V1().RoleBindings().List().
+			Size(size).
+			Page(index).
+			Parameter("search", query).
+			Send()
+
+		if err != nil {
+			return nil, fmt.Errorf("Can't retrieve roles: %v", err)
+		}
+		// Loop through the results and save them:
 		response.Items().Each(func(item *amv1.RoleBinding) bool {
-			if !stringInList(roles, item.Role().ID()) {
-				roles = append(roles, item.Role().ID())
+			account := accountsMap[item.Account().ID()]
+
+			itemID := item.Role().ID()
+
+			if _, ok := results[account]; ok {
+				if !stringInList(results[account], itemID) {
+					results[account] = append(results[account], itemID)
+				}
+			} else {
+				results[account] = append(results[account], itemID)
 			}
+
 			return true
 		})
 
-		// Break
-		if response.Size() < 100 {
+		// Break the loop if the page size is smaller than requested, as that indicates
+		// that this is the last page:
+		if response.Size() < size {
 			break
 		}
-
-		pageIndex++
+		index++
 	}
-	return roles, nil
+
+	return
 }
 
 // stringInList returns a bool signifying whether
