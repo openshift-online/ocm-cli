@@ -66,7 +66,8 @@ func init() {
 		&args.roles,
 		"roles",
 		[]string{},
-		"Role identifiers. Returns users with one or more of the specified roles. Multiple roles can be specified like: --roles=\"role1,role2,role2\".",
+		`Role identifiers. Returns users with one or more of the specified roles.
+		Multiple roles can be specified like: --roles="role1,role2,role2".`,
 	)
 }
 
