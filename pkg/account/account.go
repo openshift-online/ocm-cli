@@ -25,7 +25,8 @@ import (
 )
 
 // GetRolesFromUsers gets all roles a specific user possesses.
-func GetRolesFromUsers(accounts []*amv1.Account, conn *sdk.Connection) (results map[*amv1.Account][]string, error error) {
+func GetRolesFromUsers(accounts []*amv1.Account,
+	conn *sdk.Connection) (results map[*amv1.Account][]string, error error) {
 	// Prepare the results:
 	results = map[*amv1.Account][]string{}
 
@@ -40,7 +41,7 @@ func GetRolesFromUsers(accounts []*amv1.Account, conn *sdk.Connection) (results 
 	ids := &bytes.Buffer{}
 	for i, account := range accounts {
 		if i > 0 {
-			ids.WriteString(", ")
+			fmt.Fprintf(ids, ", ")
 		}
 		fmt.Fprintf(ids, "'%s'", account.ID())
 	}
