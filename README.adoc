@@ -1,7 +1,7 @@
 = OCM API Command Line Tools
 
 This project contains the `ocm` command line tool that simplifies the use
-of the _OCM_ API available in `api.openshift.com`.
+of the _OCM_ API available at `api.openshift.com`.
 
 == Installation
 
@@ -73,6 +73,26 @@ $ ocm login \
 
 NOTE: The `insecure` option disables verification of TLS certificates and host
 names, do not use it in production environments.
+
+== Multiple Concurrent Logins with OCM_CONFIG
+
+An `.ocm.json` file stores login credentials for a single API gateway.
+Using multiple gateways therefore requires having to log in and out a lot or the ability to utilize multiple config files.
+The latter functionality is provided with the `OCM_CONFIG` environment variable.
+If running `ocm login` was successfull in both cases, the `ocm whoami` commands will return different results:
+
+....
+$ OCM_CONFIG=$HOME/.ocm.json.prod ocm login --url=production --token=...
+(…)
+$ OCM_CONFIG=$HOME/.ocm.json.stg ocm login --url=staging --token=...
+(…)
+$ OCM_CONFIG=$HOME/.ocm.json.prod ocm whoami
+(…)
+$ OCM_CONFIG=$HOME/.ocm.json.stg ocm whoami
+(…)
+....
+
+NOTE: Tokens for production and staging will differ.
 
 == Obtaining Tokens
 
