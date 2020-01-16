@@ -117,12 +117,16 @@ func Remove() error {
 
 // Location returns the location of the configuration file.
 func Location() (path string, err error) {
-	home, err := homedir.Dir()
-	if err != nil {
-		return
+	if ocmconfig := os.Getenv("OCM_CONFIG"); ocmconfig != "" {
+		path = ocmconfig
+	} else {
+		home, err := homedir.Dir()
+		if err != nil {
+			return "", err
+		}
+		path = filepath.Join(home, ".ocm.json")
 	}
-	path = filepath.Join(home, ".ocm.json")
-	return
+	return path, nil
 }
 
 // Armed checks if the configuration contains either credentials or tokens that haven't expired, so
