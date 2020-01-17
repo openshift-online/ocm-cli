@@ -124,8 +124,8 @@ func run(cmd *cobra.Command, argv []string) error {
 			if quota.BYOC() {
 				byoc = " BYOC"
 			}
-			fmt.Printf("%s-AZ%s: %d/%d %s\n", strings.ToUpper(quota.AvailabilityZoneType()),
-				byoc, quota.Reserved(), quota.Allowed(), quota.ResourceName())
+			fmt.Printf("%d/%d %s %s%s\n", quota.Reserved(), quota.Allowed(), quota.ResourceName(),
+				strings.ToUpper(quota.AvailabilityZoneType()), byoc)
 			return true
 		})
 
