@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.35 Feb 3 2020
+
+- Display quota so it supports add-ons.
+
 == 0.1.34 Jan 16 2020
 
 - Add number of _infra_ nodes to the output of the `cluster describe` command.
