@@ -23,6 +23,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+
+	"gitlab.com/c0b/go-ordered-json"
 )
 
 // Pretty dumps the given data to the given stream so that it looks pretty. If the data is a valid
@@ -32,8 +34,8 @@ func Pretty(stream io.Writer, body []byte) error {
 	if len(body) == 0 {
 		return nil
 	}
-	var data map[string]interface{}
-	err := json.Unmarshal(body, &data)
+	data := ordered.NewOrderedMap()
+	err := json.Unmarshal(body, data)
 	if err != nil {
 		return dumpBytes(stream, body)
 	}
@@ -50,8 +52,8 @@ func Simple(stream io.Writer, body []byte) error {
 	if len(body) == 0 {
 		return nil
 	}
-	var data map[string]interface{}
-	err := json.Unmarshal(body, &data)
+	data := ordered.NewOrderedMap()
+	err := json.Unmarshal(body, data)
 	if err != nil {
 		return dumpBytes(stream, body)
 	}
@@ -88,7 +90,7 @@ func dumpCondensedJQ(stream io.Writer, data []byte) error {
 	return jq.Run()
 }
 
-func dumpJSON(stream io.Writer, data map[string]interface{}) error {
+func dumpJSON(stream io.Writer, data *ordered.OrderedMap) error {
 	encoder := json.NewEncoder(stream)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(data)
