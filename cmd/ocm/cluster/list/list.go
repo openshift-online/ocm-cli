@@ -72,9 +72,9 @@ func init() {
 	fs.StringVar(
 		&args.columns,
 		"columns",
-		"id, name, api.url, openshift_version, region.id",
+		"id, name, api.url, openshift_version, region.id, state",
 		"Specify which columns to display separated by commas, path is based on Cluster struct i.e. "+
-			"id,name,api.url,openshift_version,region.id"+
+			"id,name,api.url,openshift_version,region.id,state"+
 			"will output the default values.",
 	)
 	fs.IntVar(
