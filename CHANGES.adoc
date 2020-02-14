@@ -3,6 +3,11 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.36 Feb 14 2020
+
+- Add `state` to list of default columns for cluster list.
+- Preserve order of attributes in JSON output.
+
 == 0.1.35 Feb 3 2020
 
 - Display quota so it supports add-ons.
