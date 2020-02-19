@@ -21,7 +21,8 @@ mechanism used to update all the other packages of the distribution.
 === MacOS Brew
 
 ....
-# brew install ocm
+$ brew tap cblecker/tap
+$ brew install ocm
 ....
 
 === Build From Source
