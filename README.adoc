@@ -5,6 +5,7 @@ of the _OCM_ API available at `api.openshift.com`.
 
 == Installation
 
+=== Linux Package Manager
 The preferred way to install the tool in _Fedora_ and _CentOS_ is to use the
 RPM packages built in https://copr.fedorainfracloud.org/coprs/ocm/tools[Fedora
 Copr]. To enable that repository and install the tool use the following commands:
@@ -17,7 +18,16 @@ Copr]. To enable that repository and install the tool use the following commands
 This will install the `ocm` command and will keep it updated using the same
 mechanism used to update all the other packages of the distribution.
 
-If you are not using one of this distributions or you don't want to use the RPM
+=== MacOS Brew
+
+....
+$ brew tap cblecker/tap
+$ brew install ocm
+....
+
+=== Build From Source
+
+If you are not using one of these distributions or you don't want to use the RPM
 packages then you can alternatively get the release binaries from the _GitHub_
 https://github.com/openshift-online/ocm-cli/releases[releases page]. For
 example, to install version 0.1.30 to your personal `bin` directory you can use
