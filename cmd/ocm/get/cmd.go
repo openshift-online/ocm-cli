@@ -22,9 +22,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
-	"github.com/openshift-online/ocm-cli/pkg/flags"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 )
 
@@ -43,8 +43,8 @@ var Cmd = &cobra.Command{
 
 func init() {
 	fs := Cmd.Flags()
-	flags.AddParameterFlag(fs, &args.parameter)
-	flags.AddHeaderFlag(fs, &args.header)
+	arguments.AddParameterFlag(fs, &args.parameter)
+	arguments.AddHeaderFlag(fs, &args.header)
 	fs.BoolVar(
 		&args.single,
 		"single",
@@ -84,9 +84,14 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Create and populate the request:
-	request := connection.Get().Path(path)
-	flags.ApplyParameterFlag(request, args.parameter)
-	flags.ApplyHeaderFlag(request, args.header)
+	request := connection.Get()
+	err = arguments.ApplyPathArg(request, path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Can't parse path '%s': %v\n", path, err)
+		os.Exit(1)
+	}
+	arguments.ApplyParameterFlag(request, args.parameter)
+	arguments.ApplyHeaderFlag(request, args.header)
 
 	// Send the request:
 	response, err := request.Send()

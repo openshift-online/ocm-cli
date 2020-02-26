@@ -28,8 +28,8 @@ import (
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/config"
-	"github.com/openshift-online/ocm-cli/pkg/flags"
 	table "github.com/openshift-online/ocm-cli/pkg/table"
 )
 
@@ -55,8 +55,8 @@ var Cmd = &cobra.Command{
 
 func init() {
 	fs := Cmd.Flags()
-	flags.AddParameterFlag(fs, &args.parameter)
-	flags.AddHeaderFlag(fs, &args.header)
+	arguments.AddParameterFlag(fs, &args.parameter)
+	arguments.AddHeaderFlag(fs, &args.header)
 	fs.BoolVar(
 		&args.managed,
 		"managed",
@@ -147,8 +147,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	for {
 		// Fetch the next page:
 		request := collection.List().Size(size).Page(index)
-		flags.ApplyParameterFlag(request, args.parameter)
-		flags.ApplyHeaderFlag(request, args.header)
+		arguments.ApplyParameterFlag(request, args.parameter)
+		arguments.ApplyHeaderFlag(request, args.header)
 		var search strings.Builder
 		if managed {
 			if search.Len() > 0 {

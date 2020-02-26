@@ -25,8 +25,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/config"
-	flags "github.com/openshift-online/ocm-cli/pkg/flags"
 	table "github.com/openshift-online/ocm-cli/pkg/table"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
@@ -48,7 +48,7 @@ var Cmd = &cobra.Command{
 func init() {
 	// Add flags to rootCmd:
 	fs := Cmd.Flags()
-	flags.AddParameterFlag(fs, &args.parameter)
+	arguments.AddParameterFlag(fs, &args.parameter)
 	fs.StringVar(
 		&args.columns,
 		"columns",
@@ -116,7 +116,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			Size(pageSize)
 
 		// Apply parameters
-		flags.ApplyParameterFlag(request, args.parameter)
+		arguments.ApplyParameterFlag(request, args.parameter)
 
 		// Fetch next page
 		orgList, err := request.Send()
