@@ -80,17 +80,20 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 	}
 
 	// Print short cluster description:
-	fmt.Printf("\nID:       %s\n"+
-		"Name:     %s.%s\n"+
-		"API URL:  %s\n"+
-		"Masters:  %d\n"+
-		"Infra:    %d\n"+
-		"Computes: %d\n"+
-		"Region:   %s\n"+
-		"Multi-az: %t\n"+
-		"Creator:  %s\n"+
-		"Created:  %s %d %d\n",
+	fmt.Printf("\n"+
+		"ID:          %s\n"+
+		"External ID: %s\n"+
+		"Name:        %s.%s\n"+
+		"API URL:     %s\n"+
+		"Masters:     %d\n"+
+		"Infra:       %d\n"+
+		"Computes:    %d\n"+
+		"Region:      %s\n"+
+		"Multi-az:    %t\n"+
+		"Creator:     %s\n"+
+		"Created:     %s %d %d\n",
 		cluster.ID(),
+		cluster.ExternalID(),
 		cluster.Name(),
 		cluster.DNS().BaseDomain(),
 		apiURL,
