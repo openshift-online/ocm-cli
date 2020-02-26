@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This file contains functions that add common flags to the command line.
+// This file contains functions that add common arguments to the command line.
 
-package flags
+package arguments
 
 import (
 	"io/ioutil"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -126,5 +127,21 @@ func ApplyBodyFlag(request *sdk.Request, value string) error {
 		return err
 	}
 	request.Bytes(body)
+	return nil
+}
+
+// ApplyPathArg applies the value of the path given in the command line to the given request.
+func ApplyPathArg(request *sdk.Request, value string) error {
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return err
+	}
+	request.Path(parsed.Path)
+	query := parsed.Query()
+	for name, values := range query {
+		for _, value := range values {
+			request.Parameter(name, value)
+		}
+	}
 	return nil
 }

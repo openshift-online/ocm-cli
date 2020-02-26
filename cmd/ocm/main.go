@@ -38,7 +38,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/token"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/version"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/whoami"
-	"github.com/openshift-online/ocm-cli/pkg/flags"
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 )
 
 var root = &cobra.Command{
@@ -60,7 +60,7 @@ func init() {
 
 	// Add the command line flags:
 	fs := root.PersistentFlags()
-	flags.AddDebugFlag(fs)
+	arguments.AddDebugFlag(fs)
 
 	// Register the subcommands:
 	root.AddCommand(account.Cmd)

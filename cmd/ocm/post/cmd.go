@@ -22,9 +22,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
-	"github.com/openshift-online/ocm-cli/pkg/flags"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 )
 
@@ -43,9 +43,9 @@ var Cmd = &cobra.Command{
 
 func init() {
 	fs := Cmd.Flags()
-	flags.AddParameterFlag(fs, &args.parameter)
-	flags.AddHeaderFlag(fs, &args.header)
-	flags.AddBodyFlag(fs, &args.body)
+	arguments.AddParameterFlag(fs, &args.parameter)
+	arguments.AddHeaderFlag(fs, &args.header)
+	arguments.AddBodyFlag(fs, &args.body)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -79,10 +79,15 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Create and populate the request:
-	request := connection.Post().Path(path)
-	flags.ApplyParameterFlag(request, args.parameter)
-	flags.ApplyHeaderFlag(request, args.parameter)
-	err = flags.ApplyBodyFlag(request, args.body)
+	request := connection.Post()
+	err = arguments.ApplyPathArg(request, path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Can't parse path '%s': %v\n", path, err)
+		os.Exit(1)
+	}
+	arguments.ApplyParameterFlag(request, args.parameter)
+	arguments.ApplyHeaderFlag(request, args.parameter)
+	err = arguments.ApplyBodyFlag(request, args.body)
 	if err != nil {
 		return fmt.Errorf("Can't read body: %v", err)
 	}
