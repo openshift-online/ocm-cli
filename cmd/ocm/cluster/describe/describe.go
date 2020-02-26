@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
@@ -35,9 +36,9 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "describe CLUSTERID [--output] [--short]",
+	Use:   "describe NAME|ID|EXTERNAL_ID [--output] [--short]",
 	Short: "Describe a cluster",
-	Long:  "Get info about a cluster identified by its cluster ID",
+	Long:  "Get info about a cluster identified by name, identifier or external identifier",
 	RunE:  run,
 }
 
@@ -59,9 +60,28 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-
+	// Check that there is exactly one cluster name, identifir or external identifier in the
+	// command line arguments:
 	if len(argv) != 1 {
-		return fmt.Errorf("Expected exactly one cluster")
+		fmt.Fprintf(
+			os.Stderr,
+			"Expected exactly one cluster name, identifier or external identifier "+
+				"is required\n",
+		)
+		os.Exit(1)
+	}
+
+	// Check that the cluster key (name, identifier or external identifier) given by the user
+	// is reasonably safe so that there is no risk of SQL injection:
+	key := argv[0]
+	if !keyRE.MatchString(key) {
+		fmt.Fprintf(
+			os.Stderr,
+			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+				"must contain only letters, digits, dashes and underscores\n",
+			key,
+		)
+		os.Exit(1)
 	}
 
 	// Load the configuration file:
@@ -89,21 +109,26 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	defer connection.Close()
 
-	// Get the client for the resource that manages the collection of clusters:
-	resource := connection.ClustersMgmt().V1().Clusters()
-
-	// Get the resource that manages the cluster that we want to display:
-	clusterResource := resource.Cluster(argv[0])
-
-	// Retrieve the collection of clusters:
-	response, err := clusterResource.Get().Send()
-
-	// Get cluster body:
-	cluster := response.Body()
-
+	// Try to find the cluster that has the name, identifier or external identifier matching the
+	// value given by the user:
+	search := fmt.Sprintf("name = '%s' or id = '%s' or external_id = '%s'", key, key, key)
+	response, err := connection.ClustersMgmt().V1().Clusters().List().
+		Search(search).
+		Size(1).
+		Send()
 	if err != nil {
-		return fmt.Errorf("Can't retrieve clusters: %s", err)
+		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", key, err)
 	}
+	clusters := response.Items().Slice()
+	if len(clusters) == 0 {
+		fmt.Fprintf(
+			os.Stderr,
+			"There is no cluster with name, identifier or external identifier '%s'\n",
+			key,
+		)
+		os.Exit(1)
+	}
+	cluster := clusters[0]
 
 	if args.output {
 		// Create a filename based on cluster name:
@@ -152,3 +177,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	return nil
 }
+
+// Regular expression to check that the cluster key (name, identifier or external identifier) given
+// by the user is reasonably safe and that there is no risk of SQL injection.
+var keyRE = regexp.MustCompile(`^(\w|-)+$`)
