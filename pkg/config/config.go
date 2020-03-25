@@ -30,23 +30,27 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/glog"
 	"github.com/mitchellh/go-homedir"
-	"github.com/openshift-online/ocm-sdk-go"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 
 	"github.com/openshift-online/ocm-cli/pkg/debug"
 )
 
 // Config is the type used to store the configuration of the client.
+// There's no way to line-split or predefine tags, so...
+//nolint:lll
 type Config struct {
-	AccessToken  string   `json:"access_token,omitempty"`
-	ClientID     string   `json:"client_id,omitempty"`
-	ClientSecret string   `json:"client_secret,omitempty"`
-	Insecure     bool     `json:"insecure,omitempty"`
-	Password     string   `json:"password,omitempty"`
-	RefreshToken string   `json:"refresh_token,omitempty"`
-	Scopes       []string `json:"scopes,omitempty"`
-	TokenURL     string   `json:"token_url,omitempty"`
-	URL          string   `json:"url,omitempty"`
-	User         string   `json:"user,omitempty"`
+	// TODO(efried): Better docs for things like AccessToken
+	// TODO(efried): Dedup with flag docs in cmd/ocm/login/cmd.go:init where possible
+	AccessToken  string   `json:"access_token,omitempty" doc:"Bearer access token."`
+	ClientID     string   `json:"client_id,omitempty" doc:"OpenID client identifier."`
+	ClientSecret string   `json:"client_secret,omitempty" doc:"OpenID client secret."`
+	Insecure     bool     `json:"insecure,omitempty" doc:"Enables insecure communication with the server. This disables verification of TLS certificates and host names."`
+	Password     string   `json:"password,omitempty" doc:"User password."`
+	RefreshToken string   `json:"refresh_token,omitempty" doc:"Offline or refresh token."`
+	Scopes       []string `json:"scopes,omitempty" doc:"OpenID scope. If this option is used it will replace completely the default scopes. Can be repeated multiple times to specify multiple scopes."`
+	TokenURL     string   `json:"token_url,omitempty" doc:"OpenID token URL."`
+	URL          string   `json:"url,omitempty" doc:"URL of the API gateway. The value can be the complete URL or an alias. The valid aliases are 'production', 'staging' and 'integration'."`
+	User         string   `json:"user,omitempty" doc:"User name."`
 }
 
 // Load loads the configuration from the configuration file. If the configuration file doesn't exist

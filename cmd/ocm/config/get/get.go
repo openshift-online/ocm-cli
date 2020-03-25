@@ -31,7 +31,8 @@ var args struct {
 
 var Cmd = &cobra.Command{
 	Use:   "get VARIABLE",
-	Short: "Prints the config variable",
+	Short: "Prints the value of a config variable",
+	Long:  "Prints the value of a config variable. See 'ocm config --help' for supported config variables.",
 	Args:  cobra.MinimumNArgs(1),
 	RunE:  run,
 }
