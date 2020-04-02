@@ -49,6 +49,7 @@ var args struct {
 	password     string
 	insecure     bool
 	persistent   bool
+	useConfig    bool
 }
 
 var Cmd = &cobra.Command{
@@ -133,11 +134,15 @@ func init() {
 			"this option is provided then the user name and password will be stored "+
 			"persistently, in clear text, which is potentially unsafe.",
 	)
+	flags.BoolVar(
+		&args.useConfig,
+		"use-config",
+		false,
+		"Use credentials from the config (see `ocm config --help`).",
+	)
 }
 
-func run(cmd *cobra.Command, argv []string) error {
-	var err error
-
+func argCheck() error {
 	// Check mandatory options:
 	if args.url == "" {
 		return fmt.Errorf("Option '--url' is mandatory")
@@ -147,17 +152,33 @@ func run(cmd *cobra.Command, argv []string) error {
 	havePassword := args.user != "" && args.password != ""
 	haveSecret := args.clientID != "" && args.clientSecret != ""
 	haveToken := args.token != ""
-	if !havePassword && !haveSecret && !haveToken {
+	if !havePassword && !haveSecret && !haveToken && !args.useConfig {
 		// Allow bare `ocm login` to suggest the token page without noise of full help.
 		fmt.Fprintf(
 			os.Stderr,
 			"In order to log in it is mandatory to use '--token', '--user' and "+
-				"'--password', or '--client-id' and '--client-secret'.\n"+
+				"'--password', '--client-id' and '--client-secret', or '--use-config'.\n"+
 				"You can obtain a token at: %s .\n"+
 				"See 'ocm login --help' for full help.\n",
 			uiTokenPage,
 		)
+		// FIXME: Why isn't this an Errorf return?
 		os.Exit(1)
+	}
+
+	if args.useConfig {
+		if havePassword || haveSecret || haveToken {
+			return fmt.Errorf(
+				"The --use-config option is mutually exclusive with other " +
+					"authorization options.",
+			)
+		}
+		if args.persistent {
+			fmt.Fprintf(
+				os.Stderr,
+				"Ignoring --persistent because --use-config was specified.",
+			)
+		}
 	}
 
 	// Inform the user that it isn't recommended to authenticate with user name and password:
@@ -170,8 +191,18 @@ func run(cmd *cobra.Command, argv []string) error {
 				"'--token' option.\n",
 		)
 	}
+	return nil
+}
+
+func run(cmd *cobra.Command, argv []string) error {
+	var err error
+
+	if err = argCheck(); err != nil {
+		return err
+	}
 
 	// If a token has been provided parse it:
+	haveToken := args.token != ""
 	var token *jwt.Token
 	if haveToken {
 		parser := new(jwt.Parser)
@@ -207,17 +238,24 @@ func run(cmd *cobra.Command, argv []string) error {
 		cfg = new(config.Config)
 	}
 
-	// Update the configuration with the values given in the command line:
-	cfg.TokenURL = tokenURL
-	cfg.ClientID = clientID
-	cfg.ClientSecret = args.clientSecret
-	cfg.Scopes = args.scopes
-	cfg.URL = gatewayURL
-	cfg.User = args.user
-	cfg.Password = args.password
-	cfg.Insecure = args.insecure
-	cfg.AccessToken = ""
-	cfg.RefreshToken = ""
+	if !args.useConfig {
+		// FIXME: We have an explicit mutex check for Client*/User/Password/*Token; but this
+		//  will also cause --use-config to ignore URL, TokenUrl, Scopes, and Insecure if they
+		//  were specified on the command line. However, because those have defaults, there's
+		//  no good way to detect whether they were *actually* specified (so we can't even add
+		//  a mutex check for them).
+		// Update the configuration with the values given in the command line:
+		cfg.TokenURL = tokenURL
+		cfg.ClientID = clientID
+		cfg.ClientSecret = args.clientSecret
+		cfg.Scopes = args.scopes
+		cfg.URL = gatewayURL
+		cfg.User = args.user
+		cfg.Password = args.password
+		cfg.Insecure = args.insecure
+		cfg.AccessToken = ""
+		cfg.RefreshToken = ""
+	}
 
 	// Put the token in the place of the configuration that corresponds to its type:
 	if haveToken {
@@ -247,17 +285,20 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Can't get token: %v", err)
 	}
 
-	// Save the configuration, but clear the user name and password before unless we have
-	// explicitly been asked to store them persistently:
-	cfg.AccessToken = accessToken
-	cfg.RefreshToken = refreshToken
-	if !args.persistent {
-		cfg.User = ""
-		cfg.Password = ""
-	}
-	err = config.Save(cfg)
-	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
+	// Don't overwrite the config if --use-config was specified.
+	if !args.useConfig {
+		// Save the configuration, but clear the user name and password before unless we have
+		// explicitly been asked to store them persistently:
+		cfg.AccessToken = accessToken
+		cfg.RefreshToken = refreshToken
+		if !args.persistent {
+			cfg.User = ""
+			cfg.Password = ""
+		}
+		err = config.Save(cfg)
+		if err != nil {
+			return fmt.Errorf("Can't save config file: %v", err)
+		}
 	}
 
 	return nil
