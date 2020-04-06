@@ -18,6 +18,7 @@ package create
 
 import (
 	"fmt"
+	"time"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
@@ -29,11 +30,13 @@ import (
 )
 
 var args struct {
-	parameter []string
-	header    []string
-	region    string
-	version   string
-	flavour   string
+	parameter         []string
+	header            []string
+	region            string
+	version           string
+	flavour           string
+	expirationTime    string
+	expirationSeconds time.Duration
 }
 
 // Cmd Constant:
@@ -67,10 +70,28 @@ func init() {
 		"osd-4",
 		"The OCM flavour to create the cluster with",
 	)
+	fs.StringVar(
+		&args.expirationTime,
+		"expiration-time",
+		args.expirationTime,
+		"Specified time when cluster should expire (RFC3339). Only one of expiration-time / expiration may be used.",
+	)
+	fs.DurationVar(
+		&args.expirationSeconds,
+		"expiration",
+		args.expirationSeconds,
+		"Expire cluster after a relative duration like 2h, 8h, 72h. Only one of expiration-time / expiration may be used.",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
 	var err error
+	var expiration time.Time
+
+	// Validate options
+	if len(args.expirationTime) > 0 && args.expirationSeconds != 0 {
+		return fmt.Errorf("at most one of `expiration-time` or `expiration` may be specified")
+	}
 
 	// Load the configuration file:
 	cfg, err := config.Load()
@@ -105,6 +126,20 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("A cluster name must be specified")
 	}
 	clusterName := argv[0]
+
+	// Parse the expiration options
+	if len(args.expirationTime) > 0 {
+		t, err := parseRFC3339(args.expirationTime)
+		if err != nil {
+			return fmt.Errorf("unable to parse expiration time: %s", err)
+		}
+
+		expiration = t
+	}
+	if args.expirationSeconds != 0 {
+		// round up to the nearest second
+		expiration = time.Now().Add(args.expirationSeconds).Round(time.Second)
+	}
 
 	// Retrieve valid/default versions
 	versionList := sets.NewString()
@@ -151,7 +186,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		clusterFlavour = args.flavour
 	}
 
-	cluster, err := cmv1.NewCluster().
+	clusterBuild := cmv1.NewCluster().
 		Name(clusterName).
 		Flavour(
 			cmv1.NewFlavour().
@@ -164,8 +199,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		Version(
 			cmv1.NewVersion().
 				ID(clusterVersion),
-		).
-		Build()
+		)
+	if !expiration.IsZero() {
+		clusterBuild = clusterBuild.ExpirationTimestamp(
+			expiration,
+		)
+	}
+	cluster, err := clusterBuild.Build()
 	if err != nil {
 		return fmt.Errorf("unable to build cluster object: %v", err)
 	}
@@ -232,4 +272,12 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 		page++
 	}
 	return
+}
+
+// parseRFC3339 parses an RFC3339 date in either RFC3339Nano or RFC3339 format.
+func parseRFC3339(s string) (time.Time, error) {
+	if t, timeErr := time.Parse(time.RFC3339Nano, s); timeErr == nil {
+		return t, nil
+	}
+	return time.Parse(time.RFC3339, s)
 }
