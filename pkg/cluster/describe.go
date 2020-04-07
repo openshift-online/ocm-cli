@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"fmt"
+	"time"
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
@@ -25,10 +26,6 @@ import (
 )
 
 func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) error {
-	// Get creation date info:
-	clusterTimetamp := cluster.CreationTimestamp()
-	year, month, day := clusterTimetamp.Date()
-
 	// Get API URL:
 	api := cluster.API()
 	apiURL, _ := api.GetURL()
@@ -91,7 +88,8 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"Region:      %s\n"+
 		"Multi-az:    %t\n"+
 		"Creator:     %s\n"+
-		"Created:     %s %d %d\n",
+		"Created:     %v\n"+
+		"Expiration:  %v\n",
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
@@ -103,7 +101,8 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
 		creator,
-		month.String(), day, year,
+		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
+		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
 	fmt.Println()
 
