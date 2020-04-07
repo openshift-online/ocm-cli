@@ -85,6 +85,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"Masters:     %d\n"+
 		"Infra:       %d\n"+
 		"Computes:    %d\n"+
+		"Provider:    %s\n"+
 		"Region:      %s\n"+
 		"Multi-az:    %t\n"+
 		"Creator:     %s\n"+
@@ -98,6 +99,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.Nodes().Master(),
 		cluster.Nodes().Infra(),
 		cluster.Nodes().Compute(),
+		cluster.CloudProvider().ID(),
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
 		creator,
