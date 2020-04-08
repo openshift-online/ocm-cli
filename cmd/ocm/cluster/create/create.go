@@ -35,6 +35,7 @@ var args struct {
 	region            string
 	version           string
 	flavour           string
+	provider          string
 	expirationTime    string
 	expirationSeconds time.Duration
 }
@@ -56,7 +57,7 @@ func init() {
 		&args.region,
 		"region",
 		"us-east-1",
-		"The AWS region to create the cluster in",
+		"The cloud provider region to create the cluster in",
 	)
 	fs.StringVar(
 		&args.version,
@@ -69,6 +70,12 @@ func init() {
 		"flavour",
 		"osd-4",
 		"The OCM flavour to create the cluster with",
+	)
+	fs.StringVar(
+		&args.provider,
+		"provider",
+		"aws",
+		"The cloud provider to create the cluster on",
 	)
 	fs.StringVar(
 		&args.expirationTime,
@@ -91,6 +98,9 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Validate options
 	if len(args.expirationTime) > 0 && args.expirationSeconds != 0 {
 		return fmt.Errorf("at most one of `expiration-time` or `expiration` may be specified")
+	}
+	if args.region == "us-east-1" && args.provider != "aws" {
+		return fmt.Errorf("if specifying a non-aws cloud provider, region must be set to a valid region")
 	}
 
 	// Load the configuration file:
@@ -191,6 +201,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		Flavour(
 			cmv1.NewFlavour().
 				ID(clusterFlavour),
+		).
+		CloudProvider(
+			cmv1.NewCloudProvider().
+				ID(args.provider),
 		).
 		Region(
 			cmv1.NewCloudRegion().
