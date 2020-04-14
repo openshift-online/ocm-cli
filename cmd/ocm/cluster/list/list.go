@@ -72,10 +72,8 @@ func init() {
 	fs.StringVar(
 		&args.columns,
 		"columns",
-		"id, name, api.url, openshift_version, region.id, state",
-		"Specify which columns to display separated by commas, path is based on Cluster struct i.e. "+
-			"id,name,api.url,openshift_version,region.id,state"+
-			"will output the default values.",
+		"id, name, api.url, openshift_version, cloud_provider.id, region.id, state",
+		"Specify which columns to display separated by commas, path is based on Cluster struct",
 	)
 	fs.IntVar(
 		&args.padding,
@@ -131,7 +129,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	colUpper := strings.ToUpper(args.columns)
 	colUpper = strings.Replace(colUpper, ".", " ", -1)
 	columnNames := strings.Split(colUpper, ",")
-	paddingByColumn := []int{34, 45, 70, 60, 15}
+	paddingByColumn := []int{34, 40, 60, 20}
 	if args.padding != -1 {
 		if args.padding < 2 {
 			return fmt.Errorf("Padding flag needs to be an integer greater than 2")
