@@ -131,6 +131,8 @@ func run(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf("Cannot find the console URL for cluster: %s", cluster.Name())
 		}
 
+		fmt.Printf(" Console URL: %s\n", cluster.Console().URL())
+
 		// Open the console url in the broswer, return any errors
 		return browser.OpenURL(cluster.Console().URL())
 	}
