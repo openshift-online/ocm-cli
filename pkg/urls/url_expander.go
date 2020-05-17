@@ -20,6 +20,35 @@ import (
 	"fmt"
 )
 
+// Resources that return a list of multiple items
+var listResourceURLs = map[string]string{
+	"accounts":       "/api/accounts_mgmt/v1/accounts",
+	"accts":          "/api/accounts_mgmt/v1/accounts",
+	"subscriptions":  "/api/accounts_mgmt/v1/subscriptions",
+	"subs":           "/api/accounts_mgmt/v1/subscriptions",
+	"organizations":  "/api/accounts_mgmt/v1/organizations",
+	"orgs":           "/api/accounts_mgmt/v1/organizations",
+	"clusters":       "/api/clusters_mgmt/v1/clusters",
+	"role_bindings":  "/api/accounts_mgmt/v1/role_bindings",
+	"resource_quota": "/api/accounts_mgmt/v1/resource_quota",
+	"roles":          "/api/accounts_mgmt/v1/roles",
+	"skus":           "/api/accounts_mgmt/v1/skus",
+}
+
+// Resources that apply to a specific item and require an appended argument
+var individualResourceURLs = map[string]string{
+	"account":      "/api/accounts_mgmt/v1/accounts/",
+	"acct":         "/api/accounts_mgmt/v1/accounts/",
+	"subscription": "/api/accounts_mgmt/v1/subscriptions/",
+	"sub":          "/api/accounts_mgmt/v1/subscriptions/",
+	"organization": "/api/accounts_mgmt/v1/organizations/",
+	"org":          "/api/accounts_mgmt/v1/organizations/",
+	"cluster":      "/api/clusters_mgmt/v1/clusters/",
+	"role_binding": "/api/accounts_mgmt/v1/role_bindings/",
+	"role":         "/api/accounts_mgmt/v1/roles/",
+	"sku":          "/api/accounts_mgmt/v1/skus/",
+}
+
 // Expand returns full URI to UHC resources based on an alias. An alias
 // allows for shortcuts on the CLI, such as replace "accts" with the
 // full URI of the resource. Lists of resources require just the alias as
@@ -32,51 +61,32 @@ func Expand(argv []string) (string, error) {
 	}
 
 	preParsePath := argv[0]
-	path := preParsePath
-	var err error
 
-	switch preParsePath {
-
-	// List resources:
-	case "accounts", "accts":
-		path = "/api/accounts_mgmt/v1/accounts"
-	case "subscriptions", "subs":
-		path = "/api/accounts_mgmt/v1/subscriptions"
-	case "organizations", "orgs":
-		path = "/api/accounts_mgmt/v1/organizations"
-	case "clusters":
-		path = "/api/clusters_mgmt/v1/clusters"
-	case "role_bindings":
-		path = "/api/accounts_mgmt/v1/role_bindings"
-	case "resource_quota":
-		path = "/api/accounts_mgmt/v1/resource_quota"
-	case "roles":
-		path = "/api/accounts_mgmt/v1/roles"
-	case "skus":
-		path = "/api/accounts_mgmt/v1/skus"
-
-	// Individual resources:
-	case "account", "acct":
-		path, err = expandResourceWithID("/api/accounts_mgmt/v1/accounts/", argv)
-	case "subscription", "sub":
-		path, err = expandResourceWithID("/api/accounts_mgmt/v1/subscriptions/", argv)
-	case "organization", "org":
-		path, err = expandResourceWithID("/api/accounts_mgmt/v1/organizations/", argv)
-	case "cluster":
-		path, err = expandResourceWithID("/api/clusters_mgmt/v1/clusters/", argv)
-	case "role_binding":
-		path, err = expandResourceWithID("/api/accounts_mgmt/v1/role_bindings/", argv)
-	case "sku":
-		path, err = expandResourceWithID("/api/accounts_mgmt/v1/skus/", argv)
-	case "role":
-		path, err = expandResourceWithID("/api/accounts_mgmt/v1/roles/", argv)
+	if path, ok := listResourceURLs[preParsePath]; ok {
+		return path, nil
 	}
 
-	if err != nil {
-		return "", err
+	if path, ok := individualResourceURLs[preParsePath]; ok {
+		// append the argument ID to the URL
+		url, err := expandResourceWithID(path, argv)
+		if err != nil {
+			return "", err
+		}
+		return url, err
 	}
 
-	return path, nil
+	return preParsePath, nil
+}
+
+func Resources() []string {
+	resources := make([]string, 0)
+	for r := range listResourceURLs {
+		resources = append(resources, r)
+	}
+	for r := range individualResourceURLs {
+		resources = append(resources, r)
+	}
+	return resources
 }
 
 func expandResourceWithID(path string, argv []string) (string, error) {

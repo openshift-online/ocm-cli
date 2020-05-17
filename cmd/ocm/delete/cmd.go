@@ -34,10 +34,11 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "delete PATH",
-	Short: "Send a DELETE request",
-	Long:  "Send a DELETE request to the given path.",
-	RunE:  run,
+	Use:       "delete PATH",
+	Short:     "Send a DELETE request",
+	Long:      "Send a DELETE request to the given path.",
+	RunE:      run,
+	ValidArgs: urls.Resources(),
 }
 
 func init() {

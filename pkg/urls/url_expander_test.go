@@ -35,6 +35,17 @@ type urlExpanderTest struct {
 	contains    string
 }
 
+type resourceTest struct {
+	contains []string
+}
+
+func resourcesTestVerify(test resourceTest) {
+	resources := Resources()
+	for _, element := range test.contains {
+		Expect(resources).To(ContainElement(element))
+	}
+}
+
 func urlExpanderTestVerify(test urlExpanderTest) {
 	expanded, err := Expand(test.params)
 	if !test.expectError {
@@ -337,6 +348,61 @@ var _ = Describe("Expand", func() {
 			urlExpanderTest{
 				params:      []string{"role"},
 				expectError: true,
+			},
+		),
+	)
+})
+
+var _ = Describe("Resources", func() {
+	DescribeTable(
+		"Resources",
+		resourcesTestVerify,
+		Entry(
+			"Valid resources - accounts",
+			resourceTest{
+				contains: []string{"accounts", "accts", "account", "acct"},
+			},
+		),
+		Entry(
+			"Valid resources - subscriptions",
+			resourceTest{
+				contains: []string{"subscriptions", "subs", "subscription", "sub"},
+			},
+		),
+		Entry(
+			"Valid resource - organizations",
+			resourceTest{
+				contains: []string{"organizations", "orgs", "organization", "org"},
+			},
+		),
+		Entry(
+			"Valid resource - clusters",
+			resourceTest{
+				contains: []string{"clusters", "cluster"},
+			},
+		),
+		Entry(
+			"Valid resource - role bindings",
+			resourceTest{
+				contains: []string{"role_bindings", "role_binding"},
+			},
+		),
+		Entry(
+			"Valid resource - resource quota",
+			resourceTest{
+				contains: []string{"resource_quota"},
+			},
+		),
+		Entry(
+			"Valid resource - roles",
+			resourceTest{
+				contains: []string{"roles", "role"},
+			},
+		),
+		Entry(
+			"Valid resource - skus",
+			resourceTest{
+				contains: []string{"skus", "sku"},
 			},
 		),
 	)

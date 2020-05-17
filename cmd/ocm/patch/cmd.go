@@ -35,10 +35,11 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "patch PATH",
-	Short: "Send a PATCH request",
-	Long:  "Send a PATCH request to the given path.",
-	RunE:  run,
+	Use:       "patch PATH",
+	Short:     "Send a PATCH request",
+	Long:      "Send a PATCH request to the given path.",
+	RunE:      run,
+	ValidArgs: urls.Resources(),
 }
 
 func init() {

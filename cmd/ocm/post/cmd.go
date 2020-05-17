@@ -35,10 +35,11 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "post PATH",
-	Short: "Send a POST request",
-	Long:  "Send a POST request to the given path.",
-	RunE:  run,
+	Use:       "post PATH",
+	Short:     "Send a POST request",
+	Long:      "Send a POST request to the given path.",
+	RunE:      run,
+	ValidArgs: urls.Resources(),
 }
 
 func init() {
