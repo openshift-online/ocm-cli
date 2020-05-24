@@ -40,6 +40,7 @@ var args struct {
 	step      bool
 	columns   string
 	padding   int
+	wide      bool
 }
 
 var managed bool
@@ -80,6 +81,12 @@ func init() {
 		"padding",
 		-1,
 		"Change all column sizes.",
+	)
+	fs.BoolVar(
+		&args.wide,
+		"wide",
+		false,
+		"Print more information",
 	)
 }
 
@@ -125,11 +132,18 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Update our column name and padding variables:
+	paddingByColumn := []int{34, 40, 60, 20}
+
+	// Print console url if wide parameter specified
+	if args.wide {
+		args.columns = "id, name, api.url, console.url, openshift_version, cloud_provider.id, region.id, state"
+		paddingByColumn = []int{34, 40, 60, 84, 20}
+	}
 	args.columns = strings.Replace(args.columns, " ", "", -1)
 	colUpper := strings.ToUpper(args.columns)
 	colUpper = strings.Replace(colUpper, ".", " ", -1)
 	columnNames := strings.Split(colUpper, ",")
-	paddingByColumn := []int{34, 40, 60, 20}
+
 	if args.padding != -1 {
 		if args.padding < 2 {
 			return fmt.Errorf("Padding flag needs to be an integer greater than 2")
