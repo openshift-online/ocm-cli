@@ -29,6 +29,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 	// Get API URL:
 	api := cluster.API()
 	apiURL, _ := api.GetURL()
+	apiListening := api.Listening()
 
 	// Retrieve the details of the subscription:
 	var sub *amv1.Subscription
@@ -78,25 +79,27 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 
 	// Print short cluster description:
 	fmt.Printf("\n"+
-		"ID:          %s\n"+
-		"External ID: %s\n"+
-		"Name:        %s.%s\n"+
-		"API URL:     %s\n"+
-		"Console URL: %s\n"+
-		"Masters:     %d\n"+
-		"Infra:       %d\n"+
-		"Computes:    %d\n"+
-		"Provider:    %s\n"+
-		"Region:      %s\n"+
-		"Multi-az:    %t\n"+
-		"Creator:     %s\n"+
-		"Created:     %v\n"+
-		"Expiration:  %v\n",
+		"ID:            %s\n"+
+		"External ID:   %s\n"+
+		"Name:          %s.%s\n"+
+		"API URL:       %s\n"+
+		"API Listening: %s\n"+
+		"Console URL:   %s\n"+
+		"Masters:       %d\n"+
+		"Infra:         %d\n"+
+		"Computes:      %d\n"+
+		"Provider:      %s\n"+
+		"Region:        %s\n"+
+		"Multi-az:      %t\n"+
+		"Creator:       %s\n"+
+		"Created:       %v\n"+
+		"Expiration:    %v\n",
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
 		cluster.DNS().BaseDomain(),
 		apiURL,
+		apiListening,
 		cluster.Console().URL(),
 		cluster.Nodes().Master(),
 		cluster.Nodes().Infra(),
