@@ -38,12 +38,10 @@ var args struct {
 	header    []string
 	managed   bool
 	step      bool
+	wide      bool
 	columns   string
 	padding   int
-	wide      bool
 }
-
-var managed bool
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
@@ -70,6 +68,12 @@ func init() {
 		false,
 		"Load pages one step at a time",
 	)
+	fs.BoolVar(
+		&args.wide,
+		"wide",
+		false,
+		"Print more information",
+	)
 	fs.StringVar(
 		&args.columns,
 		"columns",
@@ -81,12 +85,6 @@ func init() {
 		"padding",
 		-1,
 		"Change all column sizes.",
-	)
-	fs.BoolVar(
-		&args.wide,
-		"wide",
-		false,
-		"Print more information",
 	)
 }
 
@@ -119,12 +117,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Get the client for the resource that manages the collection of clusters:
 	collection := connection.ClustersMgmt().V1().Clusters()
 
-	if cmd.Flags().Changed("managed") {
-		managed = args.managed
-	} else {
-		managed = false
-	}
-
 	// If there is a parameter specified, assume its a filter:
 	var argFilter string
 	if len(argv) == 1 && argv[0] != "" {
@@ -156,6 +148,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	size := 100
 	index := 1
+	managed := args.managed
 	for {
 		// Fetch the next page:
 		request := collection.List().Size(size).Page(index)
