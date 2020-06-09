@@ -42,8 +42,6 @@ var args struct {
 	padding   int
 }
 
-var managed bool
-
 // Cmd Constant:
 var Cmd = &cobra.Command{
 	Use:   "list [flags] [partial cluster ID or name]",
@@ -112,12 +110,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Get the client for the resource that manages the collection of clusters:
 	collection := connection.ClustersMgmt().V1().Clusters()
 
-	if cmd.Flags().Changed("managed") {
-		managed = args.managed
-	} else {
-		managed = false
-	}
-
 	// If there is a parameter specified, assume its a filter:
 	var argFilter string
 	if len(argv) == 1 && argv[0] != "" {
@@ -148,14 +140,18 @@ func run(cmd *cobra.Command, argv []string) error {
 		arguments.ApplyParameterFlag(request, args.parameter)
 		arguments.ApplyHeaderFlag(request, args.header)
 		var search strings.Builder
-		if managed {
+		if cmd.Flags().Changed("managed") {
 			if search.Len() > 0 {
 				_, err = search.WriteString(" and ")
 				if err != nil {
 					return fmt.Errorf("Can't write to string: %v", err)
 				}
 			}
-			_, err = search.WriteString("managed = 't'")
+			if args.managed {
+				_, err = search.WriteString("managed = 't'")
+			} else {
+				_, err = search.WriteString("managed = 'f'")
+			}
 			if err != nil {
 				return fmt.Errorf("Can't write to string: %v", err)
 			}
