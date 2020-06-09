@@ -17,15 +17,53 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/cmd/ocm/config/get"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/config/set"
+	"github.com/openshift-online/ocm-cli/pkg/config"
 )
+
+func configVarDocs() (ret string) {
+	// TODO(efried): Figure out how to get the Type without instantiating.
+	configType := reflect.ValueOf(config.Config{}).Type()
+	fieldHelps := make([]string, configType.NumField())
+	for i := 0; i < len(fieldHelps); i++ {
+		tag := configType.Field(i).Tag
+		// TODO(efried): Use JSON parser instead
+		name := strings.Split(tag.Get("json"), ",")[0]
+		doc := tag.Get("doc")
+		fieldHelps[i] = fmt.Sprintf("\t%-15s%s", name, doc)
+	}
+	ret = strings.Join(fieldHelps, "\n")
+	return
+}
+
+func longHelp() (ret string) {
+	loc, err := config.Location()
+	if err != nil {
+		// I think this only happens if homedir.Dir() fails, which is unlikely.
+		loc = fmt.Sprintf("UNKNOWN (%s)", err)
+	}
+	ret = fmt.Sprintf(`Get or set variables from a configuration file.
+
+The location of the configuration file is gleaned from the 'OCM_CONFIG' environment variable,
+or ~/.ocm.json if that variable is unset. Currently using: %s
+
+The following variables are supported:
+
+%s`, loc, configVarDocs())
+	return
+}
 
 var Cmd = &cobra.Command{
 	Use:   "config COMMAND VARIABLE",
 	Short: "get or set configuration variables",
+	Long:  longHelp(),
 }
 
 func init() {

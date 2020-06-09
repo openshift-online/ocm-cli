@@ -32,6 +32,7 @@ var args struct {
 var Cmd = &cobra.Command{
 	Use:   "set VARIABLE VALUE",
 	Short: "Sets the variable's value",
+	Long:  "Sets the value of a config variable. See 'ocm config --help' for supported config variables.",
 	Args:  cobra.MinimumNArgs(2),
 	RunE:  run,
 }
