@@ -61,7 +61,8 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 			Get().
 			Send()
 		if err != nil {
-			if accountResponse == nil || accountResponse.Status() != 404 {
+			if accountResponse == nil || (accountResponse.Status() != 404 &&
+				accountResponse.Status() != 403) {
 				return fmt.Errorf(
 					"can't get account '%s': %v",
 					accountID, err,
