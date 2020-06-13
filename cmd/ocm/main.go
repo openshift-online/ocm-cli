@@ -29,6 +29,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/completion"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/config"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/create"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/describe"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/get"
@@ -66,6 +67,7 @@ func init() {
 
 	// Register the subcommands:
 	root.AddCommand(account.Cmd)
+	root.AddCommand(create.Cmd)
 	root.AddCommand(delete.Cmd)
 	root.AddCommand(describe.Cmd)
 	root.AddCommand(get.Cmd)
