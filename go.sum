@@ -137,6 +137,8 @@ github.com/openshift-online/ocm-sdk-go v0.1.99 h1:9ai0OJiVMF5fdTUkNLw4rJI6ICrri/
 github.com/openshift-online/ocm-sdk-go v0.1.99/go.mod h1:2MWkLNfXrj92r3VOYYcu5RfpTj9o98RYD228HJ09WiI=
 github.com/openshift-online/ocm-sdk-go v0.1.105 h1:RUNmW9dhpPJI81YA3BeU5TM5FGmha/uBgvYbIUeLPmc=
 github.com/openshift-online/ocm-sdk-go v0.1.105/go.mod h1:3TeJdlwuXGshikxfIGF6MFVBSwjG5gq8lf73e5MqtxI=
+github.com/openshift-online/ocm-sdk-go v0.1.106 h1:v/3Bk7nT/zRwOhnBjeqRmpCgLmluVS0cOMpZGcJ6qBI=
+github.com/openshift-online/ocm-sdk-go v0.1.106/go.mod h1:3TeJdlwuXGshikxfIGF6MFVBSwjG5gq8lf73e5MqtxI=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4 h1:49lOXmGaUpV9Fz3gd7TFZY106KVlPVa5jcYD1gaQf98=
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
