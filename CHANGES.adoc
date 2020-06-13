@@ -3,6 +3,19 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.38 Jun 13 2020
+
+- Add support for expiration in ocm cluster create.
+- Add support for specifying cloud provider.
+- Add cloud provider to default columns.
+- config: beef up help message.
+- Add console URL to describe.
+- Output Console URL.
+- Add shell completion for resources.
+- Add API Listening to cluster descrribe.
+- Update to ocm-sdk-go 0.1.105
+- Allow setting --managed=false in cluster list.
+
 == 0.1.37 Feb 26 2020
 
 - Describe by name, identifier or external identifier (fixes
