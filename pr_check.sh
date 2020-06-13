@@ -24,7 +24,7 @@ export GOBIN="${PWD}/.gobin"
 export PATH="${GOBIN}:${PATH}"
 
 # Install Go tools:
-go get github.com/onsi/ginkgo/ginkgo@v1.10.3
+go get github.com/onsi/ginkgo/ginkgo@v1.11.0
 
 # Run the checks:
 make \
