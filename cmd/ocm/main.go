@@ -32,6 +32,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/describe"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/get"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/list"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/login"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/logout"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/patch"
@@ -68,6 +69,7 @@ func init() {
 	root.AddCommand(delete.Cmd)
 	root.AddCommand(describe.Cmd)
 	root.AddCommand(get.Cmd)
+	root.AddCommand(list.Cmd)
 	root.AddCommand(login.Cmd)
 	root.AddCommand(logout.Cmd)
 	root.AddCommand(patch.Cmd)
