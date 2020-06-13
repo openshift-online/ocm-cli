@@ -38,6 +38,7 @@ var args struct {
 	provider          string
 	expirationTime    string
 	expirationSeconds time.Duration
+	private           bool
 }
 
 // Cmd Constant:
@@ -88,6 +89,12 @@ func init() {
 		"expiration",
 		args.expirationSeconds,
 		"Expire cluster after a relative duration like 2h, 8h, 72h. Only one of expiration-time / expiration may be used.",
+	)
+	fs.BoolVar(
+		&args.private,
+		"private",
+		false,
+		"Restrict master API endpoint and application routes to direct, private connectivity.",
 	)
 }
 
@@ -217,6 +224,17 @@ func run(cmd *cobra.Command, argv []string) error {
 	if !expiration.IsZero() {
 		clusterBuild = clusterBuild.ExpirationTimestamp(
 			expiration,
+		)
+	}
+	if args.private {
+		clusterBuild = clusterBuild.API(
+			cmv1.NewClusterAPI().
+				Listening(cmv1.ListeningMethodInternal),
+		)
+	} else {
+		clusterBuild = clusterBuild.API(
+			cmv1.NewClusterAPI().
+				Listening(cmv1.ListeningMethodExternal),
 		)
 	}
 	cluster, err := clusterBuild.Build()
