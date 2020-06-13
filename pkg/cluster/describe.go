@@ -91,6 +91,8 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"Provider:      %s\n"+
 		"Region:        %s\n"+
 		"Multi-az:      %t\n"+
+		"CCS:           %t\n"+
+		"Cluster Admin: %t\n"+
 		"Creator:       %s\n"+
 		"Created:       %v\n"+
 		"Expiration:    %v\n",
@@ -107,6 +109,8 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.CloudProvider().ID(),
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
+		cluster.BYOC(),
+		cluster.ClusterAdminEnabled(),
 		creator,
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
