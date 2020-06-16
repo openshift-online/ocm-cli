@@ -26,7 +26,7 @@ import (
 	"github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
-	"gopkg.in/AlecAivazis/survey.v1"
+	survey "gopkg.in/AlecAivazis/survey.v1"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
 )
