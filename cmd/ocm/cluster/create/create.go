@@ -43,11 +43,12 @@ var args struct {
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:   "create [flags] <cluster name>",
-	Short: "Create managed clusters",
-	Long:  "Create managed OpenShift Dedicated v4 clusters via OCM",
-	Args:  cobra.ExactArgs(1),
-	RunE:  run,
+	Use:        "create [flags] <cluster name>",
+	Short:      "Create managed clusters",
+	Long:       "Create managed OpenShift Dedicated v4 clusters via OCM",
+	Deprecated: "please use `ocm create cluster` command",
+	Args:       cobra.ExactArgs(1),
+	RunE:       run,
 }
 
 func init() {
