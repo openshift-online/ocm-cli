@@ -44,11 +44,12 @@ var args struct {
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:   "list [flags] [partial cluster ID or name]",
-	Short: "List clusters",
-	Long:  "List clusters by ID and Name",
-	Args:  cobra.RangeArgs(0, 1),
-	RunE:  run,
+	Use:        "list [flags] [partial cluster ID or name]",
+	Short:      "List clusters",
+	Long:       "List clusters by ID and Name",
+	Deprecated: "please use `ocm list clusters` command",
+	Args:       cobra.RangeArgs(0, 1),
+	RunE:       run,
 }
 
 func init() {

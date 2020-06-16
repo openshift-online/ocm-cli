@@ -36,10 +36,11 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "describe NAME|ID|EXTERNAL_ID [--output] [--short]",
-	Short: "Describe a cluster",
-	Long:  "Get info about a cluster identified by name, identifier or external identifier",
-	RunE:  run,
+	Use:        "describe NAME|ID|EXTERNAL_ID [--output] [--short]",
+	Short:      "Describe a cluster",
+	Long:       "Get info about a cluster identified by name, identifier or external identifier",
+	Deprecated: "please use `ocm describe cluster` command",
+	RunE:       run,
 }
 
 func init() {
