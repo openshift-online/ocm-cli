@@ -15,6 +15,7 @@ package create
 
 import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/cluster"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/create/idp"
 	"github.com/spf13/cobra"
 )
 
@@ -27,4 +28,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	Cmd.AddCommand(cluster.Cmd)
+	Cmd.AddCommand(idp.Cmd)
 }
