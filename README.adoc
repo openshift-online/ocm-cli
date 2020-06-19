@@ -35,7 +35,7 @@ the following commands:
 
 ....
 $ mkdir -p ~/bin
-$ curl -o ~/bin/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.30/ocm-linux-amd64
+$ curl -Lo ~/bin/ocm https://github.com/openshift-online/ocm-cli/releases/download/v0.1.30/ocm-linux-amd64
 $ chmod +x ~/bin/ocm
 ....
 
