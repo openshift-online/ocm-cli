@@ -79,3 +79,16 @@ func GetIdentityProviders(client *cmv1.ClustersClient, clusterID string) ([]*cmv
 
 	return response.Items().Slice(), nil
 }
+
+func GetGroups(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Group, error) {
+	groupClient := client.Cluster(clusterID).Groups()
+	response, err := groupClient.List().
+		Page(1).
+		Size(-1).
+		Send()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get groups for cluster '%s': %v", clusterID, err)
+	}
+
+	return response.Items().Slice(), nil
+}
