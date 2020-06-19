@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"strings"
 
+	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -76,7 +77,7 @@ func buildGithubIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 
 		// Populate fields in the GitHub registration form
 		consoleURL := cluster.Console().URL()
-		oauthURL := strings.Replace(consoleURL, "console-openshift-console", "oauth-openshift", 1)
+		oauthURL := c.GetClusterOauthURL(cluster)
 		urlParams := url.Values{}
 		urlParams.Add("oauth_application[name]", cluster.Name())
 		urlParams.Add("oauth_application[url]", consoleURL)
