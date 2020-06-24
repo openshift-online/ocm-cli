@@ -19,6 +19,7 @@ package cluster
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -53,6 +54,17 @@ func GetCluster(client *cmv1.ClustersClient, clusterKey string) (*cmv1.Cluster, 
 	default:
 		return nil, fmt.Errorf("There are %d clusters with identifier or name '%s'", response.Total(), clusterKey)
 	}
+}
+
+func GetClusterOauthURL(cluster *cmv1.Cluster) string {
+	var oauthURL string
+	consoleURL := cluster.Console().URL()
+	if cluster.Product().ID() == "rhmi" {
+		oauthURL = strings.Replace(consoleURL, "solution-explorer", "oauth-openshift", 1)
+	} else {
+		oauthURL = strings.Replace(consoleURL, "console-openshift-console", "oauth-openshift", 1)
+	}
+	return oauthURL
 }
 
 func GetIdentityProviders(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.IdentityProvider, error) {

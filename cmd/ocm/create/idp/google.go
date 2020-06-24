@@ -17,8 +17,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
 
+	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -39,8 +39,8 @@ func buildGoogleIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 		fmt.Println("* Open the following URL:", instructionsURL)
 		fmt.Println("* Follow the instructions to register your application")
 
-		consoleURL := cluster.Console().URL()
-		oauthURL := strings.Replace(consoleURL, "console-openshift-console", "oauth-openshift", 1)
+		oauthURL := c.GetClusterOauthURL(cluster)
+
 		fmt.Println("* When creating the OAuth client ID, use the following URL for the Authorized redirect URI: ",
 			oauthURL+"/oauth2callback/"+idpName)
 
