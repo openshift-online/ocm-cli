@@ -141,7 +141,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			fmt.Printf("Failed to add '%s' user '%s' to cluster '%s': %v\n", args.group, username, clusterKey, err)
 			continue
 		}
-		fmt.Printf("Added '%s' user '%s' to cluster '%s': %v\n", args.group, username, clusterKey, err)
+		fmt.Printf("Added '%s' user '%s' to cluster '%s'\n", args.group, username, clusterKey)
 	}
 
 	return nil
