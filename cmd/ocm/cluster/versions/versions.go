@@ -21,10 +21,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
-
-	"github.com/openshift-online/ocm-cli/pkg/config"
 )
 
 var Cmd = &cobra.Command{
@@ -40,31 +39,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Expected no arguments")
 	}
 
-	// Load the configuration file:
-	cfg, err := config.Load()
+	// Create the client for the OCM API:
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
-	}
-	if cfg == nil {
-		return fmt.Errorf("Not logged in, run the 'login' command")
-	}
-
-	// Check that the configuration has credentials or tokens that haven't have expired:
-	armed, err := cfg.Armed()
-	if err != nil {
-		return fmt.Errorf("Can't check if tokens have expired: %v", err)
-	}
-	if !armed {
-		return fmt.Errorf("Tokens have expired, run the 'login' command")
-	}
-
-	// Create the connection, and remember to close it:
-	connection, err := cfg.Connection()
-	if err != nil {
-		return fmt.Errorf("Can't create connection: %v", err)
+		return fmt.Errorf("Failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
-
 	// Get the client for the resource that manages the versions:
 	resource := connection.ClustersMgmt().V1().Versions()
 
