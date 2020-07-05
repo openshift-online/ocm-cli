@@ -227,6 +227,9 @@ func run(cmd *cobra.Command, argv []string) error {
 		)
 	}
 	if args.private {
+		if args.provider != "aws" {
+			return fmt.Errorf("Setting cluster as private is not supported for cloud provider '%s'", args.provider)
+		}
 		clusterBuild = clusterBuild.API(
 			cmv1.NewClusterAPI().
 				Listening(cmv1.ListeningMethodInternal),
