@@ -80,6 +80,19 @@ func GetIdentityProviders(client *cmv1.ClustersClient, clusterID string) ([]*cmv
 	return response.Items().Slice(), nil
 }
 
+func GetIngresses(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Ingress, error) {
+	ingressClient := client.Cluster(clusterID).Ingresses()
+	response, err := ingressClient.List().
+		Page(1).
+		Size(-1).
+		Send()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get ingresses for cluster '%s': %v", clusterID, err)
+	}
+
+	return response.Items().Slice(), nil
+}
+
 func GetGroups(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Group, error) {
 	groupClient := client.Cluster(clusterID).Groups()
 	response, err := groupClient.List().
