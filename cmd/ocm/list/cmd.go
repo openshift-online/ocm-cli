@@ -15,6 +15,7 @@ package list
 
 import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/cluster"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/list/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/ingress"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/user"
 	"github.com/spf13/cobra"
@@ -28,6 +29,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	Cmd.AddCommand(cluster.Cmd)
+	Cmd.AddCommand(idp.Cmd)
 	Cmd.AddCommand(ingress.Cmd)
 	Cmd.AddCommand(user.Cmd)
 }
