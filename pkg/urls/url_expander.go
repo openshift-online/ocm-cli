@@ -33,6 +33,7 @@ var listResourceURLs = map[string]string{
 	"resource_quota": "/api/accounts_mgmt/v1/resource_quota",
 	"roles":          "/api/accounts_mgmt/v1/roles",
 	"skus":           "/api/accounts_mgmt/v1/skus",
+	"sku_rules":      "/api/accounts_mgmt/v1/sku_rules",
 }
 
 // Resources that apply to a specific item and require an appended argument
@@ -47,6 +48,7 @@ var individualResourceURLs = map[string]string{
 	"role_binding": "/api/accounts_mgmt/v1/role_bindings/",
 	"role":         "/api/accounts_mgmt/v1/roles/",
 	"sku":          "/api/accounts_mgmt/v1/skus/",
+	"sku_rule":     "/api/accounts_mgmt/v1/sku_rules",
 }
 
 // Expand returns full URI to UHC resources based on an alias. An alias
