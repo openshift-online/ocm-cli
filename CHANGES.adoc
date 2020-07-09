@@ -3,6 +3,20 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.39 Jul 9 2020
+
+- Add support for creating a private cluster.
+- Don't fail "cluster describe" if a user is unauthorized to get account.
+- cluster list, create and describe are deprecated and replaced by `list clusters`,
+  `create cluster` and `describe cluster`.
+- Add support for creating identity providers.
+- Add support for creating users.
+- Add support for creating ingresses.
+- Add support for listing identity providers.
+- Add support for listing users.
+- Add support for listing ingresses.
+- Bump ocm-sdk-go to 0.1.112.
+
 == 0.1.38 Jun 13 2020
 
 - Add support for expiration in ocm cluster create.
