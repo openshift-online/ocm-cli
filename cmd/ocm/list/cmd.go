@@ -14,6 +14,7 @@ limitations under the License.
 package list
 
 import (
+	"github.com/openshift-online/ocm-cli/cmd/ocm/list/addon"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/ingress"
@@ -28,6 +29,7 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
+	Cmd.AddCommand(addon.Cmd)
 	Cmd.AddCommand(cluster.Cmd)
 	Cmd.AddCommand(idp.Cmd)
 	Cmd.AddCommand(ingress.Cmd)
