@@ -49,6 +49,7 @@ var individualResourceURLs = map[string]string{
 	"role":         "/api/accounts_mgmt/v1/roles/",
 	"sku":          "/api/accounts_mgmt/v1/skus/",
 	"sku_rule":     "/api/accounts_mgmt/v1/sku_rules",
+	"idp":          "idp",
 }
 
 // Expand returns full URI to UHC resources based on an alias. An alias
