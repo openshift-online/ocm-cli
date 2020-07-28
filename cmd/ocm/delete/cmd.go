@@ -24,6 +24,7 @@ import (
 
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/ingress"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/user"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
@@ -49,6 +50,7 @@ func init() {
 	arguments.AddHeaderFlag(fs, &args.header)
 	Cmd.AddCommand(idp.Cmd)
 	Cmd.AddCommand(ingress.Cmd)
+	Cmd.AddCommand(user.Cmd)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
