@@ -204,7 +204,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// If the value of the `--url` is any of the aliases then replace it with the corresponding
 	// real URL:
-	gatewayURL, ok := urlAliases[args.url].url
+	gatewayURL, ok := urlAliases[args.url]
 	if !ok {
 		gatewayURL = args.url
 	}
