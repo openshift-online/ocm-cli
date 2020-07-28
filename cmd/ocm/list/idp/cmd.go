@@ -35,7 +35,7 @@ var Cmd = &cobra.Command{
 	Short:   "List cluster IDPs",
 	Long:    "List identity providers for a cluster.",
 	Example: `  # List all identity providers on a cluster named "mycluster"
-  ocm-cli list idps --cluster=mycluster`,
+  ocm list idps --cluster=mycluster`,
 	RunE: run,
 }
 
