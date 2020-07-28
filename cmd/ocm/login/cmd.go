@@ -27,12 +27,23 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/config"
 )
 
+const (
+	productionURL  = "https://api.openshift.com"
+	stagingURL     = "https://api.stage.openshift.com"
+	integrationURL = "https://api-integration.6943.hive-integration.openshiftapps.com"
+)
+
 // When the value of the `--url` option is one of the keys of this map it will be replaced by the
 // corresponding value.
 var urlAliases = map[string]string{
-	"production":  "https://api.openshift.com",
-	"staging":     "https://api.stage.openshift.com",
-	"integration": "https://api-integration.6943.hive-integration.openshiftapps.com",
+	"production":  productionURL,
+	"prod":        productionURL,
+	"prd":         productionURL,
+	"staging":     stagingURL,
+	"stage":       stagingURL,
+	"stg":         stagingURL,
+	"integration": integrationURL,
+	"int":         integrationURL,
 }
 
 // #nosec G101
@@ -97,7 +108,7 @@ func init() {
 		"url",
 		sdk.DefaultURL,
 		"URL of the API gateway. The value can be the complete URL or an alias. The "+
-			"valid aliases are 'production', 'staging' and 'integration'.",
+			"valid aliases are 'production', 'staging', 'integration' and their shorthands.",
 	)
 	flags.StringVar(
 		&args.token,
