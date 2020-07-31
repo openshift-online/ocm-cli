@@ -45,8 +45,9 @@ import (
 )
 
 var root = &cobra.Command{
-	Use:  "ocm",
-	Long: "Command line tool for api.openshift.com.",
+	Use:          "ocm",
+	Long:         "Command line tool for api.openshift.com.",
+	SilenceUsage: true,
 }
 
 func init() {
