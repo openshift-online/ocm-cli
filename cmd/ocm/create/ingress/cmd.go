@@ -35,11 +35,11 @@ var Cmd = &cobra.Command{
 	Short:   "Add Ingress to cluster",
 	Long:    "Add an Ingress endpoint to determine API access to the cluster.",
 	Example: `  # Add an internal ingress to a cluster named "mycluster"
-  ocm-cli create ingress --private --cluster=mycluster
+  ocm create ingress --private --cluster=mycluster
   # Add a public ingress to a cluster
-  ocm-cli create ingress --cluster=mycluster
+  ocm create ingress --cluster=mycluster
   # Add an ingress with route selector label match
-  ocm-cli create ingress -c mycluster --label-match="foo=bar,bar=baz"`,
+  ocm create ingress -c mycluster --label-match="foo=bar,bar=baz"`,
 	RunE: run,
 }
 
