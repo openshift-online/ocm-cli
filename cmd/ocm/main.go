@@ -43,6 +43,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/version"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/whoami"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
+	"github.com/openshift-online/ocm-cli/pkg/plugin"
 )
 
 var root = &cobra.Command{
@@ -96,7 +97,20 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Can't parse empty command line to satisfy 'glog': %v\n", err)
 		os.Exit(1)
 	}
+	args := os.Args
+	pluginHandler := plugin.NewDefaultPluginHandler([]string{"ocm"})
+	if len(args) > 1 {
+		cmdPathPieces := args[1:]
 
+		// only look for suitable extension executables if
+		// the specified command does not already exist
+		if _, _, err := root.Find(cmdPathPieces); err != nil {
+			if err := plugin.HandlePluginCommand(pluginHandler, cmdPathPieces); err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+		}
+	}
 	// Execute the root command:
 	root.SetArgs(os.Args[1:])
 	if err = root.Execute(); err != nil {
