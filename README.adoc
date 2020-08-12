@@ -450,3 +450,8 @@ _copr_ build when a new tag is pushed to the repository.
 The _build dependencies_ section of the _copr_ configuration should include the
 `jq` package is it is needed to extract the version number from the payload of
 the event sent by the _GitHub_ webhook.
+
+== Extend ocm with plugins
+
+Just like how https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/[kubectl plugins] works, you can write your own ocm plugins and put the binary under the $PATH directory,
+the plugin name should be named with prefix `ocm-`, like `ocm-foo`.
