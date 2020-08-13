@@ -19,11 +19,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-
 	_ "github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"os"
+	"os/exec"
 
 	"github.com/openshift-online/ocm-cli/cmd/ocm/account"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster"
@@ -105,9 +105,17 @@ func main() {
 		// only look for suitable extension executables if
 		// the specified command does not already exist
 		if _, _, err := root.Find(cmdPathPieces); err != nil {
-			if err := plugin.HandlePluginCommand(pluginHandler, cmdPathPieces); err != nil {
+			found, err := plugin.HandlePluginCommand(pluginHandler, cmdPathPieces)
+			if err != nil {
+				err, ok := err.(*exec.ExitError)
+				if ok {
+					os.Exit(err.ExitCode())
+				}
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
+			}
+			if found {
+				os.Exit(0)
 			}
 		}
 	}

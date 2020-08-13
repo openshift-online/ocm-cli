@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
-	"syscall"
 )
 
 // Handler is capable of parsing command line arguments
@@ -24,21 +22,21 @@ type Handler interface {
 	Execute(executablePath string, cmdArgs, environment []string) error
 }
 
-// DefaultPluginHandler implements PluginHandler
-type DefaultPluginHandler struct {
+// DefaultHandler implements Handler
+type DefaultHandler struct {
 	ValidPrefixes []string
 }
 
 // NewDefaultPluginHandler instantiates the DefaultPluginHandler with a list of
 // given filename prefixes used to identify valid plugin filenames.
-func NewDefaultPluginHandler(validPrefixes []string) *DefaultPluginHandler {
-	return &DefaultPluginHandler{
+func NewDefaultPluginHandler(validPrefixes []string) Handler {
+	return &DefaultHandler{
 		ValidPrefixes: validPrefixes,
 	}
 }
 
-// Lookup implements PluginHandler
-func (h *DefaultPluginHandler) Lookup(filename string) (string, bool) {
+// Lookup implements Handler
+func (h *DefaultHandler) Lookup(filename string) (string, bool) {
 	for _, prefix := range h.ValidPrefixes {
 		path, err := exec.LookPath(fmt.Sprintf("%s-%s", prefix, filename))
 		if err != nil || len(path) == 0 {
@@ -50,33 +48,20 @@ func (h *DefaultPluginHandler) Lookup(filename string) (string, bool) {
 	return "", false
 }
 
-// Execute implements PluginHandler
-func (h *DefaultPluginHandler) Execute(executablePath string, cmdArgs, environment []string) error {
-
-	// Windows does not support exec syscall.
-	if runtime.GOOS == "windows" {
-		// #nosec G204
-		cmd := exec.Command(executablePath, cmdArgs...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-		cmd.Env = environment
-		err := cmd.Run()
-		if err == nil {
-			os.Exit(0)
-		}
-		return err
-	}
-
-	// invoke cmd binary relaying the environment and args given
-	// append executablePath to cmdArgs, as execve will make first argument the "binary name".
+// Execute implements Handler
+func (h *DefaultHandler) Execute(executablePath string, cmdArgs, environment []string) error {
 	// #nosec G204
-	return syscall.Exec(executablePath, append([]string{executablePath}, cmdArgs...), environment)
+	cmd := exec.Command(executablePath, cmdArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Env = environment
+	return cmd.Run()
 }
 
 // HandlePluginCommand receives a pluginHandler and command-line arguments and attempts to find
 // a plugin executable on the PATH that satisfies the given arguments.
-func HandlePluginCommand(pluginHandler Handler, cmdArgs []string) error {
+func HandlePluginCommand(pluginHandler Handler, cmdArgs []string) (found bool, err error) {
 	remainingArgs := []string{} // all "non-flag" arguments
 
 	for idx := range cmdArgs {
@@ -101,13 +86,13 @@ func HandlePluginCommand(pluginHandler Handler, cmdArgs []string) error {
 	}
 
 	if len(foundBinaryPath) == 0 {
-		return nil
+		return false, nil
 	}
 
 	// invoke cmd binary relaying the current environment and args given
 	if err := pluginHandler.Execute(foundBinaryPath, cmdArgs[len(remainingArgs):], os.Environ()); err != nil {
-		return err
+		return true, err
 	}
 
-	return nil
+	return true, nil
 }
