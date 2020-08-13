@@ -18,16 +18,14 @@ package login
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 
+	clusterpkg "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	"github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
-	survey "gopkg.in/AlecAivazis/survey.v1"
 )
 
 var args struct {
@@ -83,24 +81,24 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Get the client for the resource that manages the collection of clusters:
 	collection := connection.ClustersMgmt().V1().Clusters()
-	clusters, total, err := findClusters(collection, argv[0], ClustersPageSize)
+	clusters, total, err := clusterpkg.FindClusters(collection, argv[0], clusterpkg.ClustersPageSize)
 	if err != nil || len(clusters) == 0 {
 		return fmt.Errorf("Can't find clusters: %v", err)
 	}
 
 	// If there are more clusters than `ClustersPageSize`, print a msg out
-	if total > ClustersPageSize {
+	if total > clusterpkg.ClustersPageSize {
 		fmt.Printf(
 			"There are %d clusters that match key '%s', but only the first %d will "+
 				"be shown; consider using a more specific key.\n",
 			total, argv[0], len(clusters),
 		)
 	}
-	var cluster *v1.Cluster
+	var cluster *clustersmgmtv1.Cluster
 	if len(clusters) == 1 {
 		cluster = clusters[0]
 	} else {
-		cluster, err = doSurvey(clusters)
+		cluster, err = clusterpkg.DoSurvey(clusters)
 		if err != nil {
 			return fmt.Errorf("Can't find clusters: %v", err)
 		}
@@ -138,73 +136,4 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	return nil
-}
-
-// doSurvey will ask user to choose one if there are more than one clusters match the query
-func doSurvey(clusters []*v1.Cluster) (cluster *v1.Cluster, err error) {
-	clusterList := []string{}
-	for _, v := range clusters {
-		clusterList = append(clusterList, fmt.Sprintf("Name: %s, ID: %s", v.Name(), v.ID()))
-	}
-	choice := ""
-	prompt := &survey.Select{
-		Message: "Please choose a cluster:",
-		Options: clusterList,
-		Default: clusterList[0],
-	}
-	survey.PageSize = ClustersPageSize
-	err = survey.AskOne(prompt, &choice, func(ans interface{}) error {
-		choice := ans.(string)
-		found := false
-		for _, v := range clusters {
-			if strings.Contains(choice, v.ID()) {
-				found = true
-				cluster = v
-			}
-		}
-		if !found {
-			return fmt.Errorf("the cluster you choose is not valid: %s", choice)
-		}
-		return nil
-	})
-	return cluster, err
-}
-
-// findClusters finds the clusters that match the given key. A cluster matches the key if its
-// identifier is that key, or if its name starts with that key. For example, the key `prd-2305`
-// doesn't match a cluster directly because it isn't a valid identifier, but it matches all clusters
-// whose names start with `prd-2305`.
-func findClusters(collection *v1.ClustersClient, key string, size int) (clusters []*v1.Cluster, total int, err error) {
-
-	// Get the resource that manages the cluster that we want to display:
-	clusterResource := collection.Cluster(key)
-	response, err := clusterResource.Get().Send()
-
-	if err == nil && response != nil {
-		cluster := response.Body()
-		clusters = []*v1.Cluster{cluster}
-		total = 1
-		return
-	}
-	if response == nil || response.Status() != http.StatusNotFound {
-		return
-	}
-	// If it's not an cluster id, try to query clusters using search param, we only list the
-	// the `size` number of clusters.
-	pageIndex := 1
-	listRequest := collection.List().
-		Size(size).
-		Page(pageIndex)
-	listRequest.Search("name like '" + key + "'")
-	listResponse, err := listRequest.Send()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
-		return
-	}
-	total = listResponse.Total()
-	listResponse.Items().Each(func(cluster *v1.Cluster) bool {
-		clusters = append(clusters, cluster)
-		return true
-	})
-	return
 }
