@@ -18,6 +18,8 @@ package cluster
 
 import (
 	"fmt"
+	"net"
+	"strings"
 	"time"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -25,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
-	clusterpkg "github.com/openshift-online/ocm-cli/pkg/cluster"
+	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
 
@@ -39,6 +41,17 @@ var args struct {
 	expirationTime    string
 	expirationSeconds time.Duration
 	private           bool
+	multiAZ           bool
+
+	// Scaling options
+	computeMachineType string
+	computeNodes       int
+
+	// Networking options
+	hostPrefix  int
+	machineCIDR net.IPNet
+	serviceCIDR net.IPNet
+	podCIDR     net.IPNet
 }
 
 // Cmd Constant:
@@ -95,6 +108,52 @@ func init() {
 		"private",
 		false,
 		"Restrict master API endpoint and application routes to direct, private connectivity.",
+	)
+	fs.BoolVar(
+		&args.multiAZ,
+		"multi-az",
+		false,
+		"Deploy to multiple data centers.",
+	)
+	// Scaling options
+	fs.StringVar(
+		&args.computeMachineType,
+		"compute-machine-type",
+		"",
+		"Instance type for the compute nodes. Determines the amount of memory and vCPU allocated to each compute node.",
+	)
+	fs.IntVar(
+		&args.computeNodes,
+		"compute-nodes",
+		4,
+		"Number of worker nodes to provision per zone. Single zone clusters need at least 4 nodes, "+
+			"multizone clusters need at least 9 nodes.",
+	)
+
+	fs.IPNetVar(
+		&args.machineCIDR,
+		"machine-cidr",
+		net.IPNet{},
+		"Block of IP addresses used by OpenShift while installing the cluster, for example \"10.0.0.0/16\".",
+	)
+	fs.IPNetVar(
+		&args.serviceCIDR,
+		"service-cidr",
+		net.IPNet{},
+		"Block of IP addresses for services, for example \"172.30.0.0/16\".",
+	)
+	fs.IPNetVar(
+		&args.podCIDR,
+		"pod-cidr",
+		net.IPNet{},
+		"Block of IP addresses from which Pod IP addresses are allocated, for example \"10.128.0.0/14\".",
+	)
+	fs.IntVar(
+		&args.hostPrefix,
+		"host-prefix",
+		0,
+		"Subnet prefix length to assign to each individual node. For example, if host prefix is set "+
+			"to \"23\", then each node is assigned a /23 subnet out of the given CIDR.",
 	)
 }
 
@@ -185,60 +244,48 @@ func run(cmd *cobra.Command, argv []string) error {
 		clusterFlavour = args.flavour
 	}
 
-	clusterBuild := cmv1.NewCluster().
-		Name(clusterName).
-		Flavour(
-			cmv1.NewFlavour().
-				ID(clusterFlavour),
-		).
-		CloudProvider(
-			cmv1.NewCloudProvider().
-				ID(args.provider),
-		).
-		Region(
-			cmv1.NewCloudRegion().
-				ID(args.region),
-		).
-		Version(
-			cmv1.NewVersion().
-				ID(clusterVersion),
-		)
-	if !expiration.IsZero() {
-		clusterBuild = clusterBuild.ExpirationTimestamp(
-			expiration,
-		)
+	if args.private && args.provider != "aws" {
+		return fmt.Errorf("Setting cluster as private is not supported for cloud provider '%s'", args.provider)
 	}
-	if args.private {
-		if args.provider != "aws" {
-			return fmt.Errorf("Setting cluster as private is not supported for cloud provider '%s'", args.provider)
-		}
-		clusterBuild = clusterBuild.API(
-			cmv1.NewClusterAPI().
-				Listening(cmv1.ListeningMethodInternal),
-		)
-	} else {
-		clusterBuild = clusterBuild.API(
-			cmv1.NewClusterAPI().
-				Listening(cmv1.ListeningMethodExternal),
-		)
-	}
-	cluster, err := clusterBuild.Build()
+
+	// Compute node instance type:
+	computeMachineType := args.computeMachineType
+
+	computeMachineType, err = validateMachineType(cmv1Client, args.provider, computeMachineType)
 	if err != nil {
-		return fmt.Errorf("unable to build cluster object: %v", err)
+		return fmt.Errorf("Expected a valid machine type: %s", err)
 	}
 
-	// Send a request to create the cluster:
-	response, err := cmv1Client.Clusters().Add().
-		Body(cluster).
-		Send()
+	// Compute nodes:
+	computeNodes := args.computeNodes
+	// Compute node requirements for multi-AZ clusters are higher
+	if args.multiAZ && !cmd.Flags().Changed("compute-nodes") {
+		computeNodes = 9
+	}
+
+	clusterConfig := c.Spec{
+		Name:               clusterName,
+		Region:             args.region,
+		Provider:           args.provider,
+		Flavour:            clusterFlavour,
+		MultiAZ:            args.multiAZ,
+		Version:            clusterVersion,
+		Expiration:         expiration,
+		ComputeMachineType: computeMachineType,
+		ComputeNodes:       computeNodes,
+		MachineCIDR:        args.machineCIDR,
+		ServiceCIDR:        args.serviceCIDR,
+		PodCIDR:            args.podCIDR,
+		HostPrefix:         args.hostPrefix,
+		Private:            &args.private,
+	}
+
+	cluster, err := c.CreateCluster(cmv1Client, clusterConfig)
 	if err != nil {
-		return fmt.Errorf("unable to create cluster: %v", err)
+		return fmt.Errorf("Failed to create cluster: %v", err)
 	}
 
-	// Print the result:
-	cluster = response.Body()
-
-	err = clusterpkg.PrintClusterDesctipion(connection, cluster)
+	err = c.PrintClusterDesctipion(connection, cluster)
 	if err != nil {
 		return err
 	}
@@ -297,4 +344,41 @@ func parseRFC3339(s string) (time.Time, error) {
 		return t, nil
 	}
 	return time.Parse(time.RFC3339, s)
+}
+
+func validateMachineType(client *cmv1.Client, provider string, machineType string) (string, error) {
+	machineTypeList, err := getMachineTypeList(client, provider)
+	if err != nil {
+		return "", err
+	}
+	if machineType != "" {
+		// Check and set the cluster machineType
+		hasMachineType := false
+		for _, v := range machineTypeList {
+			if v == machineType {
+				hasMachineType = true
+			}
+		}
+		if !hasMachineType {
+			allMachineTypes := strings.Join(machineTypeList, " ")
+			err := fmt.Errorf("A valid machine type number must be specified\nValid machine types: %s", allMachineTypes)
+			return machineType, err
+		}
+	}
+
+	return machineType, nil
+}
+
+func getMachineTypeList(client *cmv1.Client, provider string) (machineTypeList []string, err error) {
+	machineTypes, err := c.GetMachineTypes(client, provider)
+	if err != nil {
+		err = fmt.Errorf("Failed to retrieve machine types: %s", err)
+		return
+	}
+
+	for _, v := range machineTypes {
+		machineTypeList = append(machineTypeList, v.ID())
+	}
+
+	return
 }

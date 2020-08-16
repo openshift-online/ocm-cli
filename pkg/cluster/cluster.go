@@ -18,13 +18,48 @@ package cluster
 
 import (
 	"fmt"
+	"net"
 	"regexp"
 	"strings"
+	"time"
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amsv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
+
+// Spec is the configuration for a cluster spec.
+type Spec struct {
+	// Basic configs
+	Name       string
+	Region     string
+	Provider   string
+	Flavour    string
+	MultiAZ    bool
+	Ccs        bool
+	Version    string
+	Expiration time.Time
+
+	// Scaling config
+	ComputeMachineType string
+	ComputeNodes       int
+
+	// Network config
+	MachineCIDR net.IPNet
+	ServiceCIDR net.IPNet
+	PodCIDR     net.IPNet
+	HostPrefix  int
+	Private     *bool
+
+	// Properties
+	CustomProperties map[string]string
+}
+
+type AWSCredentials struct {
+	AccountID       string
+	AccessKeyID     string
+	SecretAccessKey string
+}
 
 type AddOnItem struct {
 	ID        string
@@ -63,6 +98,109 @@ func GetCluster(client *cmv1.ClustersClient, clusterKey string) (*cmv1.Cluster, 
 	default:
 		return nil, fmt.Errorf("There are %d clusters with identifier or name '%s'", response.Total(), clusterKey)
 	}
+}
+
+func CreateCluster(cmv1Client *cmv1.Client, config Spec) (*cmv1.Cluster, error) {
+	clusterProperties := map[string]string{}
+
+	if config.CustomProperties != nil {
+		for key, value := range config.CustomProperties {
+			clusterProperties[key] = value
+		}
+	}
+
+	// Create the cluster:
+	clusterBuilder := cmv1.NewCluster().
+		Name(config.Name).
+		DisplayName(config.Name).
+		MultiAZ(config.MultiAZ).
+		CloudProvider(
+			cmv1.NewCloudProvider().
+				ID(config.Provider),
+		).
+		Region(
+			cmv1.NewCloudRegion().
+				ID(config.Region),
+		).
+		Flavour(
+			cmv1.NewFlavour().
+				ID(config.Flavour),
+		).
+		Properties(clusterProperties)
+
+	if config.Version != "" {
+		clusterBuilder = clusterBuilder.Version(
+			cmv1.NewVersion().
+				ID(config.Version),
+		)
+
+	}
+
+	if config.ComputeMachineType != "" || config.ComputeNodes != 0 {
+		clusterNodesBuilder := cmv1.NewClusterNodes()
+		if config.ComputeMachineType != "" {
+			clusterNodesBuilder = clusterNodesBuilder.ComputeMachineType(
+				cmv1.NewMachineType().ID(config.ComputeMachineType),
+			)
+		}
+		if config.ComputeNodes != 0 {
+			clusterNodesBuilder = clusterNodesBuilder.Compute(config.ComputeNodes)
+		}
+		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
+	}
+
+	if !config.Expiration.IsZero() {
+		clusterBuilder = clusterBuilder.ExpirationTimestamp(config.Expiration)
+	}
+
+	if !cidrIsEmpty(config.MachineCIDR) ||
+		!cidrIsEmpty(config.ServiceCIDR) ||
+		!cidrIsEmpty(config.PodCIDR) ||
+		config.HostPrefix != 0 {
+		networkBuilder := cmv1.NewNetwork()
+		if !cidrIsEmpty(config.MachineCIDR) {
+			networkBuilder = networkBuilder.MachineCIDR(config.MachineCIDR.String())
+		}
+		if !cidrIsEmpty(config.ServiceCIDR) {
+			networkBuilder = networkBuilder.ServiceCIDR(config.ServiceCIDR.String())
+		}
+		if !cidrIsEmpty(config.PodCIDR) {
+			networkBuilder = networkBuilder.PodCIDR(config.PodCIDR.String())
+		}
+		if config.HostPrefix != 0 {
+			networkBuilder = networkBuilder.HostPrefix(config.HostPrefix)
+		}
+		clusterBuilder = clusterBuilder.Network(networkBuilder)
+	}
+
+	if config.Private != nil {
+		if *config.Private {
+			clusterBuilder = clusterBuilder.API(
+				cmv1.NewClusterAPI().
+					Listening(cmv1.ListeningMethodInternal),
+			)
+		} else {
+			clusterBuilder = clusterBuilder.API(
+				cmv1.NewClusterAPI().
+					Listening(cmv1.ListeningMethodExternal),
+			)
+		}
+	}
+
+	clusterSpec, err := clusterBuilder.Build()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create description of cluster: %v", err)
+	}
+
+	// Send a request to create the cluster:
+	response, err := cmv1Client.Clusters().Add().
+		Body(clusterSpec).
+		Send()
+	if err != nil {
+		return nil, fmt.Errorf("unable to create cluster: %v", err)
+	}
+
+	return response.Body(), nil
 }
 
 func GetClusterOauthURL(cluster *cmv1.Cluster) string {
@@ -205,4 +343,32 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 	})
 
 	return clusterAddOns, nil
+}
+
+func cidrIsEmpty(cidr net.IPNet) bool {
+	return cidr.String() == "<nil>"
+}
+
+func GetMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1.MachineType, err error) {
+	collection := client.MachineTypes()
+	page := 1
+	size := 100
+	for {
+		var response *cmv1.MachineTypesListResponse
+		response, err = collection.List().
+			Search(fmt.Sprintf("cloud_provider.id = '%s'", provider)).
+			Order("size desc").
+			Page(page).
+			Size(size).
+			Send()
+		if err != nil {
+			return
+		}
+		machineTypes = append(machineTypes, response.Items().Slice()...)
+		if response.Size() < size {
+			break
+		}
+		page++
+	}
+	return
 }
