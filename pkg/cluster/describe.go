@@ -78,6 +78,17 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		creator = "N/A"
 	}
 
+	// Find the details of the shard
+	shardPath, err := connection.ClustersMgmt().V1().Clusters().
+		Cluster(cluster.ID()).
+		ProvisionShard().
+		Get().
+		Send()
+	var shard string
+	if shardPath != nil && err == nil {
+		shard = shardPath.Body().HiveConfig().Server()
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:            %s\n"+
@@ -118,6 +129,9 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
+	if shard != "" {
+		fmt.Printf("Shard:         %v\n", shard)
+	}
 	fmt.Println()
 
 	return nil
