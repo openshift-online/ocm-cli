@@ -3,6 +3,17 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.40 Aug 19 2020
+
+- Add Product ID field to list/describe clusters.
+- Add more env aliases to login command.
+- Add delete identity provider command.
+- Add delete ingress command.
+- Add list addons command.
+- Add edit ingress command.
+- Usage is not displayed after error occurs.
+- Bump ocm-sdk-go to 0.1.122.
+
 == 0.1.39 Jul 9 2020
 
 - Add support for creating a private cluster.
