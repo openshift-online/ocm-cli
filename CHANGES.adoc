@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.41 Aug 19 2020
+
+- Assume expiration is 0 when missing 'exp' claim in the jwt token.
+
 == 0.1.40 Aug 19 2020
 
 - Add Product ID field to list/describe clusters.
