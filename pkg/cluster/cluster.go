@@ -18,16 +18,12 @@ package cluster
 
 import (
 	"fmt"
-	"net/http"
-	"os"
 	"regexp"
 	"strings"
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amsv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
-	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"gopkg.in/AlecAivazis/survey.v1"
 )
 
 type AddOnItem struct {
@@ -40,8 +36,6 @@ type AddOnItem struct {
 // Regular expression to used to make sure that the identifier or name given by the user is
 // safe and that it there is no risk of SQL injection:
 var clusterKeyRE = regexp.MustCompile(`^(\w|-)+$`)
-
-const ClustersPageSize = 50
 
 func IsValidClusterKey(clusterKey string) bool {
 	return clusterKeyRE.MatchString(clusterKey)
@@ -211,74 +205,4 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 	})
 
 	return clusterAddOns, nil
-}
-
-// DoSurvey will ask user to choose one if there are more than one clusters match the query
-func DoSurvey(clusters []*clustersmgmtv1.Cluster) (cluster *clustersmgmtv1.Cluster, err error) {
-	clusterList := []string{}
-	for _, v := range clusters {
-		clusterList = append(clusterList, fmt.Sprintf("Name: %s, ID: %s", v.Name(), v.ID()))
-	}
-	choice := ""
-	prompt := &survey.Select{
-		Message: "Please choose a cluster:",
-		Options: clusterList,
-		Default: clusterList[0],
-	}
-	survey.PageSize = ClustersPageSize
-	err = survey.AskOne(prompt, &choice, func(ans interface{}) error {
-		choice := ans.(string)
-		found := false
-		for _, v := range clusters {
-			if strings.Contains(choice, v.ID()) {
-				found = true
-				cluster = v
-			}
-		}
-		if !found {
-			return fmt.Errorf("the cluster you choose is not valid: %s", choice)
-		}
-		return nil
-	})
-	return cluster, err
-}
-
-// FindClusters finds the clusters that match the given key. A cluster matches the key if its
-// identifier is that key, or if its name starts with that key. For example, the key `prd-2305`
-// doesn't match a cluster directly because it isn't a valid identifier, but it matches all clusters
-// whose names start with `prd-2305`.
-func FindClusters(collection *clustersmgmtv1.ClustersClient, key string,
-	size int) (clusters []*clustersmgmtv1.Cluster, total int, err error) {
-
-	// Get the resource that manages the cluster that we want to display:
-	clusterResource := collection.Cluster(key)
-	response, err := clusterResource.Get().Send()
-
-	if err == nil && response != nil {
-		cluster := response.Body()
-		clusters = []*clustersmgmtv1.Cluster{cluster}
-		total = 1
-		return
-	}
-	if response == nil || response.Status() != http.StatusNotFound {
-		return
-	}
-	// If it's not an cluster id, try to query clusters using search param, we only list the
-	// the `size` number of clusters.
-	pageIndex := 1
-	listRequest := collection.List().
-		Size(size).
-		Page(pageIndex)
-	listRequest.Search("name like '" + key + "'")
-	listResponse, err := listRequest.Send()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't retrieve clusters: %s\n", err)
-		return
-	}
-	total = listResponse.Total()
-	listResponse.Items().Each(func(cluster *clustersmgmtv1.Cluster) bool {
-		clusters = append(clusters, cluster)
-		return true
-	})
-	return
 }

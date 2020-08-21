@@ -22,7 +22,7 @@ import (
 	"os/exec"
 	"regexp"
 
-	clusterpkg "github.com/openshift-online/ocm-cli/pkg/cluster"
+	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
@@ -47,7 +47,16 @@ var Cmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	var err error
+	// Check that the cluster key (name, identifier or external identifier) given by the user
+	// is reasonably safe so that there is no risk of SQL injection:
+	clusterKey := args[0]
+	if !c.IsValidClusterKey(clusterKey) {
+		return fmt.Errorf(
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
+				"must contain only letters, digits, dashes and underscores",
+			clusterKey,
+		)
+	}
 
 	path, err := exec.LookPath("sshuttle")
 	if err != nil {
@@ -62,29 +71,12 @@ func run(cmd *cobra.Command, args []string) error {
 	defer connection.Close()
 
 	// Get the client for the resource that manages the collection of clusters:
-	collection := connection.ClustersMgmt().V1().Clusters()
-	clusters, total, err := clusterpkg.FindClusters(collection, args[0], clusterpkg.ClustersPageSize)
-	if err != nil || len(clusters) == 0 {
-		return fmt.Errorf("can't find clusters: %v", err)
+	clusterCollection := connection.ClustersMgmt().V1().Clusters()
+	cluster, err := c.GetCluster(clusterCollection, clusterKey)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
-	// If there are more clusters than `ClustersPageSize`, print a msg out
-	if total > clusterpkg.ClustersPageSize {
-		fmt.Printf(
-			"There are %d clusters that match key '%s', but only the first %d will "+
-				"be shown; consider using a more specific key.\n",
-			total, args[0], len(clusters),
-		)
-	}
-	var cluster *clustersmgmtv1.Cluster
-	if len(clusters) == 1 {
-		cluster = clusters[0]
-	} else {
-		cluster, err = clusterpkg.DoSurvey(clusters)
-		if err != nil {
-			return fmt.Errorf("can't find clusters: %v", err)
-		}
-	}
 	fmt.Printf("Will create tunnel to cluster:\n Name: %s\n ID: %s\n", cluster.Name(), cluster.ID())
 
 	sshURL, err := generateSSHURI(cluster)
