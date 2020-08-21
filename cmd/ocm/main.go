@@ -40,6 +40,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/patch"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/post"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/token"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/tunnel"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/version"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/whoami"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
@@ -80,6 +81,7 @@ func init() {
 	root.AddCommand(patch.Cmd)
 	root.AddCommand(post.Cmd)
 	root.AddCommand(token.Cmd)
+	root.AddCommand(tunnel.Cmd)
 	root.AddCommand(version.Cmd)
 	root.AddCommand(cluster.Cmd)
 	root.AddCommand(completion.Cmd)

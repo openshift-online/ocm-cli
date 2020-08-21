@@ -22,7 +22,6 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/list"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/login"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/status"
-	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/tunnel"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/versions"
 	"github.com/spf13/cobra"
 )
@@ -39,7 +38,6 @@ func init() {
 	Cmd.AddCommand(describe.Cmd)
 	Cmd.AddCommand(list.Cmd)
 	Cmd.AddCommand(login.Cmd)
-	Cmd.AddCommand(tunnel.Cmd)
 	Cmd.AddCommand(status.Cmd)
 	Cmd.AddCommand(versions.Cmd)
 }

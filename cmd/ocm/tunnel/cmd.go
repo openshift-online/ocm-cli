@@ -28,8 +28,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var args struct {
+	clusterKey string
+}
+
 var Cmd = &cobra.Command{
-	Use:   "tunnel <CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH> -- [sshuttle arguments]",
+	Use:   "tunnel --cluster=<CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH> -- [sshuttle arguments]",
 	Short: "tunnel to a cluster",
 	Long: "Use sshuttle to create a ssh tunnel to a cluster by ID or Name or" +
 		"cluster name search string according to the api: " +
@@ -37,19 +41,27 @@ var Cmd = &cobra.Command{
 	Example: " ocm cluster tunnel <id>\n ocm cluster tunnel %test%",
 	RunE:    run,
 	Hidden:  true,
-	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
-			return fmt.Errorf("cluster name expected")
-		}
-
-		return nil
-	},
+	Args:    cobra.ArbitraryArgs,
 }
 
-func run(cmd *cobra.Command, args []string) error {
+func init() {
+	flags := Cmd.Flags()
+
+	flags.StringVarP(
+		&args.clusterKey,
+		"cluster",
+		"c",
+		"",
+		"Name or ID of the cluster to create a tunnel to (required).",
+	)
+	//nolint:gosec
+	Cmd.MarkFlagRequired("cluster")
+}
+
+func run(cmd *cobra.Command, argv []string) error {
 	// Check that the cluster key (name, identifier or external identifier) given by the user
 	// is reasonably safe so that there is no risk of SQL injection:
-	clusterKey := args[0]
+	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
 			"cluster name, identifier or external identifier '%s' isn't valid: it "+
@@ -90,7 +102,7 @@ func run(cmd *cobra.Command, args []string) error {
 		cluster.Network().ServiceCIDR(),
 		cluster.Network().PodCIDR(),
 	}
-	sshuttleArgs = append(sshuttleArgs, args[1:]...)
+	sshuttleArgs = append(sshuttleArgs, argv[0:]...)
 
 	// #nosec G204
 	sshuttleCmd := exec.Command(path, sshuttleArgs...)
