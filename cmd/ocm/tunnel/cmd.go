@@ -38,7 +38,7 @@ var Cmd = &cobra.Command{
 	Long: "Use sshuttle to create a ssh tunnel to a cluster by ID or Name or" +
 		"cluster name search string according to the api: " +
 		"https://api.openshift.com/#/clusters/get_api_clusters_mgmt_v1_clusters",
-	Example: " ocm cluster tunnel <id>\n ocm cluster tunnel %test%",
+	Example: " ocm tunnel --cluster=<id>\n ocm tunnel --cluster=%test%",
 	RunE:    run,
 	Hidden:  true,
 	Args:    cobra.ArbitraryArgs,
