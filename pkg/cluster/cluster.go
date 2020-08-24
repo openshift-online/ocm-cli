@@ -204,14 +204,9 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec) (*cmv1.Cluster, error) 
 }
 
 func GetClusterOauthURL(cluster *cmv1.Cluster) string {
-	var oauthURL string
 	consoleURL := cluster.Console().URL()
-	if cluster.Product().ID() == "rhmi" {
-		oauthURL = strings.Replace(consoleURL, "solution-explorer", "oauth-openshift", 1)
-	} else {
-		oauthURL = strings.Replace(consoleURL, "console-openshift-console", "oauth-openshift", 1)
-	}
-	return oauthURL
+	return strings.Replace(consoleURL, "console-openshift-console", "oauth-openshift", 1)
+
 }
 
 func GetIdentityProviders(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.IdentityProvider, error) {
@@ -306,38 +301,37 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 
 	// Populate add-on installations with all add-on metadata
 	addOns.Each(func(addOn *cmv1.AddOn) bool {
-		if addOn.ID() != "rhmi" {
-			clusterAddOn := AddOnItem{
-				ID:        addOn.ID(),
-				Name:      addOn.Name(),
-				State:     "not installed",
-				Available: addOn.ResourceCost() == 0,
-			}
-
-			// Only display add-ons for which the org has quota
-			resourceQuotas.Each(func(resourceQuota *amsv1.ResourceQuota) bool {
-				if addOn.ResourceName() == resourceQuota.ResourceName() {
-					clusterAddOn.Available = float64(resourceQuota.Allowed()) >= addOn.ResourceCost()
-				}
-				return true
-			})
-
-			// Get the state of add-on installations on the cluster
-			addOnInstallations.Each(func(addOnInstallation *cmv1.AddOnInstallation) bool {
-				if addOn.ID() == addOnInstallation.Addon().ID() {
-					clusterAddOn.State = string(addOnInstallation.State())
-					if clusterAddOn.State == "" {
-						clusterAddOn.State = string(cmv1.AddOnInstallationStateInstalling)
-					}
-				}
-				return true
-			})
-
-			// Only display add-ons that meet the above criteria
-			if clusterAddOn.Available {
-				clusterAddOns = append(clusterAddOns, &clusterAddOn)
-			}
+		clusterAddOn := AddOnItem{
+			ID:        addOn.ID(),
+			Name:      addOn.Name(),
+			State:     "not installed",
+			Available: addOn.ResourceCost() == 0,
 		}
+
+		// Only display add-ons for which the org has quota
+		resourceQuotas.Each(func(resourceQuota *amsv1.ResourceQuota) bool {
+			if addOn.ResourceName() == resourceQuota.ResourceName() {
+				clusterAddOn.Available = float64(resourceQuota.Allowed()) >= addOn.ResourceCost()
+			}
+			return true
+		})
+
+		// Get the state of add-on installations on the cluster
+		addOnInstallations.Each(func(addOnInstallation *cmv1.AddOnInstallation) bool {
+			if addOn.ID() == addOnInstallation.Addon().ID() {
+				clusterAddOn.State = string(addOnInstallation.State())
+				if clusterAddOn.State == "" {
+					clusterAddOn.State = string(cmv1.AddOnInstallationStateInstalling)
+				}
+			}
+			return true
+		})
+
+		// Only display add-ons that meet the above criteria
+		if clusterAddOn.Available {
+			clusterAddOns = append(clusterAddOns, &clusterAddOn)
+		}
+
 		return true
 
 	})
