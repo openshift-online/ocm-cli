@@ -97,12 +97,16 @@ func init() {
 		args.expirationTime,
 		"Specified time when cluster should expire (RFC3339). Only one of expiration-time / expiration may be used.",
 	)
+	//nolint:gosec
+	Cmd.Flags().MarkHidden("expiration-time")
 	fs.DurationVar(
 		&args.expirationSeconds,
 		"expiration",
 		args.expirationSeconds,
 		"Expire cluster after a relative duration like 2h, 8h, 72h. Only one of expiration-time / expiration may be used.",
 	)
+	//nolint:gosec
+	Cmd.Flags().MarkHidden("expiration")
 	fs.BoolVar(
 		&args.private,
 		"private",
