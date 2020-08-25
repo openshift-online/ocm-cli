@@ -105,6 +105,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"Region:        %s\n"+
 		"Multi-az:      %t\n"+
 		"CCS:           %t\n"+
+		"Channel Group: %v\n"+
 		"Cluster Admin: %t\n"+
 		"Creator:       %s\n"+
 		"Created:       %v\n"+
@@ -124,6 +125,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
 		cluster.BYOC(),
+		cluster.Version().ChannelGroup(),
 		cluster.ClusterAdminEnabled(),
 		creator,
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
