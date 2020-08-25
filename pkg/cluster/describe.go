@@ -89,6 +89,16 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		shard = shardPath.Body().HiveConfig().Server()
 	}
 
+	var channelGroup string
+	version, err := connection.ClustersMgmt().V1().
+		Versions().
+		Version(cluster.Version().ID()).
+		Get().
+		Send()
+	if version != nil && err == nil {
+		channelGroup = version.Body().ChannelGroup()
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:            %s\n"+
@@ -105,6 +115,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"Region:        %s\n"+
 		"Multi-az:      %t\n"+
 		"CCS:           %t\n"+
+		"Channel Group: %v\n"+
 		"Cluster Admin: %t\n"+
 		"Creator:       %s\n"+
 		"Created:       %v\n"+
@@ -124,6 +135,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
 		cluster.BYOC(),
+		channelGroup,
 		cluster.ClusterAdminEnabled(),
 		creator,
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
