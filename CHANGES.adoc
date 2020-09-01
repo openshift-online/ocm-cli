@@ -3,6 +3,14 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.42 Sep 1 2020
+
+- Display provision shard name in describe cluster
+- Add more options to create cluster command
+- Add `ocm tunnel` command
+- Hide expiration time parameters in create cluster command
+- Support git style ocm plugin
+
 == 0.1.41 Aug 19 2020
 
 - Assume expiration is 0 when missing 'exp' claim in the jwt token.
