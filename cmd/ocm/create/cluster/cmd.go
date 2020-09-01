@@ -32,16 +32,20 @@ import (
 )
 
 var args struct {
-	parameter         []string
-	header            []string
-	region            string
-	version           string
-	flavour           string
-	provider          string
-	expirationTime    string
-	expirationSeconds time.Duration
-	private           bool
-	multiAZ           bool
+	parameter          []string
+	header             []string
+	region             string
+	version            string
+	flavour            string
+	provider           string
+	expirationTime     string
+	expirationSeconds  time.Duration
+	private            bool
+	multiAZ            bool
+	ccs                bool
+	awsAccountID       string
+	awsAccessKeyID     string
+	awsSecretAccessKey string
 
 	// Scaling options
 	computeMachineType string
@@ -88,7 +92,7 @@ func init() {
 	fs.StringVar(
 		&args.provider,
 		"provider",
-		"aws",
+		c.AWS,
 		"The cloud provider to create the cluster on",
 	)
 	fs.StringVar(
@@ -118,6 +122,30 @@ func init() {
 		"multi-az",
 		false,
 		"Deploy to multiple data centers.",
+	)
+	fs.BoolVar(
+		&args.ccs,
+		"ccs",
+		false,
+		"Leverage your own cloud account.",
+	)
+	fs.StringVar(
+		&args.awsAccountID,
+		"aws-account-id",
+		"",
+		"AWS account ID.",
+	)
+	fs.StringVar(
+		&args.awsAccessKeyID,
+		"aws-access-key-id",
+		"",
+		"AWS access key ID.",
+	)
+	fs.StringVar(
+		&args.awsSecretAccessKey,
+		"aws-secret-access-key",
+		"",
+		"AWS secret access key.",
 	)
 	// Scaling options
 	fs.StringVar(
@@ -248,8 +276,17 @@ func run(cmd *cobra.Command, argv []string) error {
 		clusterFlavour = args.flavour
 	}
 
-	if args.private && args.provider != "aws" {
+	if args.private && args.provider != c.AWS {
 		return fmt.Errorf("Setting cluster as private is not supported for cloud provider '%s'", args.provider)
+	}
+	var AWSCredentials c.AWSCredentials
+
+	if args.ccs {
+		AWSCredentials = c.AWSCredentials{
+			AccountID:       args.awsAccountID,
+			AccessKeyID:     args.awsAccessKeyID,
+			SecretAccessKey: args.awsSecretAccessKey,
+		}
 	}
 
 	// Compute node instance type:
@@ -273,6 +310,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		Provider:           args.provider,
 		Flavour:            clusterFlavour,
 		MultiAZ:            args.multiAZ,
+		CCS:                args.ccs,
+		AWSCredentials:     AWSCredentials,
 		Version:            clusterVersion,
 		Expiration:         expiration,
 		ComputeMachineType: computeMachineType,

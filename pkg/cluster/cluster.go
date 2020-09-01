@@ -28,17 +28,20 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+const AWS = "aws"
+
 // Spec is the configuration for a cluster spec.
 type Spec struct {
 	// Basic configs
-	Name       string
-	Region     string
-	Provider   string
-	Flavour    string
-	MultiAZ    bool
-	Ccs        bool
-	Version    string
-	Expiration time.Time
+	Name           string
+	Region         string
+	Provider       string
+	Flavour        string
+	MultiAZ        bool
+	CCS            bool
+	AWSCredentials AWSCredentials
+	Version        string
+	Expiration     time.Time
 
 	// Scaling config
 	ComputeMachineType string
@@ -185,6 +188,16 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec) (*cmv1.Cluster, error) 
 					Listening(cmv1.ListeningMethodExternal),
 			)
 		}
+	}
+
+	if config.CCS {
+		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
+		clusterBuilder = clusterBuilder.AWS(
+			cmv1.NewAWS().
+				AccountID(config.AWSCredentials.AccountID).
+				AccessKeyID(config.AWSCredentials.AccessKeyID).
+				SecretAccessKey(config.AWSCredentials.SecretAccessKey),
+		)
 	}
 
 	clusterSpec, err := clusterBuilder.Build()
