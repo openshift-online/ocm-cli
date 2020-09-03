@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -103,6 +104,9 @@ func run(cmd *cobra.Command, argv []string) error {
 		cluster.Network().PodCIDR(),
 	}
 	sshuttleArgs = append(sshuttleArgs, argv[0:]...)
+
+	// Output sshuttle command execution string for review
+	fmt.Printf("\n# %s %s\n\n", path, strings.Join(sshuttleArgs, " "))
 
 	// #nosec G204
 	sshuttleCmd := exec.Command(path, sshuttleArgs...)
