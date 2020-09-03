@@ -17,16 +17,12 @@
 
 project_name: ocm
 builds:
-- 
-  env:
-    - CGO_ENABLED=0
+- env:
+  - CGO_ENABLED=0
   goarch:
-    - amd64
-  ignore:
-      - goos: darwin
+  - amd64
 archives:
-  -
-    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
 checksum:
   name_template: 'ocm-linux-amd64.sha256'
   algorithm: sha256
@@ -38,3 +34,19 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
+brews:
+  - tap:
+      owner: openshift-online
+      name: homebrew-tap
+    folder: Formula
+    homepage: "https://www.openshift.com/"
+    description: "CLI for the Red Hat OpenShift Cluster Manager"
+    install: |
+      # Install binary
+      bin.install "ocm"
+
+      # Install bash completion
+      output = Utils.popen_read("#{bin}/ocm completion")
+      (bash_completion/"ocm").write output
+    test: |
+      assert_match /^#{version}/, shell_output("#{bin}/ocm version")
