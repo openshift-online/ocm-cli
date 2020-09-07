@@ -78,8 +78,8 @@ func IsValidClusterKey(clusterKey string) bool {
 
 func GetCluster(client *cmv1.ClustersClient, clusterKey string) (*cmv1.Cluster, error) {
 	query := fmt.Sprintf(
-		"(id = '%s' or name = '%s')",
-		clusterKey, clusterKey,
+		"(id = '%s' or name = '%s' or external_id = '%s')",
+		clusterKey, clusterKey, clusterKey,
 	)
 	response, err := client.List().
 		Search(query).
