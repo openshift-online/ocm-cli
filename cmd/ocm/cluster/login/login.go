@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -30,6 +31,7 @@ import (
 var args struct {
 	user    string
 	console bool
+	browser bool
 }
 
 var Cmd = &cobra.Command{
@@ -63,6 +65,13 @@ func init() {
 		"",
 		false,
 		"Open the OpenShift console for the cluster in the default browser",
+	)
+	flags.BoolVarP(
+		&args.browser,
+		"browser",
+		"",
+		false,
+		"Get a login token via console login using the default browser",
 	)
 
 }
@@ -108,6 +117,19 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		// Open the console url in the broswer, return any errors
 		return browser.OpenURL(cluster.Console().URL())
+	}
+
+	if args.browser {
+		if len(cluster.Console().URL()) == 0 {
+			return fmt.Errorf("cannot find the console URL for cluster: %s", cluster.Name())
+		}
+
+		fmt.Printf(" Console URL: %s\n", cluster.Console().URL())
+
+		// Create token url from console URL and open browser
+		loginURL := strings.Replace(cluster.Console().URL(), "console-openshift-console", "oauth-openshift", 1)
+		loginURL += "/oauth/token/request"
+		return browser.OpenURL(loginURL)
 	}
 
 	if len(cluster.API().URL()) == 0 {
