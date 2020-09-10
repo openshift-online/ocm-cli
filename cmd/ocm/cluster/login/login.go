@@ -130,7 +130,6 @@ func run(cmd *cobra.Command, argv []string) error {
 		loginURL := strings.Replace(cluster.Console().URL(), "console-openshift-console", "oauth-openshift", 1)
 		loginURL += "/oauth/token/request"
 		fmt.Printf(" Login URL: %s\n", loginURL)
-		
 		return browser.OpenURL(loginURL)
 	}
 
