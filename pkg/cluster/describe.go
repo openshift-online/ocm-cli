@@ -25,6 +25,10 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+const (
+	notAvailable string = "N/A"
+)
+
 func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) error {
 	// Get API URL:
 	api := cluster.API()
@@ -73,9 +77,19 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 	}
 
 	// Find the details of the creator:
+	organization := notAvailable
+	if account.Organization() != nil && account.Organization().Name() != "" {
+		organization = account.Organization().Name()
+	}
+
 	creator := account.Username()
 	if creator == "" {
-		creator = "N/A"
+		creator = notAvailable
+	}
+
+	email := account.Email()
+	if email == "" {
+		email = notAvailable
 	}
 
 	// Find the details of the shard
@@ -107,7 +121,9 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"CCS:           %t\n"+
 		"Channel Group: %v\n"+
 		"Cluster Admin: %t\n"+
+		"Organization:  %s\n"+
 		"Creator:       %s\n"+
+		"Email:         %s\n"+
 		"Created:       %v\n"+
 		"Expiration:    %v\n",
 		cluster.ID(),
@@ -127,7 +143,9 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.BYOC(),
 		cluster.Version().ChannelGroup(),
 		cluster.ClusterAdminEnabled(),
+		organization,
 		creator,
+		email,
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
