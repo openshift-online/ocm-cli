@@ -23,10 +23,11 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "plugin COMMAND",
-	Short: "Get information about plugins",
-	Long:  "Get information about installed ocm plugins",
-	Args:  cobra.MinimumNArgs(1),
+	Use:     "plugin COMMAND",
+	Aliases: []string{"plugins"},
+	Short:   "Get information about plugins",
+	Long:    "Get information about installed ocm plugins",
+	Args:    cobra.MinimumNArgs(1),
 }
 
 func init() {

@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/openshift-online/ocm-cli/pkg/table"
@@ -64,6 +65,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			continue
 		}
+
+		if dir == "" {
+			dir = "."
+		}
+
 		items, err := ioutil.ReadDir(dir)
 		if err != nil {
 			return err
@@ -80,7 +86,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			plugin := f.Name()
 
 			var pluginOutput []string
-			absPath := dir + "/" + plugin
+			absPath := filepath.Join(dir, plugin)
 			if isExec, err := isExecutable(absPath); err == nil && !isExec {
 				defer fmt.Printf("Warning: %s identified as an ocm plugin, but it is not executable. \n", absPath)
 			} else if err != nil {
@@ -110,6 +116,8 @@ func uniquePath(path []string) []string {
 	for element := range keys {
 		uniPath = append(uniPath, element)
 	}
+
+	sort.Strings(uniPath)
 
 	return uniPath
 }
