@@ -19,13 +19,15 @@ limitations under the License.
 package arguments
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"reflect"
 	"strings"
 
-	"github.com/openshift-online/ocm-sdk-go"
+	"github.com/mattn/go-isatty"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
 
 	"github.com/openshift-online/ocm-cli/pkg/debug"
@@ -121,6 +123,9 @@ func ApplyBodyFlag(request *sdk.Request, value string) error {
 		// #nosec G304
 		body, err = ioutil.ReadFile(value)
 	} else {
+		if isatty.IsTerminal(os.Stdin.Fd()) && isatty.IsTerminal(os.Stderr.Fd()) {
+			fmt.Fprintln(os.Stderr, "No --body file specified, reading request body from stdin:")
+		}
 		body, err = ioutil.ReadAll(os.Stdin)
 	}
 	if err != nil {
