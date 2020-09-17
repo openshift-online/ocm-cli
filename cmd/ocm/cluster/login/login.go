@@ -31,7 +31,7 @@ import (
 var args struct {
 	user    string
 	console bool
-	browser bool
+	token   bool
 }
 
 var Cmd = &cobra.Command{
@@ -67,11 +67,11 @@ func init() {
 		"Open the OpenShift console for the cluster in the default browser",
 	)
 	flags.BoolVarP(
-		&args.browser,
-		"browser",
-		"",
+		&args.token,
+		"token",
+		"t",
 		false,
-		"Get a login token via console login using the default browser",
+		"Display the cluster API login token using the default browser",
 	)
 
 }
@@ -119,7 +119,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		return browser.OpenURL(cluster.Console().URL())
 	}
 
-	if args.browser {
+	if args.token {
 		if len(cluster.Console().URL()) == 0 {
 			return fmt.Errorf("cannot find the console URL for cluster: %s", cluster.Name())
 		}
