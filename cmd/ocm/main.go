@@ -19,11 +19,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"os/exec"
+
 	_ "github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"os"
-	"os/exec"
 
 	"github.com/openshift-online/ocm-cli/cmd/ocm/account"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster"
@@ -38,13 +39,14 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/login"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/logout"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/patch"
+	plugincmd "github.com/openshift-online/ocm-cli/cmd/ocm/plugin"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/post"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/token"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/tunnel"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/version"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/whoami"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
-	"github.com/openshift-online/ocm-cli/pkg/plugin"
+	plugin "github.com/openshift-online/ocm-cli/pkg/plugin"
 )
 
 var root = &cobra.Command{
@@ -88,6 +90,7 @@ func init() {
 	root.AddCommand(completion.Cmd)
 	root.AddCommand(whoami.Cmd)
 	root.AddCommand(config.Cmd)
+	root.AddCommand(plugincmd.Cmd)
 }
 
 func main() {
