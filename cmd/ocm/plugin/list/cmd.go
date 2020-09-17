@@ -66,10 +66,6 @@ func run(cmd *cobra.Command, argv []string) error {
 			continue
 		}
 
-		if dir == "" {
-			dir = "."
-		}
-
 		items, err := ioutil.ReadDir(dir)
 		if err != nil {
 			return err
@@ -110,6 +106,9 @@ func uniquePath(path []string) []string {
 	uniPath := make([]string, 0)
 
 	for _, p := range path {
+		if p == "" {
+			p = "."
+		}
 		keys[p] = 1
 	}
 
