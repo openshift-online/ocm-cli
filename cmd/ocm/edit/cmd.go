@@ -14,6 +14,7 @@ limitations under the License.
 package edit
 
 import (
+	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/ingress"
 	"github.com/spf13/cobra"
 )
@@ -27,4 +28,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	Cmd.AddCommand(ingress.Cmd)
+	Cmd.AddCommand(cluster.Cmd)
 }

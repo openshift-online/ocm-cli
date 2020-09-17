@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -216,6 +217,51 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec) (*cmv1.Cluster, error) 
 	return response.Body(), nil
 }
 
+func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) error {
+
+	clusterBuilder := cmv1.NewCluster()
+
+	// Update expiration timestamp
+	if !config.Expiration.IsZero() {
+		clusterBuilder = clusterBuilder.ExpirationTimestamp(config.Expiration)
+	}
+
+	// Scale cluster
+	if config.ComputeNodes != 0 {
+		clusterBuilder = clusterBuilder.Nodes(
+			cmv1.NewClusterNodes().
+				Compute(config.ComputeNodes),
+		)
+	}
+
+	// Toggle private mode
+	if config.Private != nil {
+		if *config.Private {
+			clusterBuilder = clusterBuilder.API(
+				cmv1.NewClusterAPI().
+					Listening(cmv1.ListeningMethodInternal),
+			)
+		} else {
+			clusterBuilder = clusterBuilder.API(
+				cmv1.NewClusterAPI().
+					Listening(cmv1.ListeningMethodExternal),
+			)
+		}
+	}
+
+	clusterSpec, err := clusterBuilder.Build()
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Cluster(clusterID).Update().Body(clusterSpec).Send()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func GetClusterOauthURL(cluster *cmv1.Cluster) string {
 	var oauthURL string
 	consoleURL := cluster.Console().URL()
@@ -384,4 +430,40 @@ func GetMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1
 		page++
 	}
 	return
+}
+
+func ValidateClusterExpiration(
+	expirationTime string,
+	expirationDuration time.Duration,
+) (expiration time.Time, err error) {
+	// Validate options
+	if len(expirationTime) > 0 && expirationDuration != 0 {
+		err = errors.New("At most one of 'expiration-time' or 'expiration' may be specified")
+		return
+	}
+
+	// Parse the expiration options
+	if len(expirationTime) > 0 {
+		t, err := parseRFC3339(expirationTime)
+		if err != nil {
+			err = fmt.Errorf("Failed to parse expiration-time: %s", err)
+			return expiration, err
+		}
+
+		expiration = t
+	}
+	if expirationDuration != 0 {
+		// round up to the nearest second
+		expiration = time.Now().Add(expirationDuration).Round(time.Second)
+	}
+
+	return
+}
+
+// parseRFC3339 parses an RFC3339 date in either RFC3339Nano or RFC3339 format.
+func parseRFC3339(s string) (time.Time, error) {
+	if t, timeErr := time.Parse(time.RFC3339Nano, s); timeErr == nil {
+		return t, nil
+	}
+	return time.Parse(time.RFC3339, s)
 }

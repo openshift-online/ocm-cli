@@ -191,12 +191,6 @@ func init() {
 
 func run(cmd *cobra.Command, argv []string) error {
 	var err error
-	var expiration time.Time
-
-	// Validate options
-	if len(args.expirationTime) > 0 && args.expirationSeconds != 0 {
-		return fmt.Errorf("at most one of `expiration-time` or `expiration` may be specified")
-	}
 	if args.region == "us-east-1" && args.provider != "aws" {
 		return fmt.Errorf("if specifying a non-aws cloud provider, region must be set to a valid region")
 	}
@@ -217,20 +211,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	clusterName := argv[0]
 
-	// Parse the expiration options
-	if len(args.expirationTime) > 0 {
-		t, err := parseRFC3339(args.expirationTime)
-		if err != nil {
-			return fmt.Errorf("unable to parse expiration time: %s", err)
-		}
-
-		expiration = t
+	// Validate flags:
+	expiration, err := c.ValidateClusterExpiration(args.expirationTime, args.expirationSeconds)
+	if err != nil {
+		return fmt.Errorf(fmt.Sprintf("%s", err))
 	}
-	if args.expirationSeconds != 0 {
-		// round up to the nearest second
-		expiration = time.Now().Add(args.expirationSeconds).Round(time.Second)
-	}
-
 	// Retrieve valid/default versions
 	versionList := sets.NewString()
 	var defaultVersion string
@@ -379,14 +364,6 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 		page++
 	}
 	return
-}
-
-// parseRFC3339 parses an RFC3339 date in either RFC3339Nano or RFC3339 format.
-func parseRFC3339(s string) (time.Time, error) {
-	if t, timeErr := time.Parse(time.RFC3339Nano, s); timeErr == nil {
-		return t, nil
-	}
-	return time.Parse(time.RFC3339, s)
 }
 
 func validateMachineType(client *cmv1.Client, provider string, machineType string) (string, error) {
