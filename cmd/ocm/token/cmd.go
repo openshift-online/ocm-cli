@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/spf13/cobra"
@@ -33,6 +34,7 @@ var args struct {
 	payload   bool
 	signature bool
 	refresh   bool
+	generate  bool
 }
 
 var Cmd = &cobra.Command{
@@ -69,6 +71,12 @@ func init() {
 		false,
 		"Print the refresh token instead of the access token.",
 	)
+	flags.BoolVar(
+		&args.generate,
+		"generate",
+		false,
+		"Generate a new token.",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -83,8 +91,12 @@ func run(cmd *cobra.Command, argv []string) error {
 	if args.signature {
 		count++
 	}
+	if args.generate {
+		count++
+	}
+
 	if count > 1 {
-		return fmt.Errorf("Options '--payload', '--header' and '--signature' are mutually exclusive")
+		return fmt.Errorf("Options '--payload', '--header', '--signature', and '--generate' are mutually exclusive")
 	}
 
 	// Load the configuration file:
@@ -111,10 +123,21 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Can't create connection: %v", err)
 	}
 
-	// Get the tokens:
-	accessToken, refreshToken, err := connection.Tokens()
-	if err != nil {
-		return fmt.Errorf("Can't get token: %v", err)
+	var accessToken string
+	var refreshToken string
+
+	if args.generate {
+		// Get new tokens:
+		accessToken, refreshToken, err = connection.Tokens(15 * time.Minute)
+		if err != nil {
+			return fmt.Errorf("Can't get new tokens: %v", err)
+		}
+	} else {
+		// Get the tokens:
+		accessToken, refreshToken, err = connection.Tokens()
+		if err != nil {
+			return fmt.Errorf("Can't get token: %v", err)
+		}
 	}
 
 	// Select the token according to the options:
