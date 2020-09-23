@@ -24,8 +24,8 @@ import (
 	amsv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/spf13/cobra"
 
-	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
 
 var Cmd = &cobra.Command{
@@ -36,29 +36,13 @@ var Cmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
-	}
-	if cfg == nil {
-		return fmt.Errorf("Not logged in, run the 'login' command")
-	}
 
-	// Check that the configuration has credentials or tokens that don't have expired:
-	armed, err := cfg.Armed()
+	// Create the client for the OCM API:
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Can't check if tokens have expired: %v", err)
+		return fmt.Errorf("Failed to create OCM connection: %v", err)
 	}
-	if !armed {
-		return fmt.Errorf("Tokens have expired, run the 'login' command")
-	}
-
-	// Create the connection:
-	connection, err := cfg.Connection()
-	if err != nil {
-		return fmt.Errorf("Can't create connection: %v", err)
-	}
+	defer connection.Close()
 
 	// Send the request:
 	response, err := connection.AccountsMgmt().V1().CurrentAccount().Get().

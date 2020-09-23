@@ -22,11 +22,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
 
 var args struct {
@@ -99,29 +100,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Options '--payload', '--header', '--signature', and '--generate' are mutually exclusive")
 	}
 
-	// Load the configuration file:
-	cfg, err := config.Load()
+	// Create the client for the OCM API:
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("Failed to create OCM connection: %v", err)
 	}
-	if cfg == nil {
-		return fmt.Errorf("Not logged in, run the 'login' command")
-	}
-
-	// Check that the configuration has credentials or tokens that don't have expired:
-	armed, err := cfg.Armed()
-	if err != nil {
-		return fmt.Errorf("Can't check if tokens have expired: %v", err)
-	}
-	if !armed {
-		return fmt.Errorf("Tokens have expired, run the 'login' command")
-	}
-
-	// Create the connection:
-	connection, err := cfg.Connection()
-	if err != nil {
-		return fmt.Errorf("Can't create connection: %v", err)
-	}
+	defer connection.Close()
 
 	var accessToken string
 	var refreshToken string
@@ -184,6 +168,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	} else {
 		fmt.Fprintf(os.Stdout, "%s\n", selectedToken)
+	}
+
+	// Load the configuration file:
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
 
 	// Save the configuration:
