@@ -143,14 +143,8 @@ github.com/onsi/ginkgo v1.11.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+
 github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v1.7.0 h1:XPnZz8VVBHjVsy1vzJmRwIcSwiUO+JFfrv/xGiigmME=
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
-github.com/openshift-online/ocm-sdk-go v0.1.122 h1:IooPjb+CWhPICuhSTMLxJsKyLmvVV5GRlHug/QRU0bU=
-github.com/openshift-online/ocm-sdk-go v0.1.122/go.mod h1:3i3a/LEYtC7DMor3N94PTPn1+0qq+Fk+iLjt1Z0WVCs=
-github.com/openshift-online/ocm-sdk-go v0.1.123 h1:2jB6fCf1ikeKWoxcQA7+f8VFzA58tRhew2HHR5pbY9Y=
-github.com/openshift-online/ocm-sdk-go v0.1.123/go.mod h1:3i3a/LEYtC7DMor3N94PTPn1+0qq+Fk+iLjt1Z0WVCs=
-github.com/openshift-online/ocm-sdk-go v0.1.128 h1:AlX7PkZOuZJPBzMM2CgF22YGMp6M9+UUPp8bfGORTDM=
-github.com/openshift-online/ocm-sdk-go v0.1.128/go.mod h1:3i3a/LEYtC7DMor3N94PTPn1+0qq+Fk+iLjt1Z0WVCs=
-github.com/openshift-online/ocm-sdk-go v0.1.129 h1:LjqS4OfpTspoDk6+R8IqoqSt4DJl7hhSSHkZswlXSpk=
-github.com/openshift-online/ocm-sdk-go v0.1.129/go.mod h1:3i3a/LEYtC7DMor3N94PTPn1+0qq+Fk+iLjt1Z0WVCs=
+github.com/openshift-online/ocm-sdk-go v0.1.131 h1:hOa26HGY0/OY3pLg/8IqdfcU9o6rSZKc5zxywnmwUDY=
+github.com/openshift-online/ocm-sdk-go v0.1.131/go.mod h1:3i3a/LEYtC7DMor3N94PTPn1+0qq+Fk+iLjt1Z0WVCs=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4 h1:49lOXmGaUpV9Fz3gd7TFZY106KVlPVa5jcYD1gaQf98=
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
