@@ -27,10 +27,11 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "versions",
-	Short: "List available versions",
-	Long:  "List the versions available for provisioning a cluster",
-	RunE:  run,
+	Use:        "versions",
+	Short:      "List available versions",
+	Long:       "List the versions available for provisioning a cluster",
+	Deprecated: "please use `ocm list versions` command",
+	RunE:       run,
 }
 
 func run(cmd *cobra.Command, argv []string) error {
