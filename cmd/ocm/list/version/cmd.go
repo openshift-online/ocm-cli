@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package versions
+package version
 
 import (
 	"fmt"
@@ -27,9 +27,10 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "versions",
-	Short: "List available versions",
-	Long:  "List the versions available for provisioning a cluster",
+	Use:     "versions",
+	Aliases: []string{"version"},
+	Short:   "List available versions",
+	Long:    "List the versions available for provisioning a cluster",
 	Example: `  # List all supported cluster versions
   ocm list versions`,
 	RunE: run,
