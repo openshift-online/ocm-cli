@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019 Red Hat, Inc.
+Copyright (c) 2020 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,11 +27,12 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:        "versions",
-	Short:      "List available versions",
-	Long:       "List the versions available for provisioning a cluster",
-	Deprecated: "please use `ocm list versions` command",
-	RunE:       run,
+	Use:   "versions",
+	Short: "List available versions",
+	Long:  "List the versions available for provisioning a cluster",
+	Example: `  # List all supported cluster versions
+  ocm list versions`,
+	RunE: run,
 }
 
 func run(cmd *cobra.Command, argv []string) error {
