@@ -21,6 +21,10 @@ export GOPROXY=https://proxy.golang.org
 # Disable CGO so that we always generate static binaries:
 export CGO_ENABLED=0
 
+lint_version=v1.31.0
+# Allow overriding: `make lint container_runner=podman`.
+container_runner:=docker
+
 .PHONY: cmds
 cmds:
 	for cmd in $$(ls cmd); do \
@@ -41,7 +45,9 @@ fmt:
 
 .PHONY: lint
 lint:
-	golangci-lint run
+	$(container_runner) run --rm --security-opt label=disable --volume="$(PWD):/app" --workdir=/app \
+		golangci/golangci-lint:$(lint_version) \
+		golangci-lint run
 
 .PHONY: clean
 clean:
