@@ -312,6 +312,19 @@ func GetGroups(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Group, er
 	return response.Items().Slice(), nil
 }
 
+func GetMachinePools(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.MachinePool, error) {
+	response, err := client.Cluster(clusterID).MachinePools().
+		List().
+		Page(1).
+		Size(-1).
+		Send()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get machine pools for cluster '%s': %v", clusterID, err)
+	}
+
+	return response.Items().Slice(), nil
+}
+
 func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnItem, error) {
 	// Get organization ID (used to get add-on quotas)
 	acctResponse, err := connection.AccountsMgmt().V1().CurrentAccount().
