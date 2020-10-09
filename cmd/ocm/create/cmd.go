@@ -17,6 +17,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/ingress"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/create/machinepool"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/user"
 	"github.com/spf13/cobra"
 )
@@ -32,5 +33,6 @@ func init() {
 	Cmd.AddCommand(cluster.Cmd)
 	Cmd.AddCommand(idp.Cmd)
 	Cmd.AddCommand(ingress.Cmd)
+	Cmd.AddCommand(machinepool.Cmd)
 	Cmd.AddCommand(user.Cmd)
 }

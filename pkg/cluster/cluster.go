@@ -421,7 +421,7 @@ func cidrIsEmpty(cidr net.IPNet) bool {
 	return cidr.String() == "<nil>"
 }
 
-func GetMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1.MachineType, err error) {
+func getMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1.MachineType, err error) {
 	collection := client.MachineTypes()
 	page := 1
 	size := 100
@@ -442,6 +442,43 @@ func GetMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1
 		}
 		page++
 	}
+	return
+}
+
+func ValidateMachineType(client *cmv1.Client, provider string, machineType string) (string, error) {
+	machineTypeList, err := getMachineTypeList(client, provider)
+	if err != nil {
+		return "", err
+	}
+	if machineType != "" {
+		// Check and set the cluster machineType
+		hasMachineType := false
+		for _, v := range machineTypeList {
+			if v == machineType {
+				hasMachineType = true
+			}
+		}
+		if !hasMachineType {
+			allMachineTypes := strings.Join(machineTypeList, " ")
+			err := fmt.Errorf("A valid machine type number must be specified\nValid machine types: %s", allMachineTypes)
+			return machineType, err
+		}
+	}
+
+	return machineType, nil
+}
+
+func getMachineTypeList(client *cmv1.Client, provider string) (machineTypeList []string, err error) {
+	machineTypes, err := getMachineTypes(client, provider)
+	if err != nil {
+		err = fmt.Errorf("Failed to retrieve machine types: %s", err)
+		return
+	}
+
+	for _, v := range machineTypes {
+		machineTypeList = append(machineTypeList, v.ID())
+	}
+
 	return
 }
 
