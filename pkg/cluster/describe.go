@@ -140,7 +140,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.CloudProvider().ID(),
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
-		cluster.BYOC(),
+		cluster.CCS().Enabled(),
 		cluster.Version().ChannelGroup(),
 		cluster.ClusterAdminEnabled(),
 		organization,
