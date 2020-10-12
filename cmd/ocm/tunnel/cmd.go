@@ -29,10 +29,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var args struct {
-	clusterKey string
-}
-
 var Cmd = &cobra.Command{
 	Use:   "tunnel <CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH> -- [sshuttle arguments]",
 	Short: "tunnel to a cluster",
