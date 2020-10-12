@@ -19,7 +19,6 @@ package cluster
 import (
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -277,7 +276,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Compute node instance type:
 	computeMachineType := args.computeMachineType
 
-	computeMachineType, err = validateMachineType(cmv1Client, args.provider, computeMachineType)
+	computeMachineType, err = c.ValidateMachineType(cmv1Client, args.provider, computeMachineType)
 	if err != nil {
 		return fmt.Errorf("Expected a valid machine type: %s", err)
 	}
@@ -363,42 +362,5 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 		}
 		page++
 	}
-	return
-}
-
-func validateMachineType(client *cmv1.Client, provider string, machineType string) (string, error) {
-	machineTypeList, err := getMachineTypeList(client, provider)
-	if err != nil {
-		return "", err
-	}
-	if machineType != "" {
-		// Check and set the cluster machineType
-		hasMachineType := false
-		for _, v := range machineTypeList {
-			if v == machineType {
-				hasMachineType = true
-			}
-		}
-		if !hasMachineType {
-			allMachineTypes := strings.Join(machineTypeList, " ")
-			err := fmt.Errorf("A valid machine type number must be specified\nValid machine types: %s", allMachineTypes)
-			return machineType, err
-		}
-	}
-
-	return machineType, nil
-}
-
-func getMachineTypeList(client *cmv1.Client, provider string) (machineTypeList []string, err error) {
-	machineTypes, err := c.GetMachineTypes(client, provider)
-	if err != nil {
-		err = fmt.Errorf("Failed to retrieve machine types: %s", err)
-		return
-	}
-
-	for _, v := range machineTypes {
-		machineTypeList = append(machineTypeList, v.ID())
-	}
-
 	return
 }
