@@ -36,7 +36,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "cluster NAME|ID|EXTERNAL_ID",
+	Use:   "cluster [flags] {NAME|ID|EXTERNAL_ID}",
 	Short: "Show details of a cluster",
 	Long:  "Show details of a cluster identified by name, identifier or external identifier",
 	RunE:  run,

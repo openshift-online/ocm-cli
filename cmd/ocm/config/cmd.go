@@ -56,7 +56,11 @@ or ~/.ocm.json if that variable is unset. Currently using: %s
 
 The following variables are supported:
 
-%s`, loc, configVarDocs())
+%s
+
+Note that "ocm config get access_token" gives whatever the file contains - may be missing or expired;
+you probably want "ocm token" command instead which will obtain a fresh token if needed.
+`, loc, configVarDocs())
 	return
 }
 

@@ -40,6 +40,7 @@ var Cmd = &cobra.Command{
 	Long:    "List machine pools for a cluster.",
 	Example: `  # List all machine pools on a cluster named "mycluster"
   ocm list machine-pools --cluster=mycluster`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 

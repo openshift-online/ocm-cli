@@ -33,15 +33,11 @@ var Cmd = &cobra.Command{
 	Long:    "List the versions available for provisioning a cluster",
 	Example: `  # List all supported cluster versions
   ocm list versions`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-
-	if len(argv) != 0 {
-		return fmt.Errorf("Expected no arguments")
-	}
-
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {

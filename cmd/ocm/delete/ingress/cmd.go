@@ -30,7 +30,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "ingress",
+	Use:     "ingress --cluster={NAME|ID|EXTERNAL_ID} [flags] INGRESS_ID",
 	Aliases: []string{"ingresses", "route", "routes"},
 	Short:   "Delete cluster ingress",
 	Long:    "Delete the additional non-default application router for a cluster.",

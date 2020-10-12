@@ -32,10 +32,16 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "roles [role-name]",
+	Use:   "roles [flags] [ROLE_NAME]",
 	Short: "Retrieve information of the different roles",
-	Long:  "Get description of a role or list of all roles ",
-	RunE:  run,
+	Long:  "Get description of a role or list of all roles",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 1 {
+			return fmt.Errorf("Accepts at most 1 role name")
+		}
+		return nil
+	},
+	RunE: run,
 }
 
 func init() {

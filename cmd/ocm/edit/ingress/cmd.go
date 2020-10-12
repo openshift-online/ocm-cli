@@ -33,7 +33,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "ingress",
+	Use:     "ingress --cluster={NAME|ID|EXTERNAL_ID} [flags] INGRESS_ID",
 	Aliases: []string{"route", "routes", "ingresses"},
 	Short:   "Edit a cluster Ingress",
 	Long:    "Edit an Ingress endpoint to determine access to the cluster.",

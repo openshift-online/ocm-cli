@@ -42,6 +42,7 @@ var Cmd = &cobra.Command{
 	Use:   "orgs",
 	Short: "List organizations.",
 	Long:  "Display a list of organizations.",
+	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 

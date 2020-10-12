@@ -39,7 +39,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:       "delete PATH",
+	Use:       "delete [flags] PATH",
 	Short:     "Send a DELETE request",
 	Long:      "Send a DELETE request to the given path.",
 	RunE:      run,

@@ -28,10 +28,10 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "user",
+	Use:     "user --cluster={NAME|ID|EXTERNAL_ID} --group=GROUP_ID [flags] USER1",
 	Aliases: []string{"users"},
 	Short:   "Remove user access from cluster",
-	Long:    "Remove user access from cluster",
+	Long:    "Remove a user from a priviledged group on a cluster.",
 	Example: `# Delete users from the dedicated-admins group
   ocm delete user user1 --cluster=mycluster --group=dedicated-admins`,
 	RunE: run,

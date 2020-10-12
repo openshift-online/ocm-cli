@@ -67,6 +67,7 @@ var Cmd = &cobra.Command{
 	Short: "Log in",
 	Long: "Log in, saving the credentials to the configuration file.\n" +
 		"The recommend way is using '--token', which you can obtain at: " + uiTokenPage,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 

@@ -59,11 +59,12 @@ var args struct {
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:   "cluster",
+	Use:   "cluster [flags] NAME",
 	Short: "Create managed clusters",
-	Long:  "Create managed OpenShift Dedicated v4 clusters via OCM",
-	Args:  cobra.ExactArgs(1),
-	RunE:  run,
+	Long: "Create managed OpenShift Dedicated v4 clusters via OCM.\n" +
+		"\n" +
+		"The specified name is used as a DNS component, as well as initial display_name.",
+	RunE: run,
 }
 
 func init() {

@@ -30,12 +30,13 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "addons",
+	Use:     "addons --cluster={NAME|ID|EXTERNAL_ID}",
 	Aliases: []string{"addon", "add-ons", "add-on"},
 	Short:   "List add-on installations",
 	Long:    "List add-ons installed on a cluster.",
 	Example: `  # List all add-on installations on a cluster named "mycluster"
   ocm list addons --cluster=mycluster`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 

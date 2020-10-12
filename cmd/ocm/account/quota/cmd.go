@@ -37,6 +37,7 @@ var Cmd = &cobra.Command{
 	Use:   "quota",
 	Short: "Retrieve cluster quota information.",
 	Long:  "Retrieve cluster quota information of a specific organization.",
+	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 

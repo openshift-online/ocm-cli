@@ -34,11 +34,11 @@ var args struct {
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:     "users --cluster=mycluster [flags]",
+	Use:     "users --cluster={NAME|ID|EXTERNAL_ID}",
 	Aliases: []string{"user"},
 	Short:   "List cluster users",
 	Long:    "List administrative cluster users",
-	Args:    cobra.RangeArgs(0, 1),
+	Args:    cobra.NoArgs,
 	RunE:    run,
 }
 

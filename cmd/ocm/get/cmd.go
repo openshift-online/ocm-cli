@@ -35,7 +35,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:       "get RESOURCE {ID}",
+	Use:       "get RESOURCE [ID]",
 	Short:     "Send a GET request",
 	Long:      "Send a GET request to the given path.",
 	RunE:      run,

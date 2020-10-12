@@ -28,7 +28,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "machinepool",
+	Use:     "machinepool --cluster={NAME|ID|EXTERNAL_ID} [flags] MACHINE_POOL_ID",
 	Aliases: []string{"machine-pool"},
 	Short:   "Edit a cluster machine pool",
 	Long:    "Edit a machine pool size.",
