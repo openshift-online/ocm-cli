@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud_provider
+package provider
 
 import (
 	"fmt"
@@ -24,11 +24,11 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:     "cloud_providers",
-	Aliases: []string{"cloud_provider"},
+	Use:     "providers",
+	Aliases: []string{"provider"},
 	Short:   "List known cloud providers",
 	Long:    "List known cloud providers.",
-	RunE: run,
+	RunE:    run,
 }
 
 func run(cmd *cobra.Command, argv []string) error {

@@ -15,10 +15,10 @@ package list
 
 import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/addon"
-	"github.com/openshift-online/ocm-cli/cmd/ocm/list/cloud_provider"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/ingress"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/list/provider"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/user"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/version"
 	"github.com/spf13/cobra"
@@ -37,5 +37,5 @@ func init() {
 	Cmd.AddCommand(ingress.Cmd)
 	Cmd.AddCommand(user.Cmd)
 	Cmd.AddCommand(version.Cmd)
-	Cmd.AddCommand(cloud_provider.Cmd)
+	Cmd.AddCommand(provider.Cmd)
 }
