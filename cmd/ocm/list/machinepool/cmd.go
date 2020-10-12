@@ -98,12 +98,18 @@ func run(cmd *cobra.Command, argv []string) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	fmt.Fprintf(writer, "ID\tAVAILABILITY ZONES\t\t\tINSTANCE TYPE\t\tLABELS\t\tREPLICAS\n")
+	fmt.Fprintf(writer, "default\t%s\t\t\t%s\t\t%v\t\t%d\n",
+		strings.Join(cluster.Nodes().AvailabilityZones(), ", "),
+		cluster.Nodes().ComputeMachineType().ID(),
+		printLabels(cluster.Nodes().ComputeLabels()),
+		cluster.Nodes().Compute(),
+	)
 	for _, machinePool := range machinePools {
 		fmt.Fprintf(writer, "%s\t%s\t\t\t%s\t\t%v\t\t%d\n",
 			machinePool.ID(),
 			strings.Join(machinePool.AvailabilityZones(), ", "),
 			machinePool.InstanceType(),
-			printLabels(machinePool),
+			printLabels(machinePool.Labels()),
 			machinePool.Replicas(),
 		)
 	}
@@ -113,8 +119,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	return nil
 }
 
-func printLabels(machinePool *cmv1.MachinePool) string {
-	labels := machinePool.Labels()
+func printLabels(labels map[string]string) string {
 	if len(labels) == 0 {
 		return ""
 	}
