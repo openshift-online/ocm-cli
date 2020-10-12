@@ -16,6 +16,7 @@ package edit
 import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/ingress"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/machinepool"
 	"github.com/spf13/cobra"
 )
 
@@ -29,4 +30,5 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(ingress.Cmd)
 	Cmd.AddCommand(cluster.Cmd)
+	Cmd.AddCommand(machinepool.Cmd)
 }
