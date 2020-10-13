@@ -21,8 +21,8 @@ export GOPROXY=https://proxy.golang.org
 # Disable CGO so that we always generate static binaries:
 export CGO_ENABLED=0
 
-# Allow overriding: `make lint container_runner=podman`.
-container_runner:=docker
+# Allow overriding: `make lint container_runner=docker`.
+container_runner:=podman
 
 .PHONY: cmds
 cmds:
