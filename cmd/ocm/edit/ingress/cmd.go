@@ -52,7 +52,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to add the ingress to (required).",
+		"Name or ID or external_id of the cluster to add the ingress to (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

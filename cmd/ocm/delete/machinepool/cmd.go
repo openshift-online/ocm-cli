@@ -44,7 +44,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to delete the machine pool from (required).",
+		"Name or ID or external_id of the cluster to delete the machine pool from (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

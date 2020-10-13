@@ -49,7 +49,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to delete the ingress from (required).",
+		"Name or ID or external_id of the cluster to delete the ingress from (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

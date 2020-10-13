@@ -52,7 +52,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to list the machine pools of (required).",
+		"Name or ID or external_id of the cluster to list the machine pools of (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

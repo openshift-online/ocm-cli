@@ -45,7 +45,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to edit the machine pool (required).",
+		"Name or ID or external_id of the cluster to edit the machine pool (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")
