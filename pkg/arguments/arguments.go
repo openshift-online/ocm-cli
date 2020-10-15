@@ -30,6 +30,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
 
+	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/debug"
 )
 
@@ -73,6 +74,48 @@ func AddBodyFlag(fs *pflag.FlagSet, value *string) {
 		"",
 		"Name fo the file containing the request body. If this isn't given then "+
 			"the body will be taken from the standard input.",
+	)
+}
+
+// AddCCSFlagsWithoutAccountID is sufficient for list regions command.
+func AddCCSFlagsWithoutAccountID(fs *pflag.FlagSet, value *cluster.CCS) {
+	fs.BoolVar(
+		&value.Enabled,
+		"ccs",
+		false,
+		"Leverage your own cloud account.",
+	)
+	fs.StringVar(
+		&value.AWS.AccessKeyID,
+		"aws-access-key-id",
+		"",
+		"AWS access key ID.",
+	)
+	fs.StringVar(
+		&value.AWS.SecretAccessKey,
+		"aws-secret-access-key",
+		"",
+		"AWS secret access key.",
+	)
+}
+
+// AddCCSFlags adds all the flags needed for creating a cluster.
+func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
+	AddCCSFlagsWithoutAccountID(fs, value)
+	fs.StringVar(
+		&value.AWS.AccountID,
+		"aws-account-id",
+		"",
+		"AWS account ID.",
+	)
+}
+
+func AddProviderFlag(fs *pflag.FlagSet, value *string) {
+	fs.StringVar(
+		value,
+		"provider",
+		"aws",
+		"The cloud provider to create the cluster on",
 	)
 }
 
