@@ -3,6 +3,13 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.44 Oct 15 2020
+
+- Convert cluster versions to list versions
+- `ocm tunnel` uses cluster id directly without a flag
+- Update ocm-sdk-go to 0.1.139
+- Add list/create/edit/delete machine pool commands
+
 == 0.1.43 Sep 23 2020
 
 - Show channel group in 'ocm describe cluster'.
