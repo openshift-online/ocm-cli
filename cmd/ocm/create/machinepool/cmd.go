@@ -64,6 +64,9 @@ func init() {
 		"Instance type that should be used.",
 	)
 
+	//nolint:gosec
+	Cmd.MarkFlagRequired("instance-type")
+
 	flags.IntVar(
 		&args.replicas,
 		"replicas",
