@@ -36,11 +36,11 @@ var Cmd = &cobra.Command{
 	Short:   "Add machine pool to cluster",
 	Long:    "Add a machine pool to the cluster.",
 	Example: `  # Add a machine pool to a cluster named "mycluster"
-  ocm create machinepool --cluster=mycluster mp-1
-  # Add a machine pool mp-1 with 3 replicas to a cluster
-  ocm create machinepool --cluster=mycluster --replicas=3 mp-1
-  # Add a machine pool mp-1 with labels to a cluster
-  ocm create machinepool --cluster=mycluster --labels="foo=bar,bar=baz" mp-1`,
+  ocm create machinepool --cluster mycluster mp-1
+  # Add a machine pool mp-1 with 3 replicas and m5.xlarge instance type to a cluster
+  ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 mp-1
+  # Add a machine pool mp-1 with labels and m5.xlarge instance type to a cluster
+  ocm create machinepool --cluster mycluster --instance-type m5.xlarge  --labels "foo=bar,bar=baz" mp-1`,
 	RunE: run,
 }
 
