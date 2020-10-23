@@ -30,7 +30,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "ingress",
+	Use:     "ingress --cluster={NAME|ID|EXTERNAL_ID} [flags] INGRESS_ID",
 	Aliases: []string{"ingresses", "route", "routes"},
 	Short:   "Delete cluster ingress",
 	Long:    "Delete the additional non-default application router for a cluster.",
@@ -49,7 +49,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to delete the ingress from (required).",
+		"Name or ID or external_id of the cluster to delete the ingress from (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

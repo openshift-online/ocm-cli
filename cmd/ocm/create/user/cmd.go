@@ -30,11 +30,11 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "user",
+	Use:     "user --cluster={NAME|ID|EXTERNAL_ID} --group=GROUP_ID [flags] USERS",
 	Aliases: []string{"users"},
 	Short:   "Configure user access for cluster",
-	Long:    "Configure user access for cluster",
-	Example: `# Add users to the dedicated-admins group
+	Long:    "Add users (comma-separated) to a priviledged group on a cluster.",
+	Example: `  # Add users to the dedicated-admins group
   ocm create user user1,user2 --cluster=mycluster --group=dedicated-admins`,
 	RunE: run,
 }
@@ -47,7 +47,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to add the user to (required).",
+		"Name or ID or external_id of the cluster to add the user to (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")
@@ -56,7 +56,7 @@ func init() {
 		&args.group,
 		"group",
 		"",
-		"Group name to add the users to.",
+		"Group name to add the users to (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("group")

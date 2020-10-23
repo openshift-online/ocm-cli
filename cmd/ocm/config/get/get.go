@@ -30,10 +30,10 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "get VARIABLE",
+	Use:   "get [flags] VARIABLE",
 	Short: "Prints the value of a config variable",
 	Long:  "Prints the value of a config variable. See 'ocm config --help' for supported config variables.",
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.ExactArgs(1),
 	RunE:  run,
 }
 
@@ -76,7 +76,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	case "url":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.URL)
 	default:
-		fmt.Fprintf(os.Stderr, "Uknown setting\n")
+		return fmt.Errorf("Unknown setting")
 	}
 
 	return nil

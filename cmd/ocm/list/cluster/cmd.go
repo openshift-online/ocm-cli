@@ -44,10 +44,10 @@ var args struct {
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:     "clusters [flags] [partial cluster ID or name]",
+	Use:     "clusters [flags] [PARTIAL_CLUSTER_ID_OR_NAME]",
 	Aliases: []string{"cluster"},
 	Short:   "List clusters",
-	Long:    "List clusters by ID and Name",
+	Long:    "List clusters, optionally filtering by substring of ID or Name",
 	Args:    cobra.RangeArgs(0, 1),
 	RunE:    run,
 }

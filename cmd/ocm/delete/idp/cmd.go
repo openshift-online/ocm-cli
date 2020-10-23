@@ -28,7 +28,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "idp [IDP NAME]",
+	Use:     "idp --cluster={NAME|ID|EXTERNAL_ID} [flags] IDP_NAME",
 	Aliases: []string{"idps"},
 	Short:   "Delete cluster IDPs",
 	Long:    "Delete a specific identity provider for a cluster.",
@@ -45,7 +45,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to delete the IdP from (required).",
+		"Name or ID or external_id of the cluster to delete the IdP from (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

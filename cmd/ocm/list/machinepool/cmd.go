@@ -34,12 +34,13 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "machinepools",
+	Use:     "machinepools --cluster={NAME|ID|EXTERNAL_ID}",
 	Aliases: []string{"machine-pool", "machine-pools", "machinepool"},
 	Short:   "List cluster machine pools",
 	Long:    "List machine pools for a cluster.",
 	Example: `  # List all machine pools on a cluster named "mycluster"
   ocm list machine-pools --cluster=mycluster`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 
@@ -51,7 +52,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to list the machine pools of (required).",
+		"Name or ID or external_id of the cluster to list the machine pools of (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

@@ -34,12 +34,13 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "ingresses",
+	Use:     "ingresses --cluster={NAME|ID|EXTERNAL_ID}",
 	Aliases: []string{"route", "routes", "ingress"},
 	Short:   "List cluster Ingresses",
 	Long:    "List API and ingress endpoints for a cluster.",
 	Example: `  # List all routes on a cluster named "mycluster"
   ocm list ingresses --cluster=mycluster`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 
@@ -51,7 +52,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to list the routes of (required).",
+		"Name or ID or external_id of the cluster to list the routes of (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

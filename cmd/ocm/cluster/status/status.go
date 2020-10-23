@@ -24,7 +24,7 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "status CLUSTERID",
+	Use:   "status [flags] CLUSTER_ID",
 	Short: "Status of a cluster",
 	Long:  "Get the status of a cluster identified by its cluster ID",
 	RunE:  run,
@@ -33,7 +33,7 @@ var Cmd = &cobra.Command{
 func run(cmd *cobra.Command, argv []string) error {
 
 	if len(argv) != 1 {
-		return fmt.Errorf("Expected exactly one cluster")
+		return fmt.Errorf("Expected exactly one cluster id")
 	}
 
 	// Create the client for the OCM API:

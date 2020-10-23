@@ -34,6 +34,7 @@ var Cmd = &cobra.Command{
 	Use:   "list",
 	Short: "list ocm plugins",
 	Long:  "list all the plugins under the user executable path",
+	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 

@@ -34,11 +34,11 @@ var args struct {
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:     "users --cluster=mycluster [flags]",
+	Use:     "users --cluster={NAME|ID|EXTERNAL_ID}",
 	Aliases: []string{"user"},
 	Short:   "List cluster users",
 	Long:    "List administrative cluster users",
-	Args:    cobra.RangeArgs(0, 1),
+	Args:    cobra.NoArgs,
 	RunE:    run,
 }
 
@@ -49,7 +49,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to add the IdP to (required).",
+		"Name or ID or external_id of the cluster to add the IdP to (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

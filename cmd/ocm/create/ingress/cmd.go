@@ -30,7 +30,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "ingress",
+	Use:     "ingress --cluster={NAME|ID|EXTERNAL_ID}",
 	Aliases: []string{"route", "routes", "ingresses"},
 	Short:   "Add Ingress to cluster",
 	Long:    "Add an Ingress endpoint to determine API access to the cluster.",
@@ -40,6 +40,7 @@ var Cmd = &cobra.Command{
   ocm create ingress --cluster=mycluster
   # Add an ingress with route selector label match
   ocm create ingress -c mycluster --label-match="foo=bar,bar=baz"`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 
@@ -51,7 +52,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to add the ingress to (required).",
+		"Name or ID or external_id of the cluster to add the ingress to (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

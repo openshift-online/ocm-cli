@@ -29,6 +29,7 @@ var Cmd = &cobra.Command{
 	Use:   "version",
 	Short: "Prints the version",
 	Long:  "Prints the version number of the client.",
+	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 

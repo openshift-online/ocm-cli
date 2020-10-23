@@ -44,9 +44,9 @@ var args struct {
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:        "list [flags] [partial cluster ID or name]",
+	Use:        "list [flags] [PARTIAL_CLUSTER_ID_OR_NAME]",
 	Short:      "List clusters",
-	Long:       "List clusters by ID and Name",
+	Long:       "List clusters, optionally filtering by substring of ID or Name",
 	Deprecated: "please use `ocm list clusters` command",
 	Args:       cobra.RangeArgs(0, 1),
 	RunE:       run,

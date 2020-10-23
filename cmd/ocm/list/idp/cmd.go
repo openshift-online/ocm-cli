@@ -30,12 +30,13 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "idps",
+	Use:     "idps --cluster={NAME|ID|EXTERNAL_ID}",
 	Aliases: []string{"idp"},
 	Short:   "List cluster IDPs",
 	Long:    "List identity providers for a cluster.",
 	Example: `  # List all identity providers on a cluster named "mycluster"
   ocm list idps --cluster=mycluster`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 
@@ -47,7 +48,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to list the IdP of (required).",
+		"Name or ID or external_id of the cluster to list the IdP of (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

@@ -39,6 +39,7 @@ var Cmd = &cobra.Command{
 	Use:   "users",
 	Short: "Retrieve users and their roles",
 	Long:  "Retrieve information of all users/roles in the same organization",
+	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 

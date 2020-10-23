@@ -35,6 +35,7 @@ var Cmd = &cobra.Command{
 	Use:   "status",
 	Short: "Status of current user.",
 	Long:  "Display status of current user.",
+	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 

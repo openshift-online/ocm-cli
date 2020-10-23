@@ -35,14 +35,14 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "login [CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH]",
+	Use:   "login [flags] {CLUSTER_ID|CLUSTER_NAME|CLUSTER_NAME_SEARCH}",
 	Short: "login to a cluster",
 	Long: "login to a cluster by ID or Name or cluster name search string according to the api: " +
 		"https://api.openshift.com/#/clusters/get_api_clusters_mgmt_v1_clusters",
 	Example: " ocm cluster login <id>\n ocm cluster login %test%",
 	RunE:    run,
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
+		if len(args) != 1 {
 			return fmt.Errorf("cluster name expected")
 		}
 

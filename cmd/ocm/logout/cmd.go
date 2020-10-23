@@ -28,6 +28,7 @@ var Cmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Log out",
 	Long:  "Log out, removing the configuration file.",
+	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 

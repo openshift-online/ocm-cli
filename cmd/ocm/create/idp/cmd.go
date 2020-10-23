@@ -62,13 +62,14 @@ var args struct {
 var validIdps = []string{"github", "google", "ldap", "openid"}
 
 var Cmd = &cobra.Command{
-	Use:   "idp",
+	Use:   "idp --cluster={NAME|ID|EXTERNAL_ID}",
 	Short: "Add IDP for cluster",
 	Long:  "Add an Identity providers to determine how users log into the cluster.",
 	Example: `  # Add a GitHub identity provider to a cluster named "mycluster"
   ocm create idp --type=github --cluster=mycluster
   # Add an identity provider following interactive prompts
   ocm create idp --cluster=mycluster`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 
@@ -81,7 +82,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster to add the IdP to (required).",
+		"Name or ID or external_id of the cluster to add the IdP to (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

@@ -30,7 +30,7 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "tunnel <CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH> -- [sshuttle arguments]",
+	Use:   "tunnel [flags] {CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH} -- [sshuttle arguments]",
 	Short: "tunnel to a cluster",
 	Long: "Use sshuttle to create a ssh tunnel to a cluster by ID or Name or" +
 		"cluster name search string according to the api: " +
@@ -47,7 +47,7 @@ func init() {
 func run(cmd *cobra.Command, argv []string) error {
 	// Check that the cluster key (name, identifier or external identifier) given by the user
 	// is reasonably safe so that there is no risk of SQL injection:
-	if len(argv) < 1 {
+	if len(argv) != 1 {
 		fmt.Fprintf(
 			os.Stderr,
 			"Expected exactly one cluster name, identifier or external identifier "+

@@ -38,11 +38,12 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "cluster",
+	Use:   "cluster --cluster={NAME|ID|EXTERNAL_ID}",
 	Short: "Edit cluster",
 	Long:  "Edit cluster.",
 	Example: `  # Edit a cluster named "mycluster" to make it private
   ocm edit cluster mycluster --private`,
+	Args: cobra.NoArgs,
 	RunE: run,
 }
 
@@ -54,7 +55,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID of the cluster.",
+		"Name or ID or external_id of the cluster.",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")

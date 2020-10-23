@@ -32,6 +32,7 @@ var Cmd = &cobra.Command{
 	Use:   "whoami",
 	Short: "Prints user information",
 	Long:  "Prints user information.",
+	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 
