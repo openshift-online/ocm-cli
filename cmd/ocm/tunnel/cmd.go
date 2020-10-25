@@ -29,6 +29,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var args struct {
+	short bool
+}
+
 var Cmd = &cobra.Command{
 	Use:   "tunnel [flags] {CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH} -- [sshuttle arguments]",
 	Short: "tunnel to a cluster",
@@ -42,6 +46,9 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
+	flags := Cmd.Flags()
+
+	flags.BoolVar(&args.short, "short",false, "to shorten the 'sshuttle' path")
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -100,6 +107,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	sshuttleArgs = append(sshuttleArgs, argv[1:]...)
 
+
+	if args.short {
+		path = "sshuttle"
+	}
+	
 	// Output sshuttle command execution string for review
 	fmt.Printf("\n# %s %s\n\n", path, strings.Join(sshuttleArgs, " "))
 
