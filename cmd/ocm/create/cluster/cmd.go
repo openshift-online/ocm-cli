@@ -19,6 +19,7 @@ package cluster
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -216,29 +217,27 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return fmt.Errorf(fmt.Sprintf("%s", err))
 	}
-	// Retrieve valid/default versions
 	versionList := sets.NewString()
-	var defaultVersion string
 	versions, err := fetchEnabledVersions(cmv1Client)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve versions: %s", err)
 	}
 	for _, version := range versions {
 		versionList.Insert(version.ID())
-		if version.Default() {
-			defaultVersion = version.ID()
-		}
+
 	}
 
 	// Check and set the cluster version
 	var clusterVersion string
 	if args.version != "" {
-		if !versionList.Has("openshift-v" + args.version) {
+		if strings.HasPrefix(args.version, "openshift-v") {
+			clusterVersion = args.version
+		} else {
+			clusterVersion = "openshift-v" + args.version
+		}
+		if !versionList.Has(clusterVersion) {
 			return fmt.Errorf("A valid version number must be specified\nValid versions: %+v", versionList.List())
 		}
-		clusterVersion = "openshift-v" + args.version
-	} else {
-		clusterVersion = defaultVersion
 	}
 
 	// Retrieve valid/default flavours
