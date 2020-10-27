@@ -116,6 +116,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"Computes:      %d\n"+
 		"Product:       %s\n"+
 		"Provider:      %s\n"+
+		"Version:       %s\n"+
 		"Region:        %s\n"+
 		"Multi-az:      %t\n"+
 		"CCS:           %t\n"+
@@ -138,6 +139,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.Nodes().Compute(),
 		cluster.Product().ID(),
 		cluster.CloudProvider().ID(),
+		cluster.OpenshiftVersion(),
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
 		cluster.CCS().Enabled(),
