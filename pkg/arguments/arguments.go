@@ -83,7 +83,7 @@ func AddCCSFlagsWithoutAccountID(fs *pflag.FlagSet, value *cluster.CCS) {
 		&value.Enabled,
 		"ccs",
 		false,
-		"Leverage your own cloud account.",
+		"Leverage your own cloud account (Customer Cloud Subscription).",
 	)
 	fs.StringVar(
 		&value.AWS.AccessKeyID,
@@ -108,6 +108,29 @@ func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
 		"",
 		"AWS account ID.",
 	)
+}
+
+// CheckIgnoredCCSFlags errors if --aws-... were used without --ccs.
+func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
+	if !ccs.Enabled {
+		bad := []string{}
+		if ccs.AWS.AccountID != "" {
+			bad = append(bad, "--aws-account-id")
+		}
+		if ccs.AWS.AccessKeyID != "" {
+			bad = append(bad, "--aws-access-key-id")
+		}
+		if ccs.AWS.SecretAccessKey != "" {
+			bad = append(bad, "--aws-secret-access-key")
+		}
+		if len(bad) == 1 {
+			return fmt.Errorf("%s flag is meaningless without --ccs", bad[0])
+		} else if len(bad) > 1 {
+			return fmt.Errorf("%s flags are meaningless without --ccs",
+				strings.Join(bad, ", "))
+		}
+	}
+	return nil
 }
 
 func AddProviderFlag(fs *pflag.FlagSet, value *string) {

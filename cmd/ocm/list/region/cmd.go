@@ -49,6 +49,11 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	err := arguments.CheckIgnoredCCSFlags(args.ccs)
+	if err != nil {
+		return err
+	}
+
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return fmt.Errorf("Failed to create OCM connection: %v", err)

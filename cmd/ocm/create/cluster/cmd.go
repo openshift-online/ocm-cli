@@ -253,6 +253,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		computeNodes = 9
 	}
 
+	err = arguments.CheckIgnoredCCSFlags(args.ccs)
+	if err != nil {
+		return err
+	}
+
 	clusterConfig := c.Spec{
 		Name:               clusterName,
 		Region:             args.region,
