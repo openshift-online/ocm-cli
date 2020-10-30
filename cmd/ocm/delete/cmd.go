@@ -25,6 +25,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/ingress"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/machinepool"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/upgradepolicy"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/user"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/config"
@@ -53,6 +54,7 @@ func init() {
 	Cmd.AddCommand(idp.Cmd)
 	Cmd.AddCommand(ingress.Cmd)
 	Cmd.AddCommand(machinepool.Cmd)
+	Cmd.AddCommand(upgradepolicy.Cmd)
 	Cmd.AddCommand(user.Cmd)
 }
 
