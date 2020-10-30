@@ -325,6 +325,19 @@ func GetMachinePools(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Mac
 	return response.Items().Slice(), nil
 }
 
+func GetUpgradePolicies(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.UpgradePolicy, error) {
+	response, err := client.Cluster(clusterID).UpgradePolicies().
+		List().
+		Page(1).
+		Size(-1).
+		Send()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get upgrade policies for cluster '%s': %v", clusterID, err)
+	}
+
+	return response.Items().Slice(), nil
+}
+
 func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnItem, error) {
 	// Get organization ID (used to get add-on quotas)
 	acctResponse, err := connection.AccountsMgmt().V1().CurrentAccount().
