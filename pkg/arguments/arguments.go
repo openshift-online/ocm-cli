@@ -29,6 +29,7 @@ import (
 	isatty "github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/debug"
@@ -232,6 +233,29 @@ func ApplyPathArg(request *sdk.Request, value string) error {
 		for _, value := range values {
 			request.Parameter(name, value)
 		}
+	}
+	return nil
+}
+
+// CheckOneOf returns error if flag has been set and is not one of given options.
+// It's appropriate for both optional flags (no error not given)
+// and required flags (Cobra validated they're given before command .Run).
+func CheckOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
+	if fs.Changed(flagName) {
+		return requireOneOf(fs, flagName, options)
+	}
+	return nil
+}
+
+// requireOneOf returns error if flag is not one of given options.
+func requireOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
+	flag := fs.Lookup(flagName)
+	if flag == nil {
+		return fmt.Errorf("no such flag %q", flagName)
+	}
+
+	if !sets.NewString(options...).Has(flag.Value.String()) {
+		return fmt.Errorf("A valid --%s must be specified.\nValid options: %+v", flagName, options)
 	}
 	return nil
 }

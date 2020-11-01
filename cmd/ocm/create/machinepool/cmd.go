@@ -17,8 +17,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/provider"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 )
@@ -155,12 +157,14 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
 	}
 
-	_, err = c.ValidateMachineType(
-		connection.ClustersMgmt().V1(),
-		cluster.CloudProvider().ID(),
-		args.instanceType)
+	machineTypeList, err := provider.GetMachineTypeIDs(connection.ClustersMgmt().V1(),
+		cluster.CloudProvider().ID())
 	if err != nil {
-		return fmt.Errorf("Expected a valid machine type: %s", err)
+		return err
+	}
+	err = arguments.CheckOneOf(cmd.Flags(), "instance-type", machineTypeList)
+	if err != nil {
+		return err
 	}
 
 	machinePool, err := cmv1.NewMachinePool().ID(machinePoolID).
