@@ -30,7 +30,7 @@ import (
 const (
 	productionURL  = "https://api.openshift.com"
 	stagingURL     = "https://api.stage.openshift.com"
-	integrationURL = "https://api-integration.6943.hive-integration.openshiftapps.com"
+	integrationURL = "https://api.integration.openshift.com"
 )
 
 // When the value of the `--url` option is one of the keys of this map it will be replaced by the
