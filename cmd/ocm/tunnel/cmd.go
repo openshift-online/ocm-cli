@@ -47,7 +47,7 @@ func init() {
 func run(cmd *cobra.Command, argv []string) error {
 	// Check that the cluster key (name, identifier or external identifier) given by the user
 	// is reasonably safe so that there is no risk of SQL injection:
-	if len(argv) != 1 {
+	if len(argv) < 1 {
 		fmt.Fprintf(
 			os.Stderr,
 			"Expected exactly one cluster name, identifier or external identifier "+
