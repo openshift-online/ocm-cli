@@ -103,6 +103,9 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		shard = shardPath.Body().HiveConfig().Server()
 	}
 
+	// Find the details of upgrade policies
+	upgrade := findNextUpgrade(connection, cluster.ID())
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:            %s\n"+
@@ -154,7 +157,40 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 	if shard != "" {
 		fmt.Printf("Shard:         %v\n", shard)
 	}
+	if upgrade != "" {
+		fmt.Printf("Next Upgrade:  %v\n", upgrade)
+	}
 	fmt.Println()
 
 	return nil
+}
+
+func findNextUpgrade(connection *sdk.Connection, id string) string {
+	upgradePolicies, err := connection.ClustersMgmt().V1().Clusters().Cluster(id).UpgradePolicies().List().Send()
+	if err != nil {
+		return ""
+	}
+	if upgradePolicies.Items().Len() == 0 {
+		return "none scheduled"
+	}
+
+	var nearestUpgradePolicy = upgradePolicies.Items().Get(0)
+	for _, uc := range upgradePolicies.Items().Slice() {
+		if uc.NextRun().Before(nearestUpgradePolicy.NextRun()) {
+			nearestUpgradePolicy = uc
+		}
+	}
+
+	policyState, err := connection.ClustersMgmt().V1().Clusters().Cluster(id).UpgradePolicies().UpgradePolicy(nearestUpgradePolicy.ID()).State().Get().Send()
+	if err != nil {
+		return fmt.Sprintf("version %s at %s", nearestUpgradePolicy.Version(), nearestUpgradePolicy.NextRun().Format(time.RFC3339))
+	}
+
+	duration := ""
+	if time.Now().Before(nearestUpgradePolicy.NextRun()) {
+		d := nearestUpgradePolicy.NextRun().Sub(time.Now().UTC()).Truncate(1 * time.Minute)
+		duration = fmt.Sprintf("(%s from now)", d)
+	}
+	response := fmt.Sprintf("%s for version %s at %s %s", policyState.Body().Value(),nearestUpgradePolicy.Version(), nearestUpgradePolicy.NextRun().Format(time.RFC3339), duration)
+	return response
 }
