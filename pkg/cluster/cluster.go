@@ -325,6 +325,19 @@ func GetMachinePools(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Mac
 	return response.Items().Slice(), nil
 }
 
+func GetUpgradePolicies(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.UpgradePolicy, error) {
+	response, err := client.Cluster(clusterID).UpgradePolicies().
+		List().
+		Page(1).
+		Size(-1).
+		Send()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get upgrade policies for cluster '%s': %v", clusterID, err)
+	}
+
+	return response.Items().Slice(), nil
+}
+
 func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnItem, error) {
 	// Get organization ID (used to get add-on quotas)
 	acctResponse, err := connection.AccountsMgmt().V1().CurrentAccount().
@@ -415,6 +428,28 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 	})
 
 	return clusterAddOns, nil
+}
+
+func GetVersionID(cluster *cmv1.Cluster) string {
+	if cluster.OpenshiftVersion() != "" {
+
+		if cluster.Version().ChannelGroup() != "stable" {
+			return fmt.Sprintf("openshift-v%s-%s", cluster.OpenshiftVersion(), cluster.Version().ChannelGroup())
+		}
+		return fmt.Sprintf("openshift-v%s", cluster.OpenshiftVersion())
+	}
+	return cluster.Version().ID()
+
+}
+
+func GetAvailableUpgrades(client *cmv1.Client, versionID string) ([]string, error) {
+	response, err := client.Versions().Version(versionID).Get().Send()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to find version ID %s", versionID)
+	}
+	availableUpgrades := response.Body().AvailableUpgrades()
+
+	return availableUpgrades, nil
 }
 
 func cidrIsEmpty(cidr net.IPNet) bool {

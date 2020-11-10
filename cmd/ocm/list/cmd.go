@@ -19,6 +19,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/ingress"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/machinepool"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/list/upgradepolicy"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/user"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/version"
 	"github.com/spf13/cobra"
@@ -36,6 +37,7 @@ func init() {
 	Cmd.AddCommand(idp.Cmd)
 	Cmd.AddCommand(ingress.Cmd)
 	Cmd.AddCommand(machinepool.Cmd)
+	Cmd.AddCommand(upgradepolicy.Cmd)
 	Cmd.AddCommand(user.Cmd)
 	Cmd.AddCommand(version.Cmd)
 }
