@@ -34,7 +34,7 @@ var args struct {
 
 var Cmd = &cobra.Command{
 	Use:     "upgradepolicies --cluster={NAME|ID|EXTERNAL_ID}",
-	Aliases: []string{"machine-pool", "machine-pools", "machinepool"},
+	Aliases: []string{"upgrade-policy", "upgrade-policies", "upgradepolicy"},
 	Short:   "List cluster upgrade policies",
 	Long:    "List upgrade policies for a cluster.",
 	Example: `  # List all upgrade policies on a cluster named "mycluster"
@@ -51,7 +51,7 @@ func init() {
 		"cluster",
 		"c",
 		"",
-		"Name or ID or external_id of the cluster to list the machine pools of (required).",
+		"Name or ID or external_id of the cluster to list the upgrade policies of (required).",
 	)
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")
