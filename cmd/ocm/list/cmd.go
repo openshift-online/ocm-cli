@@ -20,6 +20,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/ingress"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/machinepool"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/org"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/list/quota"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/region"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/upgradepolicy"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/user"
@@ -40,6 +41,7 @@ func init() {
 	Cmd.AddCommand(ingress.Cmd)
 	Cmd.AddCommand(org.Cmd)
 	Cmd.AddCommand(machinepool.Cmd)
+	Cmd.AddCommand(quota.Cmd)
 	Cmd.AddCommand(region.Cmd)
 	Cmd.AddCommand(upgradepolicy.Cmd)
 	Cmd.AddCommand(user.Cmd)
