@@ -85,7 +85,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	var upgradePreference string
 	var timestamp time.Time
 
-	availableUpgrades, err := c.GetAvailableUpgrades(connection.ClustersMgmt().V1(), c.GetVersionID(cluster))
+	availableUpgrades, err := c.GetAvailableUpgrades(
+		connection.ClustersMgmt().V1(), c.GetVersionID(cluster), cluster.Product().ID())
 	if err != nil {
 		return fmt.Errorf("Failed to find available upgrades: %v", err)
 	}

@@ -443,24 +443,54 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 
 func GetVersionID(cluster *cmv1.Cluster) string {
 	if cluster.OpenshiftVersion() != "" {
-
-		if cluster.Version().ChannelGroup() != "stable" {
-			return fmt.Sprintf("openshift-v%s-%s", cluster.OpenshiftVersion(), cluster.Version().ChannelGroup())
-		}
-		return fmt.Sprintf("openshift-v%s", cluster.OpenshiftVersion())
+		return createVersionID(cluster.OpenshiftVersion(), cluster.Version().ChannelGroup())
 	}
 	return cluster.Version().ID()
-
 }
 
-func GetAvailableUpgrades(client *cmv1.Client, versionID string) ([]string, error) {
+func GetAvailableUpgrades(
+	client *cmv1.Client, versionID string, productID string) ([]string, error) {
 	response, err := client.Versions().Version(versionID).Get().Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to find version ID %s", versionID)
 	}
-	availableUpgrades := response.Body().AvailableUpgrades()
+	version := response.Body()
+	availableUpgrades := version.AvailableUpgrades()
+	if productID == "ROSA" {
+		availableUpgrades, err = filterROSAVersions(
+			client, availableUpgrades, version.ChannelGroup())
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return availableUpgrades, nil
+}
+
+func createVersionID(version string, channelGroup string) string {
+	versionID := fmt.Sprintf("openshift-v%s", version)
+	if channelGroup != "stable" {
+		versionID = fmt.Sprintf("%s-%s", versionID, channelGroup)
+	}
+	return versionID
+
+}
+
+func filterROSAVersions(
+	client *cmv1.Client, versions []string, channelGroup string) ([]string, error) {
+	enabledVersions := []string{}
+	for _, version := range versions {
+		versionID := createVersionID(version, channelGroup)
+		response, err := client.Versions().Version(versionID).Get().Send()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to find version ID %s", versionID)
+		}
+		rosaEnabled := response.Body().ROSAEnabled()
+		if rosaEnabled {
+			enabledVersions = append(enabledVersions, version)
+		}
+	}
+	return enabledVersions, nil
 }
 
 func cidrIsEmpty(cidr net.IPNet) bool {
