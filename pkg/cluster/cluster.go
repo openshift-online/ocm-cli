@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amsv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -104,7 +105,7 @@ func GetCluster(client *cmv1.ClustersClient, clusterKey string) (*cmv1.Cluster, 
 	}
 }
 
-func CreateCluster(cmv1Client *cmv1.Client, config Spec) (*cmv1.Cluster, error) {
+func CreateCluster(cmv1Client *cmv1.Client, config Spec, parameters []string, headers []string) (*cmv1.Cluster, error) {
 	clusterProperties := map[string]string{}
 
 	if config.CustomProperties != nil {
@@ -207,9 +208,11 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec) (*cmv1.Cluster, error) 
 	}
 
 	// Send a request to create the cluster:
-	response, err := cmv1Client.Clusters().Add().
-		Body(clusterSpec).
-		Send()
+	request := cmv1Client.Clusters().Add().
+		Body(clusterSpec)
+	arguments.ApplyParameterFlag(request, parameters)
+	arguments.ApplyHeaderFlag(request, headers)
+	response, err := request.Send()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create cluster: %v", err)
 	}

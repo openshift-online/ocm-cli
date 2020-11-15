@@ -226,9 +226,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Send a request to create the cluster:
-	response, err := cmv1Client.Clusters().Add().
-		Body(cluster).
-		Send()
+	request := cmv1Client.Clusters().Add().
+		Body(cluster)
+	arguments.ApplyParameterFlag(request, args.parameter)
+	arguments.ApplyHeaderFlag(request, args.header)
+	response, err := request.Send()
 	if err != nil {
 		return fmt.Errorf("unable to create cluster: %v", err)
 	}

@@ -307,7 +307,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Private:            &args.private,
 	}
 
-	cluster, err := c.CreateCluster(cmv1Client, clusterConfig)
+	cluster, err := c.CreateCluster(cmv1Client, clusterConfig, args.parameter, args.header)
 	if err != nil {
 		return fmt.Errorf("Failed to create cluster: %v", err)
 	}
