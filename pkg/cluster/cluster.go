@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -217,6 +218,10 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, parameters []string, he
 		return nil, fmt.Errorf("unable to create cluster: %v", err)
 	}
 
+	// Happens in dryRun mode when there were no errors.
+	if response.Status() == http.StatusNoContent {
+		return nil, nil
+	}
 	return response.Body(), nil
 }
 

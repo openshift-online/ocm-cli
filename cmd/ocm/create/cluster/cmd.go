@@ -312,9 +312,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to create cluster: %v", err)
 	}
 
-	err = c.PrintClusterDesctipion(connection, cluster)
-	if err != nil {
-		return err
+	if cluster != nil {
+		err = c.PrintClusterDesctipion(connection, cluster)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
