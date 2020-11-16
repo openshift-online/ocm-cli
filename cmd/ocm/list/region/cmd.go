@@ -67,11 +67,24 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Create the writer that will be used to print the tabulated results:
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent)
-	fmt.Fprintf(writer, "IT\t\tDISPLAY NAME\tENABLED\tSUPPORTS MULTI-AZ\n")
-	for _, region := range regions {
-		fmt.Fprintf(writer, "%s\t\t%s\t%v\t%v\n",
-			region.ID(), region.DisplayName(), region.Enabled(), region.SupportsMultiAZ())
+
+	// `Enabled` field checked only on Ret Hat infra, all regions supported with GCP CCS,
+	// account-specific list on AWS CCS.
+	// Use appropriate columns to make it easier to understand, with some always true.
+	if args.provider == "aws" && args.ccs.Enabled {
+		fmt.Fprintf(writer, "ID\t\tDISPLAY NAME\tCCS (THIS AWS ACCOUNT)\tSUPPORTS MULTI-AZ\n")
+		for _, region := range regions {
+			fmt.Fprintf(writer, "%s\t\t%s\t%v\t%v\n",
+				region.ID(), region.DisplayName(), true, region.SupportsMultiAZ())
+		}
+	} else {
+		fmt.Fprintf(writer, "ID\t\tDISPLAY NAME\tON RED HAT INFRA\tON CCS\tSUPPORTS MULTI-AZ\n")
+		for _, region := range regions {
+			fmt.Fprintf(writer, "%s\t\t%s\t%v\t%v\t%v\n",
+				region.ID(), region.DisplayName(), region.Enabled(), true, region.SupportsMultiAZ())
+		}
 	}
+
 	err = writer.Flush()
 	return err
 }
