@@ -26,14 +26,13 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
 
 var args struct {
-	parameter          []string
-	header             []string
+	dryRun bool
+
 	region             string
 	version            string
 	flavour            string
@@ -70,8 +69,13 @@ var Cmd = &cobra.Command{
 
 func init() {
 	fs := Cmd.Flags()
-	arguments.AddParameterFlag(fs, &args.parameter)
-	arguments.AddHeaderFlag(fs, &args.header)
+	fs.BoolVar(
+		&args.dryRun,
+		"dry-run",
+		false,
+		"Simulate creating the cluster.",
+	)
+
 	fs.StringVar(
 		&args.region,
 		"region",
@@ -307,14 +311,21 @@ func run(cmd *cobra.Command, argv []string) error {
 		Private:            &args.private,
 	}
 
-	cluster, err := c.CreateCluster(cmv1Client, clusterConfig)
+	cluster, err := c.CreateCluster(cmv1Client, clusterConfig, args.dryRun)
 	if err != nil {
 		return fmt.Errorf("Failed to create cluster: %v", err)
 	}
 
-	err = c.PrintClusterDesctipion(connection, cluster)
-	if err != nil {
-		return err
+	// Print the result:
+	if cluster == nil {
+		if args.dryRun {
+			fmt.Println("dry run: Would be successful.")
+		}
+	} else {
+		err = c.PrintClusterDesctipion(connection, cluster)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

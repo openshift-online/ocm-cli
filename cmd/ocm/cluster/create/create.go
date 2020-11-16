@@ -24,14 +24,11 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	clusterpkg "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
 
 var args struct {
-	parameter         []string
-	header            []string
 	region            string
 	version           string
 	flavour           string
@@ -53,8 +50,6 @@ var Cmd = &cobra.Command{
 
 func init() {
 	fs := Cmd.Flags()
-	arguments.AddParameterFlag(fs, &args.parameter)
-	arguments.AddHeaderFlag(fs, &args.header)
 	fs.StringVar(
 		&args.region,
 		"region",

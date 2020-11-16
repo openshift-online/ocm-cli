@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -104,7 +105,7 @@ func GetCluster(client *cmv1.ClustersClient, clusterKey string) (*cmv1.Cluster, 
 	}
 }
 
-func CreateCluster(cmv1Client *cmv1.Client, config Spec) (*cmv1.Cluster, error) {
+func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Cluster, error) {
 	clusterProperties := map[string]string{}
 
 	if config.CustomProperties != nil {
@@ -207,13 +208,22 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec) (*cmv1.Cluster, error) 
 	}
 
 	// Send a request to create the cluster:
-	response, err := cmv1Client.Clusters().Add().
-		Body(clusterSpec).
-		Send()
+	request := cmv1Client.Clusters().Add().
+		Body(clusterSpec)
+	if dryRun {
+		request = request.Parameter("dryRun", "true")
+	}
+	response, err := request.Send()
 	if err != nil {
+		if dryRun {
+			return nil, fmt.Errorf("dry run: unable to create cluster: %v", err)
+		}
 		return nil, fmt.Errorf("unable to create cluster: %v", err)
 	}
 
+	if response.Status() == http.StatusNoContent {
+		return nil, nil
+	}
 	return response.Body(), nil
 }
 
