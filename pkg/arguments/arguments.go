@@ -30,6 +30,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
 
+	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/debug"
 )
 
@@ -73,6 +74,71 @@ func AddBodyFlag(fs *pflag.FlagSet, value *string) {
 		"",
 		"Name fo the file containing the request body. If this isn't given then "+
 			"the body will be taken from the standard input.",
+	)
+}
+
+// AddCCSFlagsWithoutAccountID is sufficient for list regions command.
+func AddCCSFlagsWithoutAccountID(fs *pflag.FlagSet, value *cluster.CCS) {
+	fs.BoolVar(
+		&value.Enabled,
+		"ccs",
+		false,
+		"Leverage your own cloud account (Customer Cloud Subscription).",
+	)
+	fs.StringVar(
+		&value.AWS.AccessKeyID,
+		"aws-access-key-id",
+		"",
+		"AWS access key ID.",
+	)
+	fs.StringVar(
+		&value.AWS.SecretAccessKey,
+		"aws-secret-access-key",
+		"",
+		"AWS secret access key.",
+	)
+}
+
+// AddCCSFlags adds all the flags needed for creating a cluster.
+func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
+	AddCCSFlagsWithoutAccountID(fs, value)
+	fs.StringVar(
+		&value.AWS.AccountID,
+		"aws-account-id",
+		"",
+		"AWS account ID.",
+	)
+}
+
+// CheckIgnoredCCSFlags errors if --aws-... were used without --ccs.
+func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
+	if !ccs.Enabled {
+		bad := []string{}
+		if ccs.AWS.AccountID != "" {
+			bad = append(bad, "--aws-account-id")
+		}
+		if ccs.AWS.AccessKeyID != "" {
+			bad = append(bad, "--aws-access-key-id")
+		}
+		if ccs.AWS.SecretAccessKey != "" {
+			bad = append(bad, "--aws-secret-access-key")
+		}
+		if len(bad) == 1 {
+			return fmt.Errorf("%s flag is meaningless without --ccs", bad[0])
+		} else if len(bad) > 1 {
+			return fmt.Errorf("%s flags are meaningless without --ccs",
+				strings.Join(bad, ", "))
+		}
+	}
+	return nil
+}
+
+func AddProviderFlag(fs *pflag.FlagSet, value *string) {
+	fs.StringVar(
+		value,
+		"provider",
+		"aws",
+		"The cloud provider to create the cluster on",
 	)
 }
 

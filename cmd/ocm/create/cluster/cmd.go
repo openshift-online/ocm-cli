@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
@@ -33,18 +34,15 @@ import (
 var args struct {
 	dryRun bool
 
-	region             string
-	version            string
-	flavour            string
-	provider           string
-	expirationTime     string
-	expirationSeconds  time.Duration
-	private            bool
-	multiAZ            bool
-	ccs                bool
-	awsAccountID       string
-	awsAccessKeyID     string
-	awsSecretAccessKey string
+	region            string
+	version           string
+	flavour           string
+	provider          string
+	expirationTime    string
+	expirationSeconds time.Duration
+	private           bool
+	multiAZ           bool
+	ccs               c.CCS
 
 	// Scaling options
 	computeMachineType string
@@ -76,6 +74,8 @@ func init() {
 		"Simulate creating the cluster.",
 	)
 
+	arguments.AddProviderFlag(fs, &args.provider)
+	arguments.AddCCSFlags(fs, &args.ccs)
 	fs.StringVar(
 		&args.region,
 		"region",
@@ -93,12 +93,6 @@ func init() {
 		"flavour",
 		"osd-4",
 		"The OCM flavour to create the cluster with",
-	)
-	fs.StringVar(
-		&args.provider,
-		"provider",
-		c.AWS,
-		"The cloud provider to create the cluster on",
 	)
 	fs.StringVar(
 		&args.expirationTime,
@@ -127,30 +121,6 @@ func init() {
 		"multi-az",
 		false,
 		"Deploy to multiple data centers.",
-	)
-	fs.BoolVar(
-		&args.ccs,
-		"ccs",
-		false,
-		"Leverage your own cloud account.",
-	)
-	fs.StringVar(
-		&args.awsAccountID,
-		"aws-account-id",
-		"",
-		"AWS account ID.",
-	)
-	fs.StringVar(
-		&args.awsAccessKeyID,
-		"aws-access-key-id",
-		"",
-		"AWS access key ID.",
-	)
-	fs.StringVar(
-		&args.awsSecretAccessKey,
-		"aws-secret-access-key",
-		"",
-		"AWS secret access key.",
 	)
 	// Scaling options
 	fs.StringVar(
@@ -264,17 +234,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		clusterFlavour = args.flavour
 	}
 
-	if args.private && args.provider != c.AWS {
+	if args.private && args.provider != "aws" {
 		return fmt.Errorf("Setting cluster as private is not supported for cloud provider '%s'", args.provider)
-	}
-	var AWSCredentials c.AWSCredentials
-
-	if args.ccs {
-		AWSCredentials = c.AWSCredentials{
-			AccountID:       args.awsAccountID,
-			AccessKeyID:     args.awsAccessKeyID,
-			SecretAccessKey: args.awsSecretAccessKey,
-		}
 	}
 
 	// Compute node instance type:
@@ -292,14 +253,18 @@ func run(cmd *cobra.Command, argv []string) error {
 		computeNodes = 9
 	}
 
+	err = arguments.CheckIgnoredCCSFlags(args.ccs)
+	if err != nil {
+		return err
+	}
+
 	clusterConfig := c.Spec{
 		Name:               clusterName,
 		Region:             args.region,
 		Provider:           args.provider,
+		CCS:                args.ccs,
 		Flavour:            clusterFlavour,
 		MultiAZ:            args.multiAZ,
-		CCS:                args.ccs,
-		AWSCredentials:     AWSCredentials,
 		Version:            clusterVersion,
 		Expiration:         expiration,
 		ComputeMachineType: computeMachineType,
