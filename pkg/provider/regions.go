@@ -24,7 +24,7 @@ import (
 )
 
 func GetRegions(client *cmv1.Client, provider string, ccs cluster.CCS) (regions []*cmv1.CloudRegion, err error) {
-	if ccs.Enabled {
+	if ccs.Enabled && provider == "aws" {
 		// Build cmv1.AWS object to get list of available regions:
 		awsCredentials, err := cmv1.NewAWS().
 			AccessKeyID(ccs.AWS.AccessKeyID).
