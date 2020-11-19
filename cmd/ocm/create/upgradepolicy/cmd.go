@@ -18,6 +18,8 @@ package upgradepolicy
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
@@ -81,85 +83,154 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
+	var scheduleType string
 	var version string
 	var upgradePreference string
 	var timestamp time.Time
 
-	availableUpgrades, err := c.GetAvailableUpgrades(
-		connection.ClustersMgmt().V1(), c.GetVersionID(cluster), cluster.Product().ID())
-	if err != nil {
-		return fmt.Errorf("Failed to find available upgrades: %v", err)
+	prompt := &survey.Select{
+		Message: "Select policy type",
+		Options: []string{"manual", "automatic"},
 	}
-	if len(availableUpgrades) == 0 {
-		fmt.Println("There are no available upgrades")
-		return nil
+	err = survey.AskOne(prompt, &scheduleType)
+	if err != nil {
+		return fmt.Errorf("Failed to get a policy type")
 	}
 
-	prompt := &survey.Select{
-		Message: "Select version",
-		Options: availableUpgrades,
-	}
-	err = survey.AskOne(prompt, &version)
-	if err != nil {
-		return fmt.Errorf("Failed to get a valid version to upgrade to")
-	}
-	prompt = &survey.Select{
-		Message: "Schedule Upgrade",
-		Options: []string{"Upgrade now", "Schedule a different time"},
-	}
-	err = survey.AskOne(prompt, &upgradePreference)
-	if err != nil {
-		return fmt.Errorf("Failed to get an upgrade time preference")
-	}
-	if upgradePreference == "Upgrade now" {
-		timestamp = time.Now().UTC().Add(time.Minute * 10)
+	var upgradeBuilder *cmv1.UpgradePolicyBuilder
+
+	if scheduleType == "automatic" {
+		prompt = &survey.Select{
+			Message: "Select day",
+			Options: []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"},
+		}
+		var day string
+		err = survey.AskOne(prompt, &day)
+		if err != nil {
+			return fmt.Errorf("Failed to get a valid day")
+		}
+
+		var daysOfWeek = map[string]time.Weekday{
+			"Sunday":    time.Sunday,
+			"Monday":    time.Monday,
+			"Tuesday":   time.Tuesday,
+			"Wednesday": time.Wednesday,
+			"Thursday":  time.Thursday,
+			"Friday":    time.Friday,
+			"Saturday":  time.Saturday,
+		}
+
+		dayInt, ok := daysOfWeek[day]
+		if !ok {
+			return fmt.Errorf("Failed to get a valid day")
+		}
+
+		hours := make([]string, 24)
+		var start time.Time
+		for i := range hours {
+			t := start.Add(time.Hour * time.Duration(i))
+			hours[i] = t.Format("15:04")
+		}
+
+		prompt = &survey.Select{
+			Message: "Select hour (UTC)",
+			Options: hours,
+		}
+		var hour string
+		err = survey.AskOne(prompt, &hour)
+		if err != nil {
+			return fmt.Errorf("Failed to get a valid hour")
+		}
+
+		hourInt, err := strconv.Atoi(strings.Split(hour, ":")[0])
+		if err != nil {
+			return nil
+		}
+
+		cronExpression := fmt.Sprintf("0 %d * * %d", hourInt, dayInt)
+
+		upgradeBuilder = cmv1.NewUpgradePolicy().
+			ScheduleType("automatic").
+			Schedule(cronExpression)
 
 	} else {
 
-		var validationQs = []*survey.Question{
-			{
-				Name:   "date",
-				Prompt: &survey.Input{Message: "Please input desired date in format yyyy-mm-dd"},
-				Validate: func(val interface{}) error {
-					str, _ := val.(string)
-					_, err := time.Parse("2006-01-02", str)
-					if err != nil {
-						return fmt.Errorf("date format invalid")
-					}
-					return nil
-				},
-			},
-			{
-				Name:   "desiredTime",
-				Prompt: &survey.Input{Message: "Please input desired UTC time in format HH:mm"},
-				Validate: func(val interface{}) error {
-					str, _ := val.(string)
-					_, err := time.Parse("15:04", str)
-					if err != nil {
-						return fmt.Errorf("time format invalid")
-					}
-					return nil
-				},
-			},
-		}
-		answers := struct {
-			Date        string
-			DesiredTime string
-		}{}
-		err = survey.Ask(validationQs, &answers)
+		availableUpgrades, err := c.GetAvailableUpgrades(
+			connection.ClustersMgmt().V1(), c.GetVersionID(cluster), cluster.Product().ID())
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to find available upgrades: %v", err)
+		}
+		if len(availableUpgrades) == 0 {
+			fmt.Println("There are no available upgrades")
+			return nil
 		}
 
-		desiredTime := fmt.Sprintf("%sT%s:00.000Z", answers.Date, answers.DesiredTime)
-		timestamp, _ = time.Parse(time.RFC3339, desiredTime)
-		fmt.Println(timestamp)
-	}
+		prompt := &survey.Select{
+			Message: "Select version",
+			Options: availableUpgrades,
+		}
+		err = survey.AskOne(prompt, &version)
+		if err != nil {
+			return fmt.Errorf("Failed to get a valid version to upgrade to")
+		}
+		prompt = &survey.Select{
+			Message: "Schedule Upgrade",
+			Options: []string{"Upgrade now", "Schedule a different time"},
+		}
+		err = survey.AskOne(prompt, &upgradePreference)
+		if err != nil {
+			return fmt.Errorf("Failed to get an upgrade time preference")
+		}
+		if upgradePreference == "Upgrade now" {
+			timestamp = time.Now().UTC().Add(time.Minute * 10)
 
-	upgradeBuilder := cmv1.NewUpgradePolicy().
-		ScheduleType("manual").
-		NextRun(timestamp).
-		Version(version)
+		} else {
+
+			var validationQs = []*survey.Question{
+				{
+					Name:   "date",
+					Prompt: &survey.Input{Message: "Please input desired date in format yyyy-mm-dd"},
+					Validate: func(val interface{}) error {
+						str, _ := val.(string)
+						_, err := time.Parse("2006-01-02", str)
+						if err != nil {
+							return fmt.Errorf("date format invalid")
+						}
+						return nil
+					},
+				},
+				{
+					Name:   "desiredTime",
+					Prompt: &survey.Input{Message: "Please input desired UTC time in format HH:mm"},
+					Validate: func(val interface{}) error {
+						str, _ := val.(string)
+						_, err := time.Parse("15:04", str)
+						if err != nil {
+							return fmt.Errorf("time format invalid")
+						}
+						return nil
+					},
+				},
+			}
+			answers := struct {
+				Date        string
+				DesiredTime string
+			}{}
+			err = survey.Ask(validationQs, &answers)
+			if err != nil {
+				return err
+			}
+
+			desiredTime := fmt.Sprintf("%sT%s:00.000Z", answers.Date, answers.DesiredTime)
+			timestamp, _ = time.Parse(time.RFC3339, desiredTime)
+			fmt.Println(timestamp)
+		}
+
+		upgradeBuilder = cmv1.NewUpgradePolicy().
+			ScheduleType("manual").
+			NextRun(timestamp).
+			Version(version)
+	}
 
 	upgradePolicy, err := upgradeBuilder.Build()
 	if err != nil {
