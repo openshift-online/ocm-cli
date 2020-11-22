@@ -3,6 +3,17 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.45 Nov 22 2020
+
+- `instance-type` is a required parameter in create machine pool command.
+- Improve help and positional arg enforcement in most command.
+- Show version in describe cluster command.
+- Fix version check when creating a cluster.
+- Add upgrade policy commands.
+- Update ocm-sdk-go to 0.1.145
+- Add `dry-run` parameter to create cluster command.
+- Add list regions comamand.
+
 == 0.1.44 Oct 15 2020
 
 - Convert cluster versions to list versions
