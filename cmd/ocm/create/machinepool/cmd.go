@@ -31,16 +31,14 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "machinepool --cluster={NAME|ID|EXTERNAL_ID} --replicas=N [flags] MACHINE_POOL_ID",
+	Use:     "machinepool --cluster={NAME|ID|EXTERNAL_ID} --instance-type=TYPE --replicas=N [flags] MACHINE_POOL_ID",
 	Aliases: []string{"machinepools", "machine-pool", "machine-pools"},
 	Short:   "Add machine pool to cluster",
 	Long:    "Add a machine pool to the cluster.",
-	Example: `  # Add a machine pool to a cluster named "mycluster"
-  ocm create machinepool --cluster mycluster mp-1
-  # Add a machine pool mp-1 with 3 replicas and m5.xlarge instance type to a cluster
+	Example: `  # Add a machine pool mp-1 with 3 replicas and m5.xlarge instance type to a cluster
   ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 mp-1
   # Add a machine pool mp-1 with labels and m5.xlarge instance type to a cluster
-  ocm create machinepool --cluster mycluster --instance-type m5.xlarge  --labels "foo=bar,bar=baz" mp-1`,
+  ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 --labels "foo=bar,bar=baz" mp-1`,
 	RunE: run,
 }
 
