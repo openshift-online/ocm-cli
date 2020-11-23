@@ -48,7 +48,7 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 
-	flags.BoolVar(&args.short, "short",false, "to shorten the 'sshuttle' path")
+	flags.BoolVar(&args.short, "short", false, "to shorten the 'sshuttle' path")
 }
 
 func run(cmd *cobra.Command, argv []string) error {
