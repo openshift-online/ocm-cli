@@ -24,10 +24,15 @@ import (
 	"strings"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
+	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 )
+
+var args struct {
+	url string
+}
 
 var Cmd = &cobra.Command{
 	Use:   "tunnel [flags] {CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH} -- [sshuttle arguments]",
@@ -42,6 +47,13 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
+	flags := Cmd.Flags()
+	flags.StringVar(
+		&args.url,
+		"url",
+		"",
+		"URL of the API gateway.",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -65,14 +77,25 @@ func run(cmd *cobra.Command, argv []string) error {
 			clusterKey,
 		)
 	}
-
 	path, err := exec.LookPath("sshuttle")
 	if err != nil {
 		return fmt.Errorf("to run this, you need install the sshuttle tool first")
 	}
 
 	// Create the client for the OCM API:
-	connection, err := ocm.NewConnection().Build()
+	config, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load OCM config: %v", err)
+	}
+	if config == nil {
+		err = fmt.Errorf("not logged in, please run the 'login' command")
+		return err
+	}
+	if args.url != "" {
+		config.URL = args.url
+	}
+
+	connection, err := ocm.NewConnection().Config(config).Build()
 	if err != nil {
 		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
