@@ -26,13 +26,32 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/mattn/go-isatty"
+	isatty "github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
 
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/debug"
 )
+
+type FilePath string
+
+func (f *FilePath) String() string {
+	return string(*f)
+}
+
+func (f *FilePath) Set(v string) error {
+	_, err := os.Stat(v)
+	if err != nil {
+		return err
+	}
+	*f = FilePath(v)
+	return nil
+}
+
+func (f *FilePath) Type() string {
+	return "filepath"
+}
 
 // AddDebugFlag adds the '--debug' flag to the given set of command line flags.
 func AddDebugFlag(fs *pflag.FlagSet) {
