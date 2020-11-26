@@ -301,13 +301,13 @@ file with this content:
 And then use the `post` command:
 
 ....
-$ ocm post < mycluster.json
+$ ocm post /api/clusters_mgmt/v1/clusters < mycluster.json
 ....
 
 Or with the `--body` option:
 
 ....
-$ ocm post --body=mycluster.json
+$ ocm post /api/clusters_mgmt/v1/clusters --body=mycluster.json
 ....
 
 That will send the request to the server, which will initiate the process of
