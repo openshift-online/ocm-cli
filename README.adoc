@@ -55,8 +55,8 @@ supported or recommended.
 
 == Log In
 
-The first step to use the tool is to log-in with your
-OpenShift Cluster Manager offline access token which you can get below:
+The first step to use the tool is to log-in with your OpenShift Cluster Manager
+offline access token which you can get below:
 
 https://cloud.redhat.com/openshift/token[https://cloud.redhat.com/openshift/token]
 
@@ -67,11 +67,11 @@ $ ocm login --token=eyJ...
 ....
 
 This will use the provided token to request _OpenID_ access and refresh tokens
-to _sso.redhat.com_. The tokens will be saved to the `.ocm.json` file in
-your home directory, for future use.
+to _sso.redhat.com_. The tokens will be saved to the `.ocm.json` file in your
+home directory, for future use.
 
-The `login` command has options to log-in to other environments. For example, if
-you have a service running in your local environment and you want to use the
+The `login` command has options to log-in to other environments. For example,
+if you have a service running in your local environment and you want to use the
 tool to test it, you can log-in like this:
 
 ....
@@ -86,10 +86,12 @@ names, do not use it in production environments.
 
 == Multiple Concurrent Logins with OCM_CONFIG
 
-An `.ocm.json` file stores login credentials for a single API gateway.
-Using multiple gateways therefore requires having to log in and out a lot or the ability to utilize multiple config files.
-The latter functionality is provided with the `OCM_CONFIG` environment variable.
-If running `ocm login` was successfull in both cases, the `ocm whoami` commands will return different results:
+An `.ocm.json` file stores login credentials for a single API gateway. Using
+multiple gateways therefore requires having to log in and out a lot or the
+ability to utilize multiple config files. The latter functionality is provided
+with the `OCM_CONFIG` environment variable. If running `ocm login` was
+successfull in both cases, the `ocm whoami` commands will return different
+results:
 
 ....
 $ OCM_CONFIG=$HOME/.ocm.json.prod ocm login --url=production --token=...
@@ -139,10 +141,10 @@ to diagnose authentication issues.
 If you've compromised your offline token, you can get it revoked like this:
 
 1. Make sure you're logged into OCM with your browser.
-2. Go [here](https://sso.redhat.com/auth/realms/redhat-external/account/applications)
+2. Go https://sso.redhat.com/auth/realms/redhat-external/account/applications[here].
 3. Click REVOKE GRANT for the application _cloud-services_.
 
-If you now follow the [log in procedure](#log-in), new tokens will be generated.
+If you now follow the <<_log_in, log in procedure>> new tokens will be generated.
 
 == Log Out
 
@@ -324,8 +326,8 @@ ready. To do so first get the `id` returned by the `post` command:
 $ ocm post /api/clusters_mgmt/v1/clusters --body=mycluster.json | jq -r .id
 ....
 
-The use that identifier to check the value of the `state` attribute, till it is
-`ready`:
+Then use that identifier to check the value of the `state` attribute, till it
+is `ready`:
 
 ....
 $ ocm get /api/clusters_mgmt/v1/clusters/123 | jq -r .state
@@ -453,5 +455,8 @@ the event sent by the _GitHub_ webhook.
 
 == Extend ocm with plugins
 
-Just like how https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/[kubectl plugins] works, you can write your own ocm plugins and put the binary under the $PATH directory,
-the plugin name should be named with prefix `ocm-`, like `ocm-foo`.
+Just like how
+https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/[kubectl
+plugins] works, you can write your own ocm plugins and put the binary under the
+$PATH directory, the plugin name should be named with prefix `ocm-`, like
+`ocm-foo`.
