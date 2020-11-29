@@ -28,6 +28,7 @@ var args struct {
 	instanceType string
 	replicas     int
 	labels       string
+	taints       string
 }
 
 var Cmd = &cobra.Command{
@@ -38,7 +39,9 @@ var Cmd = &cobra.Command{
 	Example: `  # Add a machine pool mp-1 with 3 replicas and m5.xlarge instance type to a cluster
   ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 mp-1
   # Add a machine pool mp-1 with labels and m5.xlarge instance type to a cluster
-  ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 --labels "foo=bar,bar=baz" mp-1`,
+  ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 --labels "foo=bar,bar=baz" mp-1
+  # Add a machine pool mp-1 with taints and m5.xlarge instance type to a cluster
+  ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 --taints "foo=bar:NoSchedule" mp-1`,
 	RunE: run,
 }
 
@@ -82,6 +85,14 @@ func init() {
 		"Labels for machine pool. Format should be a comma-separated list of 'key=value'. "+
 			"This list will overwrite any modifications made to Node labels on an ongoing basis.",
 	)
+
+	flags.StringVar(
+		&args.taints,
+		"taints",
+		"",
+		"Taints for machine pool. Format should be a comma-separated list of 'key=value:scheduleType'. "+
+			"This list will overwrite any modifications made to Node taints on an ongoing basis.",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -110,6 +121,18 @@ func run(cmd *cobra.Command, argv []string) error {
 			}
 			tokens := strings.Split(label, "=")
 			labels[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+		}
+	}
+
+	taintBuilders := []*cmv1.TaintBuilder{}
+
+	if args.taints != "" {
+		for _, taint := range strings.Split(args.taints, ",") {
+			if !strings.Contains(taint, "=") || !strings.Contains(taint, ":") {
+				return fmt.Errorf("Expected key=value:scheduleType format for taints")
+			}
+			tokens := strings.FieldsFunc(taint, Split)
+			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(tokens[0]).Value(tokens[1]).Effect(tokens[2]))
 		}
 	}
 
@@ -144,6 +167,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		InstanceType(args.instanceType).
 		Replicas(args.replicas).
 		Labels(labels).
+		Taints(taintBuilders...).
 		Build()
 
 	if err != nil {
@@ -159,4 +183,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to add machine pool to cluster '%s': %v", clusterKey, err)
 	}
 	return nil
+}
+
+func Split(r rune) bool {
+	return r == '=' || r == ':'
 }
