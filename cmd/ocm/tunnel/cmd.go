@@ -17,9 +17,12 @@ limitations under the License.
 package tunnel
 
 import (
+	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
+	"os/user"
 	"regexp"
 	"strings"
 
@@ -69,6 +72,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	path, err := exec.LookPath("sshuttle")
 	if err != nil {
 		return fmt.Errorf("to run this, you need install the sshuttle tool first")
+	}
+
+	err = validateSSHConfig()
+	if err != nil {
+		return err
 	}
 
 	// Create the client for the OCM API:
@@ -128,4 +136,60 @@ func generateSSHURI(cluster *clustersmgmtv1.Cluster) (string, error) {
 	}
 
 	return "sre-user@rh-ssh." + base, nil
+}
+
+func validateSSHConfig() error {
+
+	user, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("unable to get users home directory\n")
+	}
+
+	sshConfigFilePath := fmt.Sprintf("%s/.ssh/config", user.HomeDir)
+
+	sshConfigFile, err := os.Open(sshConfigFilePath)
+	if err != nil {
+		return fmt.Errorf("unable to read SSH config file: %s\n", sshConfigFilePath)
+	}
+
+	defer func() {
+		if err = sshConfigFile.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	foundSSHConfig, err := parseSSHConfig(sshConfigFile)
+	if err != nil {
+		return fmt.Errorf("unable to parse SSH config file: %s", err)
+	}
+
+	if !foundSSHConfig {
+		return fmt.Errorf("ProxyJump configuration not found for \"*.devshift.org\" and \"*.openshiftapps.com\"")
+	}
+
+	return nil
+}
+
+func parseSSHConfig(configFile *os.File) (bool, error) {
+	var found bool
+
+	s := bufio.NewScanner(configFile)
+
+	// Find line containing devshift.org and openshiftapps.com in any order
+	// assume this is the ProxyJump configuration
+	re := regexp.MustCompile(`^Host\ (\*\.devshift\.org\ \*\.openshiftapps\.com|\*\.openshiftapps\.com\ \*\.devshift\.org)`)
+
+	for s.Scan() {
+		found = re.MatchString(s.Text())
+		if found {
+			break
+		}
+	}
+
+	err := s.Err()
+	if err != nil {
+		return false, err
+	}
+
+	return found, nil
 }
