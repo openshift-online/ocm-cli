@@ -60,11 +60,25 @@ type Spec struct {
 type CCS struct {
 	Enabled bool
 	AWS     AWSCredentials
+	GCP     GCPCredentials
 }
 type AWSCredentials struct {
 	AccountID       string
 	AccessKeyID     string
 	SecretAccessKey string
+}
+
+type GCPCredentials struct {
+	Type                    string `json:"type"`
+	ProjectID               string `json:"project_id"`
+	PrivateKeyID            string `json:"private_key_id"`
+	PrivateKey              string `json:"private_key"`
+	ClientEmail             string `json:"client_email"`
+	ClientID                string `json:"client_id"`
+	AuthURI                 string `json:"auth_uri"`
+	TokenURI                string `json:"token_uri"`
+	AuthProviderX509CertURL string `json:"auth_provider_x509_cert_url"`
+	ClientX509CertURL       string `json:"client_x509_cert_url"`
 }
 
 type AddOnItem struct {
@@ -195,12 +209,30 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	if config.CCS.Enabled {
 		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
-		clusterBuilder = clusterBuilder.AWS(
-			cmv1.NewAWS().
-				AccountID(config.CCS.AWS.AccountID).
-				AccessKeyID(config.CCS.AWS.AccessKeyID).
-				SecretAccessKey(config.CCS.AWS.SecretAccessKey),
-		)
+		if config.Provider == "AWS" {
+			clusterBuilder = clusterBuilder.AWS(
+				cmv1.NewAWS().
+					AccountID(config.CCS.AWS.AccountID).
+					AccessKeyID(config.CCS.AWS.AccessKeyID).
+					SecretAccessKey(config.CCS.AWS.SecretAccessKey),
+			)
+		} else {
+			clusterBuilder =
+				clusterBuilder.GCP(
+					cmv1.NewGCP().
+						Type(config.CCS.GCP.Type).
+						ProjectID(config.CCS.GCP.ProjectID).
+						PrivateKeyID(config.CCS.GCP.PrivateKeyID).
+						PrivateKey(config.CCS.GCP.PrivateKey).
+						ClientEmail(config.CCS.GCP.ClientEmail).
+						ClientID(config.CCS.GCP.ClientID).
+						AuthURI(config.CCS.GCP.AuthURI).
+						TokenURI(config.CCS.GCP.TokenURI).
+						AuthProviderX509CertURL(config.CCS.GCP.AuthProviderX509CertURL).
+						ClientX509CertURL(config.CCS.GCP.ClientX509CertURL),
+				)
+
+		}
 	}
 
 	clusterSpec, err := clusterBuilder.Build()

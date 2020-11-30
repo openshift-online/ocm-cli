@@ -17,8 +17,11 @@ limitations under the License.
 package cluster
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"time"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -26,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
+	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
@@ -42,6 +46,7 @@ var args struct {
 	private           bool
 	multiAZ           bool
 	ccs               c.CCS
+	gcpServiceAccount arguments.FilePath
 
 	// Scaling options
 	computeMachineType string
@@ -75,6 +80,12 @@ func init() {
 
 	arguments.AddProviderFlag(fs, &args.provider)
 	arguments.AddCCSFlags(fs, &args.ccs)
+
+	fs.Var(
+		&args.gcpServiceAccount,
+		"service-account-file",
+		"GCP service account JSON file.",
+	)
 	fs.StringVar(
 		&args.region,
 		"region",
@@ -249,6 +260,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		computeNodes = 9
 	}
 
+	if args.gcpServiceAccount != "" {
+		err = constructGCPCredentials(args.gcpServiceAccount, &args.ccs)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = arguments.CheckIgnoredCCSFlags(args.ccs)
 	if err != nil {
 		return err
@@ -312,4 +330,20 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 		page++
 	}
 	return
+}
+
+func constructGCPCredentials(filePath arguments.FilePath, value *cluster.CCS) error {
+	// Open our jsonFile
+	jsonFile, err := os.Open(filePath.String())
+	if err != nil {
+		return err
+	}
+	defer jsonFile.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	err = json.Unmarshal(byteValue, &value.GCP)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
