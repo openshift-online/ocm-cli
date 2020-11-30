@@ -260,7 +260,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		computeNodes = 9
 	}
 
-	if args.gcpServiceAccount != "" {
+	if args.provider == "gcp" && args.gcpServiceAccount != "" {
 		err = constructGCPCredentials(args.gcpServiceAccount, &args.ccs)
 		if err != nil {
 			return err
@@ -333,16 +333,19 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 }
 
 func constructGCPCredentials(filePath arguments.FilePath, value *cluster.CCS) error {
-	// Open our jsonFile
-	jsonFile, err := os.Open(filePath.String())
-	if err != nil {
-		return err
-	}
-	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	err = json.Unmarshal(byteValue, &value.GCP)
-	if err != nil {
-		return err
+	if value.Enabled {
+		// Open our jsonFile
+		jsonFile, err := os.Open(filePath.String())
+		if err != nil {
+			return err
+		}
+		defer jsonFile.Close()
+		byteValue, _ := ioutil.ReadAll(jsonFile)
+		err = json.Unmarshal(byteValue, &value.GCP)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 	return nil
 
