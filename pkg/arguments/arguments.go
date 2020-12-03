@@ -29,7 +29,6 @@ import (
 	isatty "github.com/mattn/go-isatty"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/debug"
@@ -103,20 +102,23 @@ func AddCCSFlagsWithoutAccountID(fs *pflag.FlagSet, value *cluster.CCS) {
 		&value.Enabled,
 		"ccs",
 		false,
-		"Leverage your own cloud account (Customer Cloud Subscription).",
+		"Leverage your own cloud account (Customer Cloud Subscription). See https://www.openshift.com/dedicated/ccs.",
 	)
+	SetQuestion(fs, "ccs", "CCS:")
 	fs.StringVar(
 		&value.AWS.AccessKeyID,
 		"aws-access-key-id",
 		"",
 		"AWS access key ID.",
 	)
+	SetQuestion(fs, "aws-access-key-id", "AWS access key ID:")
 	fs.StringVar(
 		&value.AWS.SecretAccessKey,
 		"aws-secret-access-key",
 		"",
 		"AWS secret access key.",
 	)
+	SetQuestion(fs, "aws-secret-access-key", "AWS secret access key:")
 }
 
 // AddCCSFlags adds all the flags needed for creating a cluster.
@@ -128,6 +130,7 @@ func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
 		"",
 		"AWS account ID.",
 	)
+	SetQuestion(fs, "aws-account-id", "AWS account ID:")
 }
 
 // CheckIgnoredCCSFlags errors if --aws-... were used without --ccs.
@@ -160,6 +163,7 @@ func AddProviderFlag(fs *pflag.FlagSet, value *string) {
 		"aws",
 		"The cloud provider to create the cluster on",
 	)
+	SetQuestion(fs, "provider", "Cloud provider:")
 }
 
 // ApplyParameterFlag applies the value of the '--parameter' command line flag to the given
@@ -233,29 +237,6 @@ func ApplyPathArg(request *sdk.Request, value string) error {
 		for _, value := range values {
 			request.Parameter(name, value)
 		}
-	}
-	return nil
-}
-
-// CheckOneOf returns error if flag has been set and is not one of given options.
-// It's appropriate for both optional flags (no error not given)
-// and required flags (Cobra validated they're given before command .Run).
-func CheckOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
-	if fs.Changed(flagName) {
-		return requireOneOf(fs, flagName, options)
-	}
-	return nil
-}
-
-// requireOneOf returns error if flag is not one of given options.
-func requireOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
-	flag := fs.Lookup(flagName)
-	if flag == nil {
-		return fmt.Errorf("no such flag %q", flagName)
-	}
-
-	if !sets.NewString(options...).Has(flag.Value.String()) {
-		return fmt.Errorf("A valid --%s must be specified.\nValid options: %+v", flagName, options)
 	}
 	return nil
 }
