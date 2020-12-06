@@ -32,6 +32,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/provider"
 )
 
 var args struct {
@@ -111,7 +112,7 @@ func init() {
 		"Specified time when cluster should expire (RFC3339). Only one of expiration-time / expiration may be used.",
 	)
 	//nolint:gosec
-	Cmd.Flags().MarkHidden("expiration-time")
+	fs.MarkHidden("expiration-time")
 	fs.DurationVar(
 		&args.expirationSeconds,
 		"expiration",
@@ -119,7 +120,7 @@ func init() {
 		"Expire cluster after a relative duration like 2h, 8h, 72h. Only one of expiration-time / expiration may be used.",
 	)
 	//nolint:gosec
-	Cmd.Flags().MarkHidden("expiration")
+	fs.MarkHidden("expiration")
 	fs.BoolVar(
 		&args.private,
 		"private",
@@ -197,6 +198,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterName := argv[0]
 
 	// Validate flags:
+	fs := cmd.Flags()
+
 	expiration, err := c.ValidateClusterExpiration(args.expirationTime, args.expirationSeconds)
 	if err != nil {
 		return fmt.Errorf(fmt.Sprintf("%s", err))
@@ -246,17 +249,19 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Compute node instance type:
-	computeMachineType := args.computeMachineType
-
-	computeMachineType, err = c.ValidateMachineType(cmv1Client, args.provider, computeMachineType)
+	machineTypeList, err := provider.GetMachineTypeIDs(cmv1Client, args.provider)
 	if err != nil {
-		return fmt.Errorf("Expected a valid machine type: %s", err)
+		return err
+	}
+	err = arguments.CheckOneOf(fs, "compute-machine-type", machineTypeList)
+	if err != nil {
+		return err
 	}
 
 	// Compute nodes:
 	computeNodes := args.computeNodes
 	// Compute node requirements for multi-AZ clusters are higher
-	if args.multiAZ && !cmd.Flags().Changed("compute-nodes") {
+	if args.multiAZ && !fs.Changed("compute-nodes") {
 		computeNodes = 9
 	}
 
@@ -281,7 +286,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		MultiAZ:            args.multiAZ,
 		Version:            clusterVersion,
 		Expiration:         expiration,
-		ComputeMachineType: computeMachineType,
+		ComputeMachineType: args.computeMachineType,
 		ComputeNodes:       computeNodes,
 		MachineCIDR:        args.machineCIDR,
 		ServiceCIDR:        args.serviceCIDR,
