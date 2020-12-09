@@ -63,12 +63,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		)
 	}
 
-	path, err := exec.LookPath("sshuttle")
+	_, err := exec.LookPath("sshuttle")
 	if err != nil {
 		return fmt.Errorf("to run this, you need install the sshuttle tool first")
 	}
-	// override path
-	path = "sshuttle"
+	path := "sshuttle"
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
