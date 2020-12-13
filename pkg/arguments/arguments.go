@@ -259,3 +259,7 @@ func requireOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
 	}
 	return nil
 }
+
+func Split(r rune) bool {
+	return r == '=' || r == ':'
+}
