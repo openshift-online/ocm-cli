@@ -133,7 +133,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			if !strings.Contains(taint, "=") || !strings.Contains(taint, ":") {
 				return fmt.Errorf("Expected key=value:scheduleType format for taints")
 			}
-			tokens := strings.FieldsFunc(taint, Split)
+			tokens := strings.FieldsFunc(taint, arguments.Split)
 			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(tokens[0]).Value(tokens[1]).Effect(tokens[2]))
 		}
 	}
@@ -187,8 +187,4 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to add machine pool to cluster '%s': %v", clusterKey, err)
 	}
 	return nil
-}
-
-func Split(r rune) bool {
-	return r == '=' || r == ':'
 }

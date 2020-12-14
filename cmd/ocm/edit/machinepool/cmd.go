@@ -15,7 +15,9 @@ package machinepool
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -25,6 +27,8 @@ import (
 var args struct {
 	clusterKey string
 	replicas   int
+	labels     string
+	taints     string
 }
 
 var Cmd = &cobra.Command{
@@ -55,6 +59,22 @@ func init() {
 		"replicas",
 		-1,
 		"Restrict application route to direct, private connectivity.",
+	)
+
+	flags.StringVar(
+		&args.labels,
+		"labels",
+		"",
+		"Labels for machine pool. Format should be a comma-separated list of 'key=value'. "+
+			"This list will overwrite any modifications made to Node labels on an ongoing basis.",
+	)
+
+	flags.StringVar(
+		&args.taints,
+		"taints",
+		"",
+		"Taints for machine pool. Format should be a comma-separated list of 'key=value:scheduleType'. "+
+			"This list will overwrite any modifications made to Node taints on an ongoing basis.",
 	)
 }
 
@@ -92,9 +112,45 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
 	}
-	machinePool, err := cmv1.NewMachinePool().ID(machinePoolID).
-		Replicas(args.replicas).
-		Build()
+
+	labels := make(map[string]string)
+	if args.labels != "" {
+		for _, label := range strings.Split(args.labels, ",") {
+			if !strings.Contains(label, "=") {
+				return fmt.Errorf("Expected key=value format for label-match")
+			}
+			tokens := strings.Split(label, "=")
+			labels[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+		}
+	}
+
+	taintBuilders := []*cmv1.TaintBuilder{}
+
+	if args.taints != "" {
+		for _, taint := range strings.Split(args.taints, ",") {
+			if !strings.Contains(taint, "=") || !strings.Contains(taint, ":") {
+				return fmt.Errorf("Expected key=value:scheduleType format for taints")
+			}
+			tokens := strings.FieldsFunc(taint, arguments.Split)
+			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(tokens[0]).Value(tokens[1]).Effect(tokens[2]))
+		}
+	}
+
+	machinePoolBuilder := cmv1.NewMachinePool().ID(machinePoolID)
+
+	if cmd.Flags().Changed("labels") {
+		machinePoolBuilder = machinePoolBuilder.Labels(labels)
+	}
+
+	if cmd.Flags().Changed("taints") {
+		machinePoolBuilder = machinePoolBuilder.Taints(taintBuilders...)
+	}
+
+	if cmd.Flags().Changed("replicas") {
+		machinePoolBuilder = machinePoolBuilder.Replicas(args.replicas)
+	}
+
+	machinePool, err := machinePoolBuilder.Build()
 
 	if err != nil {
 		return fmt.Errorf("Failed to create machine pool body for cluster '%s': %v", clusterKey, err)
