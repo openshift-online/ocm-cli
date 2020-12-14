@@ -42,9 +42,10 @@ var Cmd = &cobra.Command{
 
 func init() {
 	fs := Cmd.Flags()
+
 	arguments.AddProviderFlag(fs, &args.provider)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("provider")
+	arguments.Must(Cmd.MarkFlagRequired("provider"))
+
 	arguments.AddCCSFlagsWithoutAccountID(fs, &args.ccs)
 }
 

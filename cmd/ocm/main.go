@@ -57,11 +57,7 @@ var root = &cobra.Command{
 
 func init() {
 	// Send logs to the standard error stream by default:
-	err := flag.Set("logtostderr", "true")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't set default error stream: %v\n", err)
-		os.Exit(1)
-	}
+	arguments.Must(flag.Set("logtostderr", "true"))
 
 	// Register the options that are managed by the 'flag' package, so that they will also be parsed
 	// by the 'pflag' package:

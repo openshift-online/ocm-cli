@@ -35,6 +35,13 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/debug"
 )
 
+// Must panics if err != nil. Useful for lookups of flags by name, e.g. MarkHidden()...
+func Must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 type FilePath string
 
 func (f *FilePath) String() string {

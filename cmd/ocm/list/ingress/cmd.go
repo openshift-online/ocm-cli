@@ -22,6 +22,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -54,8 +55,7 @@ func init() {
 		"",
 		"Name or ID or external_id of the cluster to list the routes of (required).",
 	)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("cluster")
+	arguments.Must(Cmd.MarkFlagRequired("cluster"))
 }
 
 func run(cmd *cobra.Command, argv []string) error {

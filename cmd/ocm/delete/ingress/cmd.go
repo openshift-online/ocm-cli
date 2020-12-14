@@ -20,6 +20,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
@@ -51,8 +52,7 @@ func init() {
 		"",
 		"Name or ID or external_id of the cluster to delete the ingress from (required).",
 	)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("cluster")
+	arguments.Must(Cmd.MarkFlagRequired("cluster"))
 }
 
 func run(cmd *cobra.Command, argv []string) error {

@@ -19,6 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
@@ -57,8 +58,7 @@ func init() {
 		"",
 		"Name or ID or external_id of the cluster.",
 	)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("cluster")
+	arguments.Must(Cmd.MarkFlagRequired("cluster"))
 
 	// Basic options
 	flags.StringVar(
@@ -74,10 +74,8 @@ func init() {
 		"Expire cluster after a relative duration like 2h, 8h, 72h. Only one of expiration-time / expiration may be used.",
 	)
 	// Cluster expiration is not supported in production
-	//nolint:gosec
-	flags.MarkHidden("expiration-time")
-	//nolint:gosec
-	flags.MarkHidden("expiration")
+	arguments.Must(flags.MarkHidden("expiration-time"))
+	arguments.Must(flags.MarkHidden("expiration"))
 
 	// Scaling options
 	flags.IntVar(

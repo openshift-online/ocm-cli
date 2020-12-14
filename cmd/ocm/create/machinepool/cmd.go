@@ -57,8 +57,7 @@ func init() {
 		"",
 		"Name or ID or external_id of the cluster to add the machine pool to (required).",
 	)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("cluster")
+	arguments.Must(Cmd.MarkFlagRequired("cluster"))
 
 	flags.StringVar(
 		&args.instanceType,
@@ -66,9 +65,7 @@ func init() {
 		"",
 		"Instance type that should be used.",
 	)
-
-	//nolint:gosec
-	Cmd.MarkFlagRequired("instance-type")
+	arguments.Must(Cmd.MarkFlagRequired("instance-type"))
 
 	flags.IntVar(
 		&args.replicas,
@@ -76,9 +73,7 @@ func init() {
 		0,
 		"Count of machines for this machine pool.",
 	)
-
-	//nolint:gosec
-	Cmd.MarkFlagRequired("replicas")
+	arguments.Must(Cmd.MarkFlagRequired("replicas"))
 
 	flags.StringVar(
 		&args.labels,

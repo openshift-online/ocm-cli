@@ -18,6 +18,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
@@ -47,8 +48,7 @@ func init() {
 		"",
 		"Name or ID or external_id of the cluster to delete the user from (required).",
 	)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("cluster")
+	arguments.Must(Cmd.MarkFlagRequired("cluster"))
 
 	flags.StringVar(
 		&args.group,
@@ -56,8 +56,7 @@ func init() {
 		"",
 		"Group name to delete the user from.",
 	)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("group")
+	arguments.Must(Cmd.MarkFlagRequired("group"))
 }
 
 func run(cmd *cobra.Command, argv []string) error {

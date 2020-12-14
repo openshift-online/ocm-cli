@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -54,8 +55,7 @@ func init() {
 		"",
 		"Name or ID or external_id of the cluster to add the ingress to (required).",
 	)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("cluster")
+	arguments.Must(Cmd.MarkFlagRequired("cluster"))
 
 	flags.BoolVar(
 		&args.private,
