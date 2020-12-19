@@ -26,7 +26,7 @@ import (
 	"reflect"
 	"strings"
 
-	isatty "github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty"
+	isatty "github.com/mattn/go-isatty"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
