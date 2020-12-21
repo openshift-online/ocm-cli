@@ -214,14 +214,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	if config.CCS.Enabled {
 		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
-		if config.Provider == ProviderAWS {
+		switch config.Provider {
+		case ProviderAWS:
 			clusterBuilder = clusterBuilder.AWS(
 				cmv1.NewAWS().
 					AccountID(config.CCS.AWS.AccountID).
 					AccessKeyID(config.CCS.AWS.AccessKeyID).
 					SecretAccessKey(config.CCS.AWS.SecretAccessKey),
 			)
-		} else {
+		case ProviderGCP:
 			clusterBuilder =
 				clusterBuilder.GCP(
 					cmv1.NewGCP().
@@ -236,7 +237,8 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 						AuthProviderX509CertURL(config.CCS.GCP.AuthProviderX509CertURL).
 						ClientX509CertURL(config.CCS.GCP.ClientX509CertURL),
 				)
-
+		default:
+			return nil, fmt.Errorf("Unexpected CCS provider %q", config.Provider)
 		}
 	}
 
