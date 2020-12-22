@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
-	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/provider"
@@ -337,7 +336,7 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 	return
 }
 
-func constructGCPCredentials(filePath arguments.FilePath, value *cluster.CCS) error {
+func constructGCPCredentials(filePath arguments.FilePath, value *c.CCS) error {
 	// Open our jsonFile
 	jsonFile, err := os.Open(filePath.String())
 	if err != nil {
