@@ -177,7 +177,7 @@ func init() {
 
 func run(cmd *cobra.Command, argv []string) error {
 	var err error
-	if args.region == "us-east-1" && args.provider != "aws" {
+	if args.region == "us-east-1" && args.provider != c.ProviderAWS {
 		return fmt.Errorf("if specifying a non-aws cloud provider, region must be set to a valid region")
 	}
 
@@ -244,7 +244,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		clusterFlavour = args.flavour
 	}
 
-	if args.private && args.provider != "aws" {
+	if args.private && args.provider != c.ProviderAWS {
 		return fmt.Errorf("Setting cluster as private is not supported for cloud provider '%s'", args.provider)
 	}
 
