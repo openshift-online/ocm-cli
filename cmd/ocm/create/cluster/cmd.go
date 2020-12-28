@@ -24,8 +24,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
@@ -35,18 +37,23 @@ import (
 )
 
 var args struct {
-	dryRun bool
+	// positional args
+	clusterName string
 
-	region            string
-	version           string
-	flavour           string
-	provider          string
-	expirationTime    string
-	expirationSeconds time.Duration
-	private           bool
-	multiAZ           bool
-	ccs               c.CCS
-	gcpServiceAccount arguments.FilePath
+	// flags
+	interactive bool
+	dryRun      bool
+
+	region                string
+	version               string
+	flavour               string
+	provider              string
+	expirationTime        string
+	expirationSeconds     time.Duration
+	private               bool
+	multiAZ               bool
+	ccs                   c.CCS
+	gcpServiceAccountFile arguments.FilePath
 
 	// Scaling options
 	computeMachineType string
@@ -59,18 +66,21 @@ var args struct {
 	podCIDR     net.IPNet
 }
 
+const clusterNameHelp = "will be used when generating a sub-domain for your cluster on openshiftapps.com."
+
 // Cmd Constant:
 var Cmd = &cobra.Command{
 	Use:   "cluster [flags] NAME",
 	Short: "Create managed clusters",
-	Long: "Create managed OpenShift Dedicated v4 clusters via OCM.\n" +
-		"\n" +
-		"The specified name is used as a DNS component, as well as initial display_name.",
+	Long: fmt.Sprintf("Create managed OpenShift Dedicated v4 clusters via OCM.\n"+
+		"\n"+
+		"NAME %s", clusterNameHelp),
 	RunE: run,
 }
 
 func init() {
 	fs := Cmd.Flags()
+	arguments.AddInteractiveFlag(fs, &args.interactive)
 	fs.BoolVar(
 		&args.dryRun,
 		"dry-run",
@@ -82,9 +92,9 @@ func init() {
 	arguments.AddCCSFlags(fs, &args.ccs)
 
 	fs.Var(
-		&args.gcpServiceAccount,
+		&args.gcpServiceAccountFile,
 		"service-account-file",
-		"GCP service account JSON file.",
+		"GCP service account JSON file path.",
 	)
 	fs.StringVar(
 		&args.region,
@@ -98,6 +108,7 @@ func init() {
 		"",
 		"The OpenShift version to create the cluster at (for example, \"4.1.16\")",
 	)
+	arguments.SetQuestion(fs, "version", "OpenShift version:")
 	fs.StringVar(
 		&args.flavour,
 		"flavour",
@@ -132,6 +143,7 @@ func init() {
 		false,
 		"Deploy to multiple data centers.",
 	)
+	arguments.SetQuestion(fs, "multi-az", "Multiple AZ:")
 	// Scaling options
 	fs.StringVar(
 		&args.computeMachineType,
@@ -142,9 +154,16 @@ func init() {
 	fs.IntVar(
 		&args.computeNodes,
 		"compute-nodes",
-		4,
-		"Number of worker nodes to provision per zone. Single zone clusters need at least 4 nodes, "+
-			"multizone clusters need at least 9 nodes.",
+		0,
+		fmt.Sprintf("Number of worker nodes to provision. "+
+			"Single zone clusters need at least %d nodes on Red Hat infra, "+
+			"%d on CCS. "+
+			"Multi-AZ at least %d nodes on Red Hat infra, "+
+			"%d on CCS, and must be a multiple of 3. "+
+			"If omitted, uses minimum.",
+			minComputeNodes(false, false), minComputeNodes(true, false),
+			minComputeNodes(false, true), minComputeNodes(true, true),
+		),
 	)
 
 	fs.IPNetVar(
@@ -153,18 +172,21 @@ func init() {
 		net.IPNet{},
 		"Block of IP addresses used by OpenShift while installing the cluster, for example \"10.0.0.0/16\".",
 	)
+	arguments.SetQuestion(fs, "machine-cidr", "Machine CIDR:")
 	fs.IPNetVar(
 		&args.serviceCIDR,
 		"service-cidr",
 		net.IPNet{},
 		"Block of IP addresses for services, for example \"172.30.0.0/16\".",
 	)
+	arguments.SetQuestion(fs, "service-cidr", "Service CIDR:")
 	fs.IPNetVar(
 		&args.podCIDR,
 		"pod-cidr",
 		net.IPNet{},
 		"Block of IP addresses from which Pod IP addresses are allocated, for example \"10.128.0.0/14\".",
 	)
+	arguments.SetQuestion(fs, "pod-cidr", "Pod CIDR:")
 	fs.IntVar(
 		&args.hostPrefix,
 		"host-prefix",
@@ -174,12 +196,29 @@ func init() {
 	)
 }
 
+func osdProviders() []string {
+	return []string{c.ProviderAWS, c.ProviderGCP}
+}
+
+func minComputeNodes(ccs bool, multiAZ bool) (min int) {
+	if ccs {
+		if multiAZ {
+			min = 3
+		} else {
+			min = 2
+		}
+	} else {
+		if multiAZ {
+			min = 9
+		} else {
+			min = 4
+		}
+	}
+	return
+}
+
 func run(cmd *cobra.Command, argv []string) error {
 	var err error
-	if args.region == "us-east-1" && args.provider != c.ProviderAWS {
-		return fmt.Errorf("if specifying a non-aws cloud provider, region must be set to a valid region")
-	}
-
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
@@ -187,17 +226,50 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	defer connection.Close()
 
+	err = promptName(argv)
+	if err != nil {
+		return err
+	}
+
 	// Get the client for the cluster management api
 	cmv1Client := connection.ClustersMgmt().V1()
 
-	// Check and set the cluster name
-	if len(argv) != 1 || argv[0] == "" {
-		return fmt.Errorf("A cluster name must be specified")
-	}
-	clusterName := argv[0]
-
-	// Validate flags:
+	// Validate flags / ask for missing data.
 	fs := cmd.Flags()
+
+	// Only offer the 2 providers known to support OSD now;
+	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
+	err = arguments.PromptOneOf(fs, "provider", osdProviders())
+	if err != nil {
+		return err
+	}
+
+	err = promptCCS(fs)
+	if err != nil {
+		return err
+	}
+
+	regionSet := sets.NewString()
+	regions, err := provider.GetRegions(connection.ClustersMgmt().V1(), args.provider, args.ccs)
+	if err != nil {
+		return err
+	}
+	for _, region := range regions {
+		// `enabled` flag only affects Red Hat infra. All regions enabled on CCS.
+		if args.ccs.Enabled || region.Enabled() {
+			regionSet.Insert(region.ID())
+		}
+	}
+	err = arguments.PromptOrCheckOneOf(fs, "region", regionSet.List())
+	if err != nil {
+		return err
+	}
+
+	// TODO: with --interactive GCP if you simply press Enter without pressing Down/Up,
+	// the value stays "us-east-1" and errors out.
+	if args.region == "us-east-1" && args.provider != c.ProviderAWS {
+		return fmt.Errorf("if specifying a non-aws cloud provider, region must be set to a valid region")
+	}
 
 	expiration, err := c.ValidateClusterExpiration(args.expirationTime, args.expirationSeconds)
 	if err != nil {
@@ -205,42 +277,29 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Check and set the cluster version
-	var clusterVersion string
-	if args.version != "" {
-		versionList, defaultVersion, err := c.GetEnabledVersions(cmv1Client)
-		if err != nil {
-			return fmt.Errorf("unable to retrieve versions: %s", err)
-		}
-
-		clusterVersion = c.DropOpenshiftVPrefix(args.version)
-		if !sets.NewString(versionList...).Has(clusterVersion) {
-			return fmt.Errorf(
-				"A valid version number must be specified\n"+
-					"Valid versions: %+v\n"+
-					"Current default version is %v",
-				versionList, defaultVersion)
-		}
-		clusterVersion = c.EnsureOpenshiftVPrefix(clusterVersion)
-	}
-
-	// Retrieve valid/default flavours
-	flavourList := sets.NewString()
-	flavours, err := fetchFlavours(cmv1Client)
+	versionList, defaultVersion, err := c.GetEnabledVersions(cmv1Client)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve flavours: %s", err)
-	}
-	for _, flavour := range flavours {
-		flavourList.Insert(flavour.ID())
+		return fmt.Errorf("unable to retrieve versions: %s", err)
 	}
 
-	// Check and set the cluster flavour
-	var clusterFlavour string
-	if args.flavour != "" {
+	if args.version == "" {
+		args.version = defaultVersion
+	}
+	args.version = c.DropOpenshiftVPrefix(args.version)
+	err = arguments.PromptOrCheckOneOf(fs, "version", versionList)
+	if err != nil {
+		return err
+	}
+	clusterVersion := c.EnsureOpenshiftVPrefix(args.version)
 
-		if !flavourList.Has(args.flavour) {
-			return fmt.Errorf("A valid flavour number must be specified\nValid flavours: %+v", flavourList.List())
-		}
-		clusterFlavour = args.flavour
+	// Retrieve valid flavours
+	flavourList, err := getFlavourIDs(cmv1Client)
+	if err != nil {
+		return err
+	}
+	err = arguments.CheckOneOf(fs, "flavour", flavourList)
+	if err != nil {
+		return err
 	}
 
 	if args.private && args.provider != c.ProviderAWS {
@@ -252,41 +311,41 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return err
 	}
-	err = arguments.CheckOneOf(fs, "compute-machine-type", machineTypeList)
+	err = arguments.PromptOrCheckOneOf(fs, "compute-machine-type", machineTypeList)
 	if err != nil {
 		return err
 	}
 
-	// Compute nodes:
-	computeNodes := args.computeNodes
-	// Compute node requirements for multi-AZ clusters are higher
-	if args.multiAZ && !fs.Changed("compute-nodes") {
-		computeNodes = 9
+	err = arguments.PromptBool(fs, "multi-az")
+	if err != nil {
+		return err
 	}
 
-	if args.gcpServiceAccount != "" {
-		err = constructGCPCredentials(args.gcpServiceAccount, &args.ccs)
-		if err != nil {
-			return err
-		}
+	// Default compute nodes:
+	if args.computeNodes == 0 {
+		args.computeNodes = minComputeNodes(args.ccs.Enabled, args.multiAZ)
+	}
+	err = arguments.PromptInt(fs, "compute-nodes", validateComputeNodes)
+	if err != nil {
+		return err
 	}
 
-	err = arguments.CheckIgnoredCCSFlags(args.ccs)
+	err = promptNetwork(fs)
 	if err != nil {
 		return err
 	}
 
 	clusterConfig := c.Spec{
-		Name:               clusterName,
+		Name:               args.clusterName,
 		Region:             args.region,
 		Provider:           args.provider,
 		CCS:                args.ccs,
-		Flavour:            clusterFlavour,
+		Flavour:            args.flavour,
 		MultiAZ:            args.multiAZ,
 		Version:            clusterVersion,
 		Expiration:         expiration,
 		ComputeMachineType: args.computeMachineType,
-		ComputeNodes:       computeNodes,
+		ComputeNodes:       args.computeNodes,
 		MachineCIDR:        args.machineCIDR,
 		ServiceCIDR:        args.serviceCIDR,
 		PodCIDR:            args.podCIDR,
@@ -312,6 +371,105 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	return nil
+}
+
+// promptName checks and/or reads the cluster name
+func promptName(argv []string) error {
+	if len(argv) == 1 && argv[0] != "" {
+		args.clusterName = argv[0]
+		return nil
+	}
+
+	if args.interactive {
+		prompt := &survey.Input{
+			Message: "cluster name",
+			Help:    clusterNameHelp,
+		}
+		return survey.AskOne(prompt, &args.clusterName, survey.WithValidator(survey.Required))
+	}
+
+	return fmt.Errorf("A cluster name must be specified")
+}
+
+func promptCCS(fs *pflag.FlagSet) error {
+	err := arguments.PromptBool(fs, "ccs")
+	if err != nil {
+		return err
+	}
+	if args.ccs.Enabled {
+		switch args.provider {
+		case c.ProviderAWS:
+			err = arguments.PromptString(fs, "aws-account-id")
+			if err != nil {
+				return err
+			}
+
+			err = arguments.PromptString(fs, "aws-access-key-id")
+			if err != nil {
+				return err
+			}
+
+			err = arguments.PromptPassword(fs, "aws-secret-access-key")
+			if err != nil {
+				return err
+			}
+		case c.ProviderGCP:
+			// TODO: re-prompt when selected file is not readable / invalid JSON
+			err = arguments.PromptFilePath(fs, "service-account-file")
+			if err != nil {
+				return err
+			}
+
+			if args.gcpServiceAccountFile != "" {
+				err = constructGCPCredentials(args.gcpServiceAccountFile, &args.ccs)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	err = arguments.CheckIgnoredCCSFlags(args.ccs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func promptNetwork(fs *pflag.FlagSet) error {
+	for _, flagName := range []string{"machine-cidr", "service-cidr", "pod-cidr"} {
+		err := arguments.PromptIPNet(fs, flagName)
+		if err != nil {
+			return err
+		}
+	}
+	err := arguments.PromptInt(fs, "host-prefix", nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateComputeNodes() error {
+	min := minComputeNodes(args.ccs.Enabled, args.multiAZ)
+	if args.computeNodes < min {
+		return fmt.Errorf("Minimum is %d nodes", min)
+	}
+	if args.multiAZ && args.computeNodes%3 != 0 {
+		return fmt.Errorf("Multi-zone clusters require nodes to be multiple of 3")
+	}
+	return nil
+}
+
+func getFlavourIDs(client *cmv1.Client) (names []string, err error) {
+	flavourSet := sets.NewString()
+	flavours, err := fetchFlavours(client)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve flavours: %s", err)
+	}
+	for _, flavour := range flavours {
+		flavourSet.Insert(flavour.ID())
+	}
+	return flavourSet.List(), nil
 }
 
 func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
@@ -349,5 +507,4 @@ func constructGCPCredentials(filePath arguments.FilePath, value *c.CCS) error {
 		return err
 	}
 	return nil
-
 }

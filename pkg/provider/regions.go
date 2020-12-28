@@ -23,6 +23,8 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+// GetRegions queries either `aws/available_regions` or `regions` depending on CCS flags.
+// Does not filter by .Enabled() flag; whether caller should filter depends on CCS.
 func GetRegions(client *cmv1.Client, provider string, ccs cluster.CCS) (regions []*cmv1.CloudRegion, err error) {
 	if ccs.Enabled && provider == "aws" {
 		// Build cmv1.AWS object to get list of available regions:
