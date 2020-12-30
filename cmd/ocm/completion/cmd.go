@@ -24,26 +24,64 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "completion",
-	Short: "Generates bash completion scripts",
-	Long: `To load completion run
+	Use:   "completion [bash|zsh|fish|powershell]",
+	Short: "Generate completion script",
+	Long: `To load completions:
 
-. <(ocm completion)
+Bash:
 
-To configure your bash shell to load completions for each session add to your bashrc
+$ source <(yourprogram completion bash)
 
-# ~/.bashrc or ~/.profile
-. <(ocm completion)
+# To load completions for each session, execute once:
+Linux:
+  $ yourprogram completion bash > /etc/bash_completion.d/yourprogram
+MacOS:
+  $ yourprogram completion bash > /usr/local/etc/bash_completion.d/yourprogram
+
+Zsh:
+
+# If shell completion is not already enabled in your environment you will need
+# to enable it.  You can execute the following once:
+
+$ echo "autoload -U compinit; compinit" >> ~/.zshrc
+
+# To load completions for each session, execute once:
+$ yourprogram completion zsh > "${fpath[1]}/_yourprogram"
+
+# You will need to start a new shell for this setup to take effect.
+
+Fish:
+
+$ yourprogram completion fish | source
+
+# To load completions for each session, execute once:
+$ yourprogram completion fish > ~/.config/fish/completions/yourprogram.fish
+
+P.S. Debugging completion logic:
+- Set BASH_COMP_DEBUG_FILE env var to enable logging to that file.
+- See https://github.com/spf13/cobra/blob/master/shell_completions.md.
 `,
-	Args: cobra.NoArgs,
-	RunE: run,
-}
+	DisableFlagsInUseLine: true,
+	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
+	Args:                  cobra.RangeArgs(0, 1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// backward compatibility (previously only supported bash, took no args)
+		if len(args) == 0 {
+			args = []string{"bash"}
+		}
 
-func run(cmd *cobra.Command, argv []string) error {
-	err := cmd.Root().GenBashCompletion(os.Stdout)
-	if err != nil {
-		return fmt.Errorf("Unable to generate bash completions: %v", err)
-	}
-
-	return nil
+		switch args[0] {
+		case "bash":
+			cmd.Root().GenBashCompletion(os.Stdout)
+		case "zsh":
+			cmd.Root().GenZshCompletion(os.Stdout)
+		case "fish":
+			cmd.Root().GenFishCompletion(os.Stdout, true)
+		case "powershell":
+			cmd.Root().GenPowerShellCompletion(os.Stdout)
+		default:
+			return fmt.Errorf("invalid shell %q", args[0])
+		}
+		return nil
+	},
 }

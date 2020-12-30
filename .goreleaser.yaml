@@ -46,7 +46,7 @@ brews:
       bin.install "ocm"
 
       # Install bash completion
-      output = Utils.popen_read("#{bin}/ocm completion")
+      output = Utils.popen_read("#{bin}/ocm completion bash")
       (bash_completion/"ocm").write output
     test: |
       assert_match /^#{version}/, shell_output("#{bin}/ocm version")

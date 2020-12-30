@@ -53,6 +53,14 @@ used doesn't support modules, because the dependencies used may not be the ones
 tested by the developers. In general installations done with `go get` aren't
 supported or recommended.
 
+== Activating shell completions
+
+Run the following to see instructions for various shells:
+
+....
+$ ocm completion --help
+....
+
 == Log In
 
 The first step to use the tool is to log-in with your OpenShift Cluster Manager
