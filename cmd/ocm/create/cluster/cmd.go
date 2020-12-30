@@ -25,10 +25,10 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
@@ -89,6 +89,7 @@ func init() {
 	)
 
 	arguments.AddProviderFlag(fs, &args.provider)
+	Cmd.RegisterFlagCompletionFunc("provider", arguments.MakeCompleteFunc(osdProviderOptions))
 	arguments.AddCCSFlags(fs, &args.ccs)
 
 	fs.Var(
@@ -102,6 +103,8 @@ func init() {
 		"us-east-1",
 		"The cloud provider region to create the cluster in",
 	)
+	Cmd.RegisterFlagCompletionFunc("region", arguments.MakeCompleteFunc(getRegionOptions))
+
 	fs.StringVar(
 		&args.version,
 		"version",
@@ -109,12 +112,16 @@ func init() {
 		"The OpenShift version to create the cluster at (for example, \"4.1.16\")",
 	)
 	arguments.SetQuestion(fs, "version", "OpenShift version:")
+	Cmd.RegisterFlagCompletionFunc("version", arguments.MakeCompleteFunc(getVersionOptions))
+
 	fs.StringVar(
 		&args.flavour,
 		"flavour",
 		"osd-4",
 		"The OCM flavour to create the cluster with",
 	)
+	Cmd.RegisterFlagCompletionFunc("flavour", arguments.MakeCompleteFunc(getFlavourOptions))
+
 	fs.StringVar(
 		&args.expirationTime,
 		"expiration-time",
@@ -144,6 +151,7 @@ func init() {
 		"Deploy to multiple data centers.",
 	)
 	arguments.SetQuestion(fs, "multi-az", "Multiple AZ:")
+
 	// Scaling options
 	fs.StringVar(
 		&args.computeMachineType,
@@ -151,6 +159,8 @@ func init() {
 		"",
 		"Instance type for the compute nodes. Determines the amount of memory and vCPU allocated to each compute node.",
 	)
+	Cmd.RegisterFlagCompletionFunc("compute-machine-type", arguments.MakeCompleteFunc(getMachineTypeOptions))
+
 	fs.IntVar(
 		&args.computeNodes,
 		"compute-nodes",
@@ -196,8 +206,75 @@ func init() {
 	)
 }
 
-func osdProviders() []string {
-	return []string{c.ProviderAWS, c.ProviderGCP}
+func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
+	return []arguments.Option{
+		{Value: c.ProviderAWS, Description: ""},
+		{Value: c.ProviderGCP, Description: ""},
+	}, nil
+}
+
+func getRegionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+	regions, err := provider.GetRegions(connection.ClustersMgmt().V1(), args.provider, args.ccs)
+	if err != nil {
+		return nil, err
+	}
+	options := []arguments.Option{}
+	for _, region := range regions {
+		// `enabled` flag only affects Red Hat infra. All regions enabled on CCS.
+		if args.ccs.Enabled || region.Enabled() {
+			options = append(options, arguments.Option{
+				Value:       region.ID(),
+				Description: region.DisplayName(),
+			})
+		}
+	}
+	return options, nil
+}
+
+func getFlavourOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+	flavours, err := fetchFlavours(connection.ClustersMgmt().V1())
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve flavours: %s", err)
+	}
+	options := []arguments.Option{}
+	for _, flavour := range flavours {
+		options = append(options, arguments.Option{
+			Value:       flavour.ID(),
+			Description: "",
+		})
+	}
+	return options, nil
+}
+
+func getVersionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+	options, _, err := getVersionOptionsWithDefault(connection)
+	return options, err
+}
+
+func getVersionOptionsWithDefault(connection *sdk.Connection) (
+	options []arguments.Option, defaultVersion string, err error,
+) {
+	// Check and set the cluster version
+	versionList, defaultVersion, err := c.GetEnabledVersions(connection.ClustersMgmt().V1())
+	if err != nil {
+		return
+	}
+	options = []arguments.Option{}
+	for _, version := range versionList {
+		description := ""
+		if version == defaultVersion {
+			description = "default"
+		}
+		options = append(options, arguments.Option{
+			Value:       version,
+			Description: description,
+		})
+	}
+	return
+}
+
+func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+	return provider.GetMachineTypeOptions(connection.ClustersMgmt().V1(), args.provider)
 }
 
 func minComputeNodes(ccs bool, multiAZ bool) (min int) {
@@ -239,7 +316,8 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Only offer the 2 providers known to support OSD now;
 	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
-	err = arguments.PromptOneOf(fs, "provider", osdProviders())
+	providers, _ := osdProviderOptions(connection)
+	err = arguments.PromptOneOf(fs, "provider", providers)
 	if err != nil {
 		return err
 	}
@@ -254,18 +332,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	regionSet := sets.NewString()
-	regions, err := provider.GetRegions(connection.ClustersMgmt().V1(), args.provider, args.ccs)
+	regions, err := getRegionOptions(connection)
 	if err != nil {
 		return err
 	}
-	for _, region := range regions {
-		// `enabled` flag only affects Red Hat infra. All regions enabled on CCS.
-		if args.ccs.Enabled || region.Enabled() {
-			regionSet.Insert(region.ID())
-		}
-	}
-	err = arguments.PromptOrCheckOneOf(fs, "region", regionSet.List())
+	err = arguments.PromptOrCheckOneOf(fs, "region", regions)
 	if err != nil {
 		return err
 	}
@@ -278,31 +349,29 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	expiration, err := c.ValidateClusterExpiration(args.expirationTime, args.expirationSeconds)
 	if err != nil {
-		return fmt.Errorf(fmt.Sprintf("%s", err))
+		return err
 	}
 
-	// Check and set the cluster version
-	versionList, defaultVersion, err := c.GetEnabledVersions(cmv1Client)
+	versions, defaultVersion, err := getVersionOptionsWithDefault(connection)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve versions: %s", err)
+		return err
 	}
-
 	if args.version == "" {
 		args.version = defaultVersion
 	}
 	args.version = c.DropOpenshiftVPrefix(args.version)
-	err = arguments.PromptOrCheckOneOf(fs, "version", versionList)
+	err = arguments.PromptOrCheckOneOf(fs, "version", versions)
 	if err != nil {
 		return err
 	}
 	clusterVersion := c.EnsureOpenshiftVPrefix(args.version)
 
 	// Retrieve valid flavours
-	flavourList, err := getFlavourIDs(cmv1Client)
+	flavours, err := getFlavourOptions(connection)
 	if err != nil {
 		return err
 	}
-	err = arguments.CheckOneOf(fs, "flavour", flavourList)
+	err = arguments.CheckOneOf(fs, "flavour", flavours)
 	if err != nil {
 		return err
 	}
@@ -312,11 +381,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Compute node instance type:
-	machineTypeList, err := provider.GetMachineTypeIDs(cmv1Client, args.provider)
+	machineTypes, err := getMachineTypeOptions(connection)
 	if err != nil {
 		return err
 	}
-	err = arguments.PromptOrCheckOneOf(fs, "compute-machine-type", machineTypeList)
+	err = arguments.PromptOrCheckOneOf(fs, "compute-machine-type", machineTypes)
 	if err != nil {
 		return err
 	}
@@ -458,18 +527,6 @@ func validateComputeNodes() error {
 		return fmt.Errorf("Multi-zone clusters require nodes to be multiple of 3")
 	}
 	return nil
-}
-
-func getFlavourIDs(client *cmv1.Client) (names []string, err error) {
-	flavourSet := sets.NewString()
-	flavours, err := fetchFlavours(client)
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve flavours: %s", err)
-	}
-	for _, flavour := range flavours {
-		flavourSet.Insert(flavour.ID())
-	}
-	return flavourSet.List(), nil
 }
 
 func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {

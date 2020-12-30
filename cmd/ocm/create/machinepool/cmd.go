@@ -157,7 +157,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
 	}
 
-	machineTypeList, err := provider.GetMachineTypeIDs(connection.ClustersMgmt().V1(),
+	machineTypeList, err := provider.GetMachineTypeOptions(connection.ClustersMgmt().V1(),
 		cluster.CloudProvider().ID())
 	if err != nil {
 		return err
