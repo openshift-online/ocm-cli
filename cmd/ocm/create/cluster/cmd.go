@@ -249,6 +249,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	err = arguments.PromptBool(fs, "multi-az")
+	if err != nil {
+		return err
+	}
+
 	regionSet := sets.NewString()
 	regions, err := provider.GetRegions(connection.ClustersMgmt().V1(), args.provider, args.ccs)
 	if err != nil {
@@ -312,11 +317,6 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 	err = arguments.PromptOrCheckOneOf(fs, "compute-machine-type", machineTypeList)
-	if err != nil {
-		return err
-	}
-
-	err = arguments.PromptBool(fs, "multi-az")
 	if err != nil {
 		return err
 	}
