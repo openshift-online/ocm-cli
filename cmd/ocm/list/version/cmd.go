@@ -24,6 +24,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var args struct {
+	defaultVersion bool
+}
+
 var Cmd = &cobra.Command{
 	Use:     "versions",
 	Aliases: []string{"version"},
@@ -35,6 +39,17 @@ var Cmd = &cobra.Command{
 	RunE: run,
 }
 
+func init() {
+	fs := Cmd.Flags()
+	fs.BoolVarP(
+		&args.defaultVersion,
+		"default",
+		"d",
+		false,
+		"Show only the default version",
+	)
+}
+
 func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
@@ -44,13 +59,17 @@ func run(cmd *cobra.Command, argv []string) error {
 	defer connection.Close()
 
 	client := connection.ClustersMgmt().V1()
-	versions, _, err := cluster.GetEnabledVersions(client)
+	versions, defaultVersion, err := cluster.GetEnabledVersions(client)
 	if err != nil {
 		return fmt.Errorf("Can't retrieve versions: %v", err)
 	}
 
-	for _, v := range versions {
-		fmt.Println(v)
+	if args.defaultVersion {
+		fmt.Println(defaultVersion)
+	} else {
+		for _, v := range versions {
+			fmt.Println(v)
+		}
 	}
 
 	return nil
