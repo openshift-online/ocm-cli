@@ -137,6 +137,7 @@ func init() {
 		false,
 		"Restrict master API endpoint and application routes to direct, private connectivity.",
 	)
+	arguments.SetQuestion(fs, "private", "Private cluster (optional):")
 	fs.BoolVar(
 		&args.multiAZ,
 		"multi-az",
@@ -443,6 +444,10 @@ func promptNetwork(fs *pflag.FlagSet) error {
 		}
 	}
 	err := arguments.PromptInt(fs, "host-prefix", nil)
+	if err != nil {
+		return err
+	}
+	err = arguments.PromptBool(fs, "private")
 	if err != nil {
 		return err
 	}
