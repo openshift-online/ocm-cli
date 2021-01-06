@@ -107,7 +107,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 	fmt.Printf("\n"+
 		"ID:            %s\n"+
 		"External ID:   %s\n"+
-		"Name:          %s.%s\n"+
+		"Name:          %s\n"+
 		"API URL:       %s\n"+
 		"API Listening: %s\n"+
 		"Console URL:   %s\n"+
@@ -130,7 +130,6 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
-		cluster.DNS().BaseDomain(),
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
