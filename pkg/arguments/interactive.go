@@ -25,8 +25,10 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const questionAnnotationKey = "flag_survey_question"
@@ -59,7 +61,48 @@ func getQuestion(flag *pflag.Flag) string {
 	return strings.Join(words, " ") + ":"
 }
 
-// TODO: integrate with completion.
+// OptionsFunc is a signature for functions generating arrays of values.
+// They will be used both for interactive mode and flag completions.
+type OptionsFunc func(connection *sdk.Connection) ([]Option, error)
+
+// Option represents a value that can be used in interactive Select menu,
+// or shell completion.
+type Option struct {
+	Value string
+	// Optional extra text to show (not always supported).
+	Description string
+}
+
+// CobraCompletionFunc is the signature cobra.RegisterFlagCompletionFunc() wants.
+type CobraCompletionFunc func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective)
+
+func MakeCompleteFunc(optionsFunc OptionsFunc) CobraCompletionFunc {
+	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		connection, err := ocm.NewConnection().Build()
+		if err != nil {
+			cobra.CompErrorln(fmt.Sprintf("unable to create API connection: %s", err))
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+		defer connection.Close()
+
+		options, err := optionsFunc(connection)
+		if err != nil {
+			cobra.CompErrorln(err.Error())
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		completions := []string{}
+		for _, option := range options {
+			// Cobra uses \t char to separate values from optional descriptions.
+			valueTabDescription := option.Value
+			if option.Description != "" {
+				valueTabDescription += "\t" + option.Description
+			}
+			completions = append(completions, valueTabDescription)
+		}
+		return completions, cobra.ShellCompDirectiveNoFileComp
+	}
+}
 
 // TODO: support custom flag types.
 //   Some functions below could work with any flag type, if we remove GetString() etc. enforcment.
@@ -265,7 +308,7 @@ func PromptIPNet(fs *pflag.FlagSet, flagName string) error {
 // PromptOrCheckOneOf uses a set of valid options for interactive prompt and/or validation.
 // When flag is already set, validates it and doesn't prompt. TODO: prompt if bad.
 // When not interactive, allows an optional flag to remain omitted.
-func PromptOrCheckOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
+func PromptOrCheckOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 	err := PromptOneOf(fs, flagName, options)
 	if err != nil {
 		return err
@@ -275,13 +318,13 @@ func PromptOrCheckOneOf(fs *pflag.FlagSet, flagName string, options []string) er
 
 // PromptOneOf sets a string flag value interactively, from a set of valid options,
 // unless already set.
-func PromptOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
+func PromptOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 	return ifInteractive(fs, func() error {
 		return doPromptOneOf(fs, flagName, options)
 	})
 }
 
-func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
+func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 	value, err := fs.GetString(flagName)
 	if err != nil {
 		return fmt.Errorf("%v", err)
@@ -291,10 +334,15 @@ func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
 	// A flag may have a default in non-interactive mode, but still be worth prompting
 	// in interactive mode unless explictily specified on command line.
 	if !flag.Changed {
+		optionValues := make([]string, len(options))
+		for i, option := range options {
+			optionValues[i] = option.Value
+		}
+
 		prompt := &survey.Select{
 			Message: getQuestion(flag),
 			Help:    flag.Usage,
-			Options: options,
+			Options: optionValues,
 			Default: value,
 		}
 		var response string
@@ -310,7 +358,7 @@ func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
 // CheckOneOf returns error if flag has been set and is not one of given options.
 // It's appropriate for both optional flags (no error not given)
 // and required flags (Cobra validated they're given before command .Run).
-func CheckOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
+func CheckOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 	if fs.Changed(flagName) {
 		return requireOneOf(fs, flagName, options)
 	}
@@ -318,14 +366,17 @@ func CheckOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
 }
 
 // requireOneOf returns error if flag is not one of given options.
-func requireOneOf(fs *pflag.FlagSet, flagName string, options []string) error {
+func requireOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 	flag := fs.Lookup(flagName)
 	if flag == nil {
 		return fmt.Errorf("no such flag %q", flagName)
 	}
 
-	if !sets.NewString(options...).Has(flag.Value.String()) {
-		return fmt.Errorf("A valid --%s must be specified.\nValid options: %+v", flagName, options)
+	value := flag.Value.String()
+	for _, option := range options {
+		if value == option.Value {
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("A valid --%s must be specified.\nValid options: %+v", flagName, options)
 }

@@ -19,6 +19,7 @@ package provider
 import (
 	"fmt"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -50,7 +51,7 @@ func getMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1
 	return
 }
 
-func GetMachineTypeIDs(client *cmv1.Client, provider string) (machineTypeList []string, err error) {
+func GetMachineTypeOptions(client *cmv1.Client, provider string) (options []arguments.Option, err error) {
 	machineTypes, err := getMachineTypes(client, provider)
 	if err != nil {
 		err = fmt.Errorf("Failed to retrieve machine types: %s", err)
@@ -58,7 +59,10 @@ func GetMachineTypeIDs(client *cmv1.Client, provider string) (machineTypeList []
 	}
 
 	for _, v := range machineTypes {
-		machineTypeList = append(machineTypeList, v.ID())
+		options = append(options, arguments.Option{
+			Value:       v.ID(),
+			Description: v.Name(),
+		})
 	}
 	return
 }
