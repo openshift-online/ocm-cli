@@ -340,7 +340,7 @@ func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 			optionValues[i] = option.Value
 		}
 
-		// If the `Default` is one of the allowed `Options`,
+		// If the `Default` is not one of the allowed `Options`,
 		// survey.Select may keep it if the user immediately presses Enter
 		// without moving the cursor.
 		// https://github.com/AlecAivazis/survey/pull/284
