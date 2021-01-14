@@ -29,6 +29,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const questionAnnotationKey = "flag_survey_question"
@@ -339,11 +340,21 @@ func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 			optionValues[i] = option.Value
 		}
 
+		// If the `Default` is one of the allowed `Options`,
+		// survey.Select may keep it if the user immediately presses Enter
+		// without moving the cursor.
+		// https://github.com/AlecAivazis/survey/pull/284
+		// This is confusing behavior, so only set Default when it's a valid option.
+		var defaultValue interface{} = nil
+		if sets.NewString(optionValues...).Has(value) {
+			defaultValue = value
+		}
+
 		prompt := &survey.Select{
 			Message: getQuestion(flag),
 			Help:    flag.Usage,
 			Options: optionValues,
-			Default: value,
+			Default: defaultValue,
 		}
 		var response string
 		err = survey.AskOne(prompt, &response)
