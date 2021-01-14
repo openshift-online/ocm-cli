@@ -105,6 +105,14 @@ func MakeCompleteFunc(optionsFunc OptionsFunc) CobraCompletionFunc {
 	}
 }
 
+// optionValues returns array of only the .Value fields.
+func optionValues(options []Option) (values []string) {
+	for _, option := range options {
+		values = append(values, option.Value)
+	}
+	return
+}
+
 // TODO: support custom flag types.
 //   Some functions below could work with any flag type, if we remove GetString() etc. enforcment.
 
@@ -335,10 +343,7 @@ func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 	// A flag may have a default in non-interactive mode, but still be worth prompting
 	// in interactive mode unless explictily specified on command line.
 	if !flag.Changed {
-		optionValues := make([]string, len(options))
-		for i, option := range options {
-			optionValues[i] = option.Value
-		}
+		values := optionValues(options)
 
 		// If the `Default` is not one of the allowed `Options`,
 		// survey.Select may keep it if the user immediately presses Enter
@@ -346,14 +351,14 @@ func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 		// https://github.com/AlecAivazis/survey/pull/284
 		// This is confusing behavior, so only set Default when it's a valid option.
 		var defaultValue interface{} = nil
-		if sets.NewString(optionValues...).Has(value) {
+		if sets.NewString(values...).Has(value) {
 			defaultValue = value
 		}
 
 		prompt := &survey.Select{
 			Message: getQuestion(flag),
 			Help:    flag.Usage,
-			Options: optionValues,
+			Options: values,
 			Default: defaultValue,
 		}
 		var response string
@@ -389,5 +394,5 @@ func requireOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("A valid --%s must be specified.\nValid options: %+v", flagName, options)
+	return fmt.Errorf("A valid --%s must be specified.\nValid options: %+v", flagName, optionValues(options))
 }
