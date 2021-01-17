@@ -153,7 +153,7 @@ func PromptBool(fs *pflag.FlagSet, flagName string) error {
 			if err != nil {
 				return err
 			}
-			flag.Value.Set(strconv.FormatBool(response))
+			fs.Set(flagName, strconv.FormatBool(response))
 		}
 		return nil
 	})
@@ -180,7 +180,7 @@ func PromptInt(fs *pflag.FlagSet, flagName string, validate func() error) error 
 			// Set() flag as side effect of validation => prompts again if invalid.
 			validator := func(val interface{}) error {
 				str := val.(string)
-				err := flag.Value.Set(str)
+				err := fs.Set(flagName, str)
 				if err != nil {
 					return err
 				}
@@ -216,7 +216,7 @@ func PromptString(fs *pflag.FlagSet, flagName string) error {
 			if err != nil {
 				return err
 			}
-			flag.Value.Set(response)
+			fs.Set(flagName, response)
 		}
 		return nil
 	})
@@ -243,7 +243,7 @@ func PromptPassword(fs *pflag.FlagSet, flagName string) error {
 			if err != nil {
 				return err
 			}
-			flag.Value.Set(response)
+			fs.Set(flagName, response)
 		}
 		return nil
 	})
@@ -274,7 +274,7 @@ func PromptFilePath(fs *pflag.FlagSet, flagName string) error {
 			if err != nil {
 				return err
 			}
-			flag.Value.Set(response)
+			fs.Set(flagName, response)
 		}
 		return nil
 	})
@@ -308,7 +308,7 @@ func PromptIPNet(fs *pflag.FlagSet, flagName string) error {
 			if str == "" {
 				return nil
 			}
-			return flag.Value.Set(str)
+			return fs.Set(flagName, str)
 		}
 		return survey.AskOne(prompt, &response, survey.WithValidator(validator))
 	})
@@ -366,7 +366,7 @@ func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 		if err != nil {
 			return err
 		}
-		flag.Value.Set(response)
+		fs.Set(flagName, response)
 	}
 	return nil
 }
