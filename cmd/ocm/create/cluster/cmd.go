@@ -100,8 +100,8 @@ func init() {
 	fs.StringVar(
 		&args.region,
 		"region",
-		"us-east-1",
-		"The cloud provider region to create the cluster in",
+		"",
+		"The cloud provider region to create the cluster in. See `ocm list regions`.",
 	)
 	Cmd.RegisterFlagCompletionFunc("region", arguments.MakeCompleteFunc(getRegionOptions))
 
@@ -340,12 +340,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	err = arguments.PromptOrCheckOneOf(fs, "region", regions)
 	if err != nil {
 		return err
-	}
-
-	// TODO: with --interactive GCP if you simply press Enter without pressing Down/Up,
-	// the value stays "us-east-1" and errors out.
-	if args.region == "us-east-1" && args.provider != c.ProviderAWS {
-		return fmt.Errorf("if specifying a non-aws cloud provider, region must be set to a valid region")
 	}
 
 	expiration, err := c.ValidateClusterExpiration(args.expirationTime, args.expirationSeconds)
