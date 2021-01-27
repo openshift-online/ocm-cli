@@ -98,30 +98,53 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the writer that will be used to print the tabulated results:
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	fmt.Fprintf(
-		writer,
-		"ID\tAVAILABILITY ZONES\t\t\tINSTANCE TYPE\t\tLABELS\t\tTAINTS\t\tREPLICAS\n")
-	fmt.Fprintf(writer, "default\t%s\t\t\t%s\t\t%v\t\t%v\t\t%d\n",
-		strings.Join(cluster.Nodes().AvailabilityZones(), ", "),
+	fmt.Fprintf(writer, "ID\tAUTOSCALING\tREPLICAS\tINSTANCE TYPE\tLABELS\t\tTAINTS\t\tAVAILABILITY ZONES\n")
+	fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t\t%s\t\t%s\n",
+		"default",
+		printAutoscaling(cluster.Nodes().AutoscaleCompute()),
+		printReplicas(cluster.Nodes().AutoscaleCompute(), cluster.Nodes().Compute()),
 		cluster.Nodes().ComputeMachineType().ID(),
 		printLabels(cluster.Nodes().ComputeLabels()),
 		"",
-		cluster.Nodes().Compute(),
+		printAZ(cluster.Nodes().AvailabilityZones()),
 	)
 	for _, machinePool := range machinePools {
-		fmt.Fprintf(writer, "%s\t%s\t\t\t%s\t\t%v\t\t%v\t\t%d\n",
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t\t%s\t\t%s\n",
 			machinePool.ID(),
-			strings.Join(machinePool.AvailabilityZones(), ", "),
+			printAutoscaling(machinePool.Autoscaling()),
+			printReplicas(machinePool.Autoscaling(), machinePool.Replicas()),
 			machinePool.InstanceType(),
 			printLabels(machinePool.Labels()),
 			printTaints(machinePool.Taints()),
-			machinePool.Replicas(),
+			printAZ(machinePool.AvailabilityZones()),
 		)
 	}
-	//nolint:gosec
 	writer.Flush()
 
 	return nil
+}
+
+func printAutoscaling(autoscaling *cmv1.MachinePoolAutoscaling) string {
+	if autoscaling != nil {
+		return "Yes"
+	}
+	return "No"
+}
+
+func printReplicas(autoscaling *cmv1.MachinePoolAutoscaling, replicas int) string {
+	if autoscaling != nil {
+		return fmt.Sprintf("%d-%d",
+			autoscaling.MinReplicas(),
+			autoscaling.MaxReplicas())
+	}
+	return fmt.Sprintf("%d", replicas)
+}
+
+func printAZ(az []string) string {
+	if len(az) == 0 {
+		return ""
+	}
+	return strings.Join(az, ", ")
 }
 
 func printLabels(labels map[string]string) string {

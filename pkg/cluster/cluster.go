@@ -50,6 +50,7 @@ type Spec struct {
 	// Scaling config
 	ComputeMachineType string
 	ComputeNodes       int
+	Autoscaling        Autoscaling
 
 	// Network config
 	MachineCIDR net.IPNet
@@ -60,6 +61,12 @@ type Spec struct {
 
 	// Properties
 	CustomProperties map[string]string
+}
+
+type Autoscaling struct {
+	Enabled     bool
+	MinReplicas int
+	MaxReplicas int
 }
 
 type CCS struct {
@@ -161,16 +168,27 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	}
 
-	if config.ComputeMachineType != "" || config.ComputeNodes != 0 {
+	if config.ComputeMachineType != "" || config.ComputeNodes != 0 ||
+		config.Autoscaling.Enabled {
 		clusterNodesBuilder := cmv1.NewClusterNodes()
 		if config.ComputeMachineType != "" {
 			clusterNodesBuilder = clusterNodesBuilder.ComputeMachineType(
 				cmv1.NewMachineType().ID(config.ComputeMachineType),
 			)
 		}
-		if config.ComputeNodes != 0 {
+		if config.Autoscaling.Enabled {
+			autoscalingBuilder := cmv1.NewMachinePoolAutoscaling()
+			if config.Autoscaling.MinReplicas != 0 {
+				autoscalingBuilder = autoscalingBuilder.MinReplicas(config.Autoscaling.MinReplicas)
+			}
+			if config.Autoscaling.MaxReplicas != 0 {
+				autoscalingBuilder = autoscalingBuilder.MaxReplicas(config.Autoscaling.MaxReplicas)
+			}
+			clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscalingBuilder)
+		} else if config.ComputeNodes != 0 {
 			clusterNodesBuilder = clusterNodesBuilder.Compute(config.ComputeNodes)
 		}
+
 		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
 	}
 

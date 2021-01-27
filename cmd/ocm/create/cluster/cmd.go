@@ -58,6 +58,7 @@ var args struct {
 	// Scaling options
 	computeMachineType string
 	computeNodes       int
+	autoscaling        c.Autoscaling
 
 	// Networking options
 	hostPrefix  int
@@ -176,6 +177,7 @@ func init() {
 			minComputeNodes(false, true), minComputeNodes(true, true),
 		),
 	)
+	arguments.AddAutoscalingFlags(fs, &args.autoscaling)
 
 	fs.IPNetVar(
 		&args.machineCIDR,
@@ -391,13 +393,25 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	// Default compute nodes:
-	if args.computeNodes == 0 {
-		args.computeNodes = minComputeNodes(args.ccs.Enabled, args.multiAZ)
-	}
-	err = arguments.PromptInt(fs, "compute-nodes", validateComputeNodes)
+	err = promptAutoscaling(fs)
 	if err != nil {
 		return err
+	}
+
+	err = arguments.CheckIgnoredAutoscalingFlags(args.autoscaling, args.computeNodes)
+	if err != nil {
+		return err
+	}
+
+	if !args.autoscaling.Enabled {
+		// Default compute nodes:
+		if args.computeNodes == 0 {
+			args.computeNodes = minComputeNodes(args.ccs.Enabled, args.multiAZ)
+		}
+		err = arguments.PromptInt(fs, "compute-nodes", validateComputeNodes)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = promptNetwork(fs)
@@ -416,6 +430,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Expiration:         expiration,
 		ComputeMachineType: args.computeMachineType,
 		ComputeNodes:       args.computeNodes,
+		Autoscaling:        args.autoscaling,
 		MachineCIDR:        args.machineCIDR,
 		ServiceCIDR:        args.serviceCIDR,
 		PodCIDR:            args.podCIDR,
@@ -434,7 +449,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			fmt.Println("dry run: Would be successful.")
 		}
 	} else {
-		err = c.PrintClusterDesctipion(connection, cluster)
+		err = c.PrintClusterDescripion(connection, cluster)
 		if err != nil {
 			return err
 		}
@@ -534,6 +549,30 @@ func validateComputeNodes() error {
 	return nil
 }
 
+func validateAutoscalingMin() error {
+	min := minComputeNodes(args.ccs.Enabled, args.multiAZ)
+
+	if args.autoscaling.MinReplicas < min {
+		return fmt.Errorf("Minimum is %d nodes", min)
+	}
+
+	if args.multiAZ && args.autoscaling.MinReplicas%3 != 0 {
+		return fmt.Errorf("Multi AZ clusters require that the number of compute nodes be a multiple of 3")
+	}
+	return nil
+}
+
+func validateAutoscalingMax() error {
+	if args.autoscaling.MinReplicas > args.autoscaling.MaxReplicas {
+		return fmt.Errorf("max-replicas must be greater or equal to min-replicas")
+	}
+
+	if args.multiAZ && args.autoscaling.MaxReplicas%3 != 0 {
+		return fmt.Errorf("Multi AZ clusters require that the number of compute nodes be a multiple of 3")
+	}
+	return nil
+}
+
 func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 	collection := client.Flavours()
 	page := 1
@@ -567,6 +606,30 @@ func constructGCPCredentials(filePath arguments.FilePath, value *c.CCS) error {
 	err = json.Unmarshal(byteValue, &value.GCP)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func promptAutoscaling(fs *pflag.FlagSet) error {
+	err := arguments.PromptBool(fs, "enable-autoscaling")
+	if err != nil {
+		return err
+	}
+	if args.autoscaling.Enabled {
+		// set default
+		args.autoscaling.MinReplicas = minComputeNodes(args.ccs.Enabled, args.multiAZ)
+		err = arguments.PromptInt(fs, "min-replicas", validateAutoscalingMin)
+		if err != nil {
+			return err
+		}
+
+		// set default
+		args.autoscaling.MaxReplicas = args.autoscaling.MinReplicas
+		err = arguments.PromptInt(fs, "max-replicas", validateAutoscalingMax)
+		if err != nil {
+			return err
+		}
+
 	}
 	return nil
 }

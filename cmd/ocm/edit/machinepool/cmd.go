@@ -25,10 +25,13 @@ import (
 )
 
 var args struct {
-	clusterKey string
-	replicas   int
-	labels     string
-	taints     string
+	clusterKey         string
+	replicas           int
+	autoscalingEnabled bool
+	minReplicas        int
+	maxReplicas        int
+	labels             string
+	taints             string
 }
 
 var Cmd = &cobra.Command{
@@ -37,7 +40,9 @@ var Cmd = &cobra.Command{
 	Short:   "Edit a cluster machine pool",
 	Long:    "Edit a machine pool size.",
 	Example: `  #  Update the number of replicas for machine pool with ID 'a1b2'
-  ocm edit machinepool --replicas=3 --cluster=mycluster a1b2`,
+  ocm edit machinepool --replicas=3 --cluster=mycluster a1b2
+  # Enable autoscaling and Set 3-5 replicas on machine pool 'mp1' on cluster 'mycluster'
+  ocm edit machinepool --enable-autoscaling --min-replicas=3 max-replicas=5 --cluster=mycluster mp1`,
 	RunE: run,
 }
 
@@ -59,6 +64,27 @@ func init() {
 		"replicas",
 		-1,
 		"Restrict application route to direct, private connectivity.",
+	)
+
+	flags.BoolVar(
+		&args.autoscalingEnabled,
+		"enable-autoscaling",
+		false,
+		"Enable autoscaling for the machine pool.",
+	)
+
+	flags.IntVar(
+		&args.minReplicas,
+		"min-replicas",
+		0,
+		"Minimum number of machines for the machine pool.",
+	)
+
+	flags.IntVar(
+		&args.maxReplicas,
+		"max-replicas",
+		0,
+		"Maximum number of machines for the machine pool.",
 	)
 
 	flags.StringVar(

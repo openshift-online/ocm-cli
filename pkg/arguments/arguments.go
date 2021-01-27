@@ -156,6 +156,59 @@ func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
 	return nil
 }
 
+// AddAutoscalingFlags adds the --enable-autoscaling --min-replicas and --max-replicas flags
+func AddAutoscalingFlags(fs *pflag.FlagSet, value *cluster.Autoscaling) {
+	fs.BoolVar(
+		&value.Enabled,
+		"enable-autoscaling",
+		false,
+		"Enable autoscaling of compute nodes.",
+	)
+	SetQuestion(fs, "enable-autoscaing", "Enable autoscaling:")
+
+	fs.IntVar(
+		&value.MinReplicas,
+		"min-replicas",
+		0,
+		"Minimum number of compute nodes.",
+	)
+	SetQuestion(fs, "min-replicas", "Min replicas:")
+
+	fs.IntVar(
+		&value.MaxReplicas,
+		"max-replicas",
+		0,
+		"Maximum number of compute nodes.",
+	)
+	SetQuestion(fs, "max-replicas", "Max replicas:")
+}
+
+// CheckIgnoredAutoscalingFlags errors if --min-replicas or --max-replicas
+// were used without --enable-autoscaling (and vice-versa with --compute-nodes)
+func CheckIgnoredAutoscalingFlags(autoscaling cluster.Autoscaling, computeNodes int) error {
+	if !autoscaling.Enabled {
+		bad := []string{}
+		if autoscaling.MinReplicas != 0 {
+			bad = append(bad, "--min-replicas")
+		}
+		if autoscaling.MaxReplicas != 0 {
+			bad = append(bad, "--max-replicas")
+		}
+		if len(bad) == 1 {
+			return fmt.Errorf("%s flag is meaningless without --enable-autoscaling", bad[0])
+		} else if len(bad) > 1 {
+			return fmt.Errorf("%s flags are meaningless without --enable-autoscaling",
+				strings.Join(bad, ", "))
+		}
+	} else {
+		if computeNodes != 0 {
+			return fmt.Errorf("--compute-nodes is meaningless with --enable-autoscaling")
+		}
+	}
+
+	return nil
+}
+
 func AddProviderFlag(fs *pflag.FlagSet, value *string) {
 	fs.StringVar(
 		value,
