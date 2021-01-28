@@ -176,19 +176,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 				cmv1.NewMachineType().ID(config.ComputeMachineType),
 			)
 		}
-		if config.Autoscaling.Enabled {
-			autoscalingBuilder := cmv1.NewMachinePoolAutoscaling()
-			if config.Autoscaling.MinReplicas != 0 {
-				autoscalingBuilder = autoscalingBuilder.MinReplicas(config.Autoscaling.MinReplicas)
-			}
-			if config.Autoscaling.MaxReplicas != 0 {
-				autoscalingBuilder = autoscalingBuilder.MaxReplicas(config.Autoscaling.MaxReplicas)
-			}
-			clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscalingBuilder)
-		} else if config.ComputeNodes != 0 {
-			clusterNodesBuilder = clusterNodesBuilder.Compute(config.ComputeNodes)
-		}
-
+		clusterNodesBuilder = buildCompute(config, clusterNodesBuilder)
 		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
 	}
 
@@ -295,11 +283,8 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 	}
 
 	// Scale cluster
-	if config.ComputeNodes != 0 {
-		clusterBuilder = clusterBuilder.Nodes(
-			cmv1.NewClusterNodes().
-				Compute(config.ComputeNodes),
-		)
+	if config.ComputeNodes != 0 || config.Autoscaling.Enabled {
+		clusterBuilder = clusterBuilder.Nodes(buildCompute(config, cmv1.NewClusterNodes()))
 	}
 
 	// Toggle private mode
@@ -328,6 +313,22 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 	}
 
 	return nil
+}
+
+func buildCompute(config Spec, clusterNodesBuilder *cmv1.ClusterNodesBuilder) *cmv1.ClusterNodesBuilder {
+	if config.Autoscaling.Enabled {
+		autoscalingBuilder := cmv1.NewMachinePoolAutoscaling()
+		if config.Autoscaling.MinReplicas != 0 {
+			autoscalingBuilder = autoscalingBuilder.MinReplicas(config.Autoscaling.MinReplicas)
+		}
+		if config.Autoscaling.MaxReplicas != 0 {
+			autoscalingBuilder = autoscalingBuilder.MaxReplicas(config.Autoscaling.MaxReplicas)
+		}
+		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscalingBuilder)
+	} else if config.ComputeNodes != 0 {
+		clusterNodesBuilder = clusterNodesBuilder.Compute(config.ComputeNodes)
+	}
+	return clusterNodesBuilder
 }
 
 func GetClusterOauthURL(cluster *cmv1.Cluster) string {
