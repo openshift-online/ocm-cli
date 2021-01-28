@@ -75,7 +75,8 @@ var Cmd = &cobra.Command{
 	Long: fmt.Sprintf("Create managed OpenShift Dedicated v4 clusters via OCM.\n"+
 		"\n"+
 		"NAME %s", clusterNameHelp),
-	RunE: run,
+	PreRunE: preRun,
+	RunE:    run,
 }
 
 func init() {
@@ -100,9 +101,10 @@ func init() {
 	fs.StringVar(
 		&args.region,
 		"region",
-		"us-east-1",
-		"The cloud provider region to create the cluster in",
+		"",
+		"The cloud provider region to create the cluster in. See `ocm list regions`.",
 	)
+	Cmd.MarkFlagRequired("region")
 	Cmd.RegisterFlagCompletionFunc("region", arguments.MakeCompleteFunc(getRegionOptions))
 
 	fs.StringVar(
@@ -295,7 +297,7 @@ func minComputeNodes(ccs bool, multiAZ bool) (min int) {
 	return
 }
 
-func run(cmd *cobra.Command, argv []string) error {
+func preRun(cmd *cobra.Command, argv []string) error {
 	var err error
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
@@ -308,9 +310,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return err
 	}
-
-	// Get the client for the cluster management api
-	cmv1Client := connection.ClustersMgmt().V1()
 
 	// Validate flags / ask for missing data.
 	fs := cmd.Flags()
@@ -342,17 +341,6 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	// TODO: with --interactive GCP if you simply press Enter without pressing Down/Up,
-	// the value stays "us-east-1" and errors out.
-	if args.region == "us-east-1" && args.provider != c.ProviderAWS {
-		return fmt.Errorf("if specifying a non-aws cloud provider, region must be set to a valid region")
-	}
-
-	expiration, err := c.ValidateClusterExpiration(args.expirationTime, args.expirationSeconds)
-	if err != nil {
-		return err
-	}
-
 	versions, defaultVersion, err := getVersionOptionsWithDefault(connection)
 	if err != nil {
 		return err
@@ -365,7 +353,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return err
 	}
-	clusterVersion := c.EnsureOpenshiftVPrefix(args.version)
 
 	// Retrieve valid flavours
 	flavours, err := getFlavourOptions(connection)
@@ -405,6 +392,25 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	return nil
+}
+
+func run(cmd *cobra.Command, argv []string) error {
+	// TODO: can we reuse the connection from preRun()?
+	// TODO: call config.Save (https://github.com/openshift-online/ocm-cli/issues/153).
+	connection, err := ocm.NewConnection().Build()
+	if err != nil {
+		return fmt.Errorf("Failed to create OCM connection: %v", err)
+	}
+	defer connection.Close()
+
+	clusterVersion := c.EnsureOpenshiftVPrefix(args.version)
+
+	expiration, err := c.ValidateClusterExpiration(args.expirationTime, args.expirationSeconds)
+	if err != nil {
+		return err
+	}
+
 	clusterConfig := c.Spec{
 		Name:               args.clusterName,
 		Region:             args.region,
@@ -423,7 +429,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Private:            &args.private,
 	}
 
-	cluster, err := c.CreateCluster(cmv1Client, clusterConfig, args.dryRun)
+	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
 	if err != nil {
 		return fmt.Errorf("Failed to create cluster: %v", err)
 	}
