@@ -30,9 +30,6 @@ var args struct {
 	expirationTime     string
 	expirationDuration time.Duration
 
-	// Scaling options
-	computeNodes int
-
 	// Networking options
 	private bool
 }
@@ -78,15 +75,6 @@ func init() {
 	flags.MarkHidden("expiration-time")
 	//nolint:gosec
 	flags.MarkHidden("expiration")
-
-	// Scaling options
-	flags.IntVar(
-		&args.computeNodes,
-		"compute-nodes",
-		0,
-		"Number of worker nodes to provision per zone. Single zone clusters need at least 4 nodes, "+
-			"while multizone clusters need at least 9 nodes (3 per zone) for resiliency.",
-	)
 
 	// Networking options
 	flags.BoolVar(
@@ -137,15 +125,9 @@ func run(cmd *cobra.Command, argv []string) error {
 		private = &args.private
 	}
 
-	var computeNodes int
-	if cmd.Flags().Changed("compute-nodes") {
-		computeNodes = args.computeNodes
-	}
-
 	clusterConfig := c.Spec{
-		Expiration:   expiration,
-		ComputeNodes: computeNodes,
-		Private:      private,
+		Expiration: expiration,
+		Private:    private,
 	}
 	err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
 	if err != nil {

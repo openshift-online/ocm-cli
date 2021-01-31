@@ -15,7 +15,6 @@ package machinepool
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
@@ -204,7 +203,7 @@ func run(cmd *cobra.Command, argv []string) error {
 				machinePoolID, clusterKey, err)
 		}
 
-		os.Exit(0)
+		return nil
 	}
 
 	if args.autoscalingEnabled {
