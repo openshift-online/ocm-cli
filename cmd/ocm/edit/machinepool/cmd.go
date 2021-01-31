@@ -15,6 +15,7 @@ package machinepool
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
@@ -172,7 +173,52 @@ func run(cmd *cobra.Command, argv []string) error {
 		machinePoolBuilder = machinePoolBuilder.Taints(taintBuilders...)
 	}
 
-	if cmd.Flags().Changed("replicas") {
+	isMinReplicasSet := cmd.Flags().Changed("min-replicas")
+	isMaxReplicasSet := cmd.Flags().Changed("max-replicas")
+	isReplicasSet := cmd.Flags().Changed("replicas")
+
+	// Inferr autoscaling from flags - to avoid getting the existing machine pool
+	// defering to OCM validators
+	if args.autoscalingEnabled || isMaxReplicasSet || isMinReplicasSet {
+		args.autoscalingEnabled = true
+
+		if isReplicasSet {
+			return fmt.Errorf("--replicas can't be set with autoscaling paramteres")
+		}
+	}
+
+	// Editing the default machine pool is a different process
+	if machinePoolID == "default" {
+		clusterConfig := c.Spec{
+			Autoscaling: c.Autoscaling{
+				Enabled:     args.autoscalingEnabled,
+				MinReplicas: args.minReplicas,
+				MaxReplicas: args.maxReplicas,
+			},
+			ComputeNodes: args.replicas,
+		}
+
+		err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
+		if err != nil {
+			return fmt.Errorf("Failed to update machine pool '%s' on cluster '%s': %s",
+				machinePoolID, clusterKey, err)
+		}
+
+		os.Exit(0)
+	}
+
+	if args.autoscalingEnabled {
+		asBuilder := cmv1.NewMachinePoolAutoscaling()
+
+		if args.minReplicas > 0 {
+			asBuilder = asBuilder.MinReplicas(args.minReplicas)
+		}
+		if args.maxReplicas > 0 {
+			asBuilder = asBuilder.MaxReplicas(args.maxReplicas)
+		}
+
+		machinePoolBuilder = machinePoolBuilder.Autoscaling(asBuilder)
+	} else if isReplicasSet {
 		machinePoolBuilder = machinePoolBuilder.Replicas(args.replicas)
 	}
 
