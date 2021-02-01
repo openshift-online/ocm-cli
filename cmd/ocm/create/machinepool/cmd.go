@@ -26,14 +26,12 @@ import (
 )
 
 var args struct {
-	clusterKey         string
-	instanceType       string
-	replicas           int
-	autoscalingEnabled bool
-	minReplicas        int
-	maxReplicas        int
-	labels             string
-	taints             string
+	clusterKey   string
+	instanceType string
+	replicas     int
+	autoscaling  c.Autoscaling
+	labels       string
+	taints       string
 }
 
 var Cmd = &cobra.Command{
@@ -83,26 +81,7 @@ func init() {
 		"Count of machines for this machine pool.",
 	)
 
-	flags.BoolVar(
-		&args.autoscalingEnabled,
-		"enable-autoscaling",
-		false,
-		"Enable autoscaling for the machine pool.",
-	)
-
-	flags.IntVar(
-		&args.minReplicas,
-		"min-replicas",
-		0,
-		"Minimum number of machines for the machine pool.",
-	)
-
-	flags.IntVar(
-		&args.maxReplicas,
-		"max-replicas",
-		0,
-		"Maximum number of machines for the machine pool.",
-	)
+	arguments.AddAutoscalingFlags(flags, &args.autoscaling)
 
 	flags.StringVar(
 		&args.labels,
@@ -166,7 +145,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	isMaxReplicasSet := cmd.Flags().Changed("max-replicas")
 	isReplicasSet := cmd.Flags().Changed("replicas")
 
-	if args.autoscalingEnabled {
+	if args.autoscaling.Enabled {
 		if isReplicasSet {
 			return fmt.Errorf("--replicas is only allowed when --enable-autoscaling=false")
 		}
@@ -219,11 +198,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		Labels(labels).
 		Taints(taintBuilders...)
 
-	if args.autoscalingEnabled {
+	if args.autoscaling.Enabled {
 		mpBuilder = mpBuilder.Autoscaling(
 			cmv1.NewMachinePoolAutoscaling().
-				MinReplicas(args.minReplicas).
-				MaxReplicas(args.maxReplicas))
+				MinReplicas(args.autoscaling.MinReplicas).
+				MaxReplicas(args.autoscaling.MaxReplicas))
 	} else {
 		mpBuilder = mpBuilder.Replicas(args.replicas)
 	}

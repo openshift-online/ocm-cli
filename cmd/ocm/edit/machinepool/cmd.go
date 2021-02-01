@@ -25,13 +25,11 @@ import (
 )
 
 var args struct {
-	clusterKey         string
-	replicas           int
-	autoscalingEnabled bool
-	minReplicas        int
-	maxReplicas        int
-	labels             string
-	taints             string
+	clusterKey  string
+	replicas    int
+	autoscaling c.Autoscaling
+	labels      string
+	taints      string
 }
 
 var Cmd = &cobra.Command{
@@ -66,26 +64,7 @@ func init() {
 		"Restrict application route to direct, private connectivity.",
 	)
 
-	flags.BoolVar(
-		&args.autoscalingEnabled,
-		"enable-autoscaling",
-		false,
-		"Enable autoscaling for the machine pool.",
-	)
-
-	flags.IntVar(
-		&args.minReplicas,
-		"min-replicas",
-		0,
-		"Minimum number of machines for the machine pool.",
-	)
-
-	flags.IntVar(
-		&args.maxReplicas,
-		"max-replicas",
-		0,
-		"Maximum number of machines for the machine pool.",
-	)
+	arguments.AddAutoscalingFlags(flags, &args.autoscaling)
 
 	flags.StringVar(
 		&args.labels,
@@ -172,19 +151,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		machinePoolBuilder = machinePoolBuilder.Taints(taintBuilders...)
 	}
 
-	isMinReplicasSet := cmd.Flags().Changed("min-replicas")
-	isMaxReplicasSet := cmd.Flags().Changed("max-replicas")
-	isReplicasSet := cmd.Flags().Changed("replicas")
-
-	// Inferr autoscaling from flags - to avoid getting the existing machine pool
-	// defering to OCM validators
-	if args.autoscalingEnabled || isMaxReplicasSet || isMinReplicasSet {
-		args.autoscalingEnabled = true
-
-		if isReplicasSet {
-			return fmt.Errorf("--replicas can't be set with autoscaling paramteres")
-		}
+	err = validateAutoscalingReplicasFlags(cmd)
+	if err != nil {
+		return err
 	}
+
+	isMinReplicasSet := cmd.Flags().Changed("min-replicas")
+	isReplicasSet := cmd.Flags().Changed("replicas")
 
 	// Editing the default machine pool is a different process
 	if machinePoolID == "default" {
@@ -195,7 +168,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			}
 		}
 		if isMinReplicasSet {
-			err = validateComputeNodes(args.minReplicas, cluster.CCS().Enabled(), cluster.MultiAZ())
+			err = validateComputeNodes(args.autoscaling.MinReplicas, cluster.CCS().Enabled(), cluster.MultiAZ())
 			if err != nil {
 				return err
 			}
@@ -203,9 +176,9 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		clusterConfig := c.Spec{
 			Autoscaling: c.Autoscaling{
-				Enabled:     args.autoscalingEnabled,
-				MinReplicas: args.minReplicas,
-				MaxReplicas: args.maxReplicas,
+				Enabled:     args.autoscaling.Enabled,
+				MinReplicas: args.autoscaling.MinReplicas,
+				MaxReplicas: args.autoscaling.MaxReplicas,
 			},
 			ComputeNodes: args.replicas,
 		}
@@ -219,14 +192,14 @@ func run(cmd *cobra.Command, argv []string) error {
 		return nil
 	}
 
-	if args.autoscalingEnabled {
+	if args.autoscaling.Enabled {
 		asBuilder := cmv1.NewMachinePoolAutoscaling()
 
-		if args.minReplicas > 0 {
-			asBuilder = asBuilder.MinReplicas(args.minReplicas)
+		if args.autoscaling.MinReplicas > 0 {
+			asBuilder = asBuilder.MinReplicas(args.autoscaling.MinReplicas)
 		}
-		if args.maxReplicas > 0 {
-			asBuilder = asBuilder.MaxReplicas(args.maxReplicas)
+		if args.autoscaling.MaxReplicas > 0 {
+			asBuilder = asBuilder.MaxReplicas(args.autoscaling.MaxReplicas)
 		}
 
 		machinePoolBuilder = machinePoolBuilder.Autoscaling(asBuilder)
@@ -275,6 +248,42 @@ func validateComputeNodes(nodes int, ccs bool, multiAZ bool) error {
 
 	if multiAZ && nodes%3 != 0 {
 		return fmt.Errorf("Multi-zone clusters require nodes to be multiple of 3")
+	}
+	return nil
+}
+
+func validateAutoscalingReplicasFlags(cmd *cobra.Command) error {
+	isMinReplicasSet := cmd.Flags().Changed("min-replicas")
+	isMaxReplicasSet := cmd.Flags().Changed("max-replicas")
+	isReplicasSet := cmd.Flags().Changed("replicas")
+	isAutoscalingSet := cmd.Flags().Changed("enable-autoscaling")
+
+	// Inferr autoscaling from flags - to avoid getting the existing machine pool
+	// defering to OCM validators
+	if !isAutoscalingSet && (isMaxReplicasSet || isMinReplicasSet) {
+		args.autoscaling.Enabled = true
+	}
+
+	if args.autoscaling.Enabled {
+		if isReplicasSet {
+			return fmt.Errorf("--replicas can't be set with autoscaling paramteres")
+		}
+		if !isMaxReplicasSet && !isMinReplicasSet {
+			return fmt.Errorf(
+				"at least one of '--min-replicas' and '--max-replicas' is required when enabling autoscaling")
+		}
+	}
+
+	if isAutoscalingSet && !args.autoscaling.Enabled {
+		if isMinReplicasSet {
+			return fmt.Errorf("--min-replicas can't be set when setting --enable-autoscaling=false")
+		}
+		if isMaxReplicasSet {
+			return fmt.Errorf("--max-replicas can't be set when setting --enable-autoscaling=false")
+		}
+		if !isReplicasSet {
+			return fmt.Errorf("--replicas is required when setting --enable-autoscaling=false")
+		}
 	}
 	return nil
 }
