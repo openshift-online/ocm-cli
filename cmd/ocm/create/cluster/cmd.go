@@ -449,7 +449,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			fmt.Println("dry run: Would be successful.")
 		}
 	} else {
-		err = c.PrintClusterDescripion(connection, cluster)
+		err = c.PrintClusterDescription(connection, cluster)
 		if err != nil {
 			return err
 		}

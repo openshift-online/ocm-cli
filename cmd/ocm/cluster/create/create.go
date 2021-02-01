@@ -231,7 +231,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Print the result:
 	cluster = response.Body()
 
-	err = clusterpkg.PrintClusterDescripion(connection, cluster)
+	err = clusterpkg.PrintClusterDescription(connection, cluster)
 	if err != nil {
 		return err
 	}

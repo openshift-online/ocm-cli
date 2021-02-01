@@ -151,7 +151,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 
 	} else {
-		err = clusterpkg.PrintClusterDescripion(connection, cluster)
+		err = clusterpkg.PrintClusterDescription(connection, cluster)
 		if err != nil {
 			return err
 		}

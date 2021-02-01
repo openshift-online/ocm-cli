@@ -29,7 +29,7 @@ const (
 	notAvailable string = "N/A"
 )
 
-func PrintClusterDescripion(connection *sdk.Connection, cluster *cmv1.Cluster) error {
+func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) error {
 	// Get API URL:
 	api := cluster.API()
 	apiURL, _ := api.GetURL()
