@@ -188,6 +188,19 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Editing the default machine pool is a different process
 	if machinePoolID == "default" {
+		if isReplicasSet {
+			err = validateComputeNodes(args.replicas, cluster.CCS().Enabled(), cluster.MultiAZ())
+			if err != nil {
+				return err
+			}
+		}
+		if isMinReplicasSet {
+			err = validateComputeNodes(args.minReplicas, cluster.CCS().Enabled(), cluster.MultiAZ())
+			if err != nil {
+				return err
+			}
+		}
+
 		clusterConfig := c.Spec{
 			Autoscaling: c.Autoscaling{
 				Enabled:     args.autoscalingEnabled,
@@ -236,6 +249,32 @@ func run(cmd *cobra.Command, argv []string) error {
 		Send()
 	if err != nil {
 		return fmt.Errorf("Failed to edit machine pool for cluster '%s': %v", clusterKey, err)
+	}
+	return nil
+}
+
+func validateComputeNodes(nodes int, ccs bool, multiAZ bool) error {
+	var min int
+	if ccs {
+		if multiAZ {
+			min = 3
+		} else {
+			min = 2
+		}
+	} else {
+		if multiAZ {
+			min = 9
+		} else {
+			min = 4
+		}
+	}
+
+	if nodes < min {
+		return fmt.Errorf("Minimum is %d nodes", min)
+	}
+
+	if multiAZ && nodes%3 != 0 {
+		return fmt.Errorf("Multi-zone clusters require nodes to be multiple of 3")
 	}
 	return nil
 }
