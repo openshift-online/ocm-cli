@@ -29,6 +29,7 @@ var args struct {
 	clusterKey   string
 	instanceType string
 	replicas     int
+	autoscaling  c.Autoscaling
 	labels       string
 	taints       string
 }
@@ -40,6 +41,9 @@ var Cmd = &cobra.Command{
 	Long:    "Add a machine pool to the cluster.",
 	Example: `  # Add a machine pool mp-1 with 3 replicas and m5.xlarge instance type to a cluster
   ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 mp-1
+  # Add a machine pool mp-1 with autoscaling enabled and 3 to 6 replicas of m5.xlarge to a cluster
+  ocm create machinepool --cluster=mycluster --name=mp-1 --enable-autoscaling \
+  --min-replicas=3 --max-replicas=6 --instance-type=m5.xlarge
   # Add a machine pool mp-1 with labels and m5.xlarge instance type to a cluster
   ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 --labels "foo=bar,bar=baz" mp-1
   # Add a machine pool mp-1 with taints and m5.xlarge instance type to a cluster
@@ -77,8 +81,7 @@ func init() {
 		"Count of machines for this machine pool.",
 	)
 
-	//nolint:gosec
-	Cmd.MarkFlagRequired("replicas")
+	arguments.AddAutoscalingFlags(flags, &args.autoscaling)
 
 	flags.StringVar(
 		&args.labels,
@@ -138,6 +141,28 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
+	isMinReplicasSet := cmd.Flags().Changed("min-replicas")
+	isMaxReplicasSet := cmd.Flags().Changed("max-replicas")
+	isReplicasSet := cmd.Flags().Changed("replicas")
+
+	if args.autoscaling.Enabled {
+		if isReplicasSet {
+			return fmt.Errorf("--replicas is only allowed when --enable-autoscaling=false")
+		}
+
+		if !isMaxReplicasSet || !isMinReplicasSet {
+			return fmt.Errorf("Both --min-replicas and --max-replicas are required when --enable-autoscaling=true")
+		}
+	} else {
+		if !isReplicasSet {
+			return fmt.Errorf("--replicas is required when --enable-autoscaling=false")
+		}
+
+		if isMaxReplicasSet || isMinReplicasSet {
+			return fmt.Errorf("--min-replicas and --max-replicas are not allowed when --enable-autoscaling=false")
+		}
+	}
+
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
@@ -167,13 +192,22 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	machinePool, err := cmv1.NewMachinePool().ID(machinePoolID).
+	mpBuilder := cmv1.NewMachinePool().
+		ID(machinePoolID).
 		InstanceType(args.instanceType).
-		Replicas(args.replicas).
 		Labels(labels).
-		Taints(taintBuilders...).
-		Build()
+		Taints(taintBuilders...)
 
+	if args.autoscaling.Enabled {
+		mpBuilder = mpBuilder.Autoscaling(
+			cmv1.NewMachinePoolAutoscaling().
+				MinReplicas(args.autoscaling.MinReplicas).
+				MaxReplicas(args.autoscaling.MaxReplicas))
+	} else {
+		mpBuilder = mpBuilder.Replicas(args.replicas)
+	}
+
+	machinePool, err := mpBuilder.Build()
 	if err != nil {
 		return fmt.Errorf("Failed to create machine pool for cluster '%s': %v", clusterKey, err)
 	}

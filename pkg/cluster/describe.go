@@ -29,7 +29,7 @@ const (
 	notAvailable string = "N/A"
 )
 
-func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) error {
+func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) error {
 	// Get API URL:
 	api := cluster.API()
 	apiURL, _ := api.GetURL()
@@ -103,6 +103,16 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		shard = shardPath.Body().HiveConfig().Server()
 	}
 
+	var computesStr string
+	if cluster.Nodes().AutoscaleCompute() != nil {
+		computesStr = fmt.Sprintf("%d-%d (Autoscaled)",
+			cluster.Nodes().AutoscaleCompute().MinReplicas(),
+			cluster.Nodes().AutoscaleCompute().MaxReplicas(),
+		)
+	} else {
+		computesStr = fmt.Sprintf("%d", cluster.Nodes().Compute())
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:            %s\n"+
@@ -113,7 +123,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		"Console URL:   %s\n"+
 		"Masters:       %d\n"+
 		"Infra:         %d\n"+
-		"Computes:      %d\n"+
+		"Computes:      %s\n"+
 		"Product:       %s\n"+
 		"Provider:      %s\n"+
 		"Version:       %s\n"+
@@ -135,7 +145,7 @@ func PrintClusterDesctipion(connection *sdk.Connection, cluster *cmv1.Cluster) e
 		cluster.Console().URL(),
 		cluster.Nodes().Master(),
 		cluster.Nodes().Infra(),
-		cluster.Nodes().Compute(),
+		computesStr,
 		cluster.Product().ID(),
 		cluster.CloudProvider().ID(),
 		cluster.OpenshiftVersion(),
