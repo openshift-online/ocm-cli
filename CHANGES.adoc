@@ -3,6 +3,18 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.47 Feb 2 2021
+
+- Update ocm-sdk-go to 0.1.152
+- Avoid `survey.Select` bug when Default is not one of Options
+- Fix CheckOneOf() error message
+- Drop default of --region
+- `ocm list machinepools` - added autoscaling field, and range
+- `ocm create cluster` - added autoscaling params
+- `ocm describe cluster` - added autoscaling indication and range
+- `ocm edit machinepool` - can now edit default machine pool - and autoscaling params
+- `ocm edit cluster` - no longer able to edit compute nodes
+
 == 0.1.46 Jan 10 2021
 
 - Show sorted version list in `ocm list versions`
