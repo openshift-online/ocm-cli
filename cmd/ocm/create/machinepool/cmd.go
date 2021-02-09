@@ -42,8 +42,8 @@ var Cmd = &cobra.Command{
 	Example: `  # Add a machine pool mp-1 with 3 replicas and m5.xlarge instance type to a cluster
   ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 mp-1
   # Add a machine pool mp-1 with autoscaling enabled and 3 to 6 replicas of m5.xlarge to a cluster
-  ocm create machinepool --cluster=mycluster --name=mp-1 --enable-autoscaling \
-  --min-replicas=3 --max-replicas=6 --instance-type=m5.xlarge
+  ocm create machinepool --cluster=mycluster --enable-autoscaling \
+  --min-replicas=3 --max-replicas=6 --instance-type=m5.xlarge mp-1 
   # Add a machine pool mp-1 with labels and m5.xlarge instance type to a cluster
   ocm create machinepool --cluster mycluster --instance-type m5.xlarge --replicas 3 --labels "foo=bar,bar=baz" mp-1
   # Add a machine pool mp-1 with taints and m5.xlarge instance type to a cluster
