@@ -42,7 +42,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		subResponse, err := connection.AccountsMgmt().V1().
 			Subscriptions().
 			Subscription(subID).
-			Get().
+			Get().Parameter("fetchLabels", "true").
 			Send()
 		if err != nil {
 			if subResponse == nil || subResponse.Status() != 404 {
@@ -113,6 +113,18 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		computesStr = fmt.Sprintf("%d", cluster.Nodes().Compute())
 	}
 
+	clusterAdminEnabled := false
+	if cluster.CCS().Enabled() {
+		clusterAdminEnabled = true
+	} else {
+		for _, label := range sub.Labels() {
+			if label.Key() == "capability.cluster.manage_cluster_admin" &&
+				label.Value() == "true" {
+				clusterAdminEnabled = true
+			}
+		}
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:            %s\n"+
@@ -153,7 +165,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.MultiAZ(),
 		cluster.CCS().Enabled(),
 		cluster.Version().ChannelGroup(),
-		cluster.ClusterAdminEnabled(),
+		clusterAdminEnabled,
 		organization,
 		creator,
 		email,
