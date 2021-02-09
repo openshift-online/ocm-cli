@@ -385,7 +385,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	err = arguments.CheckIgnoredAutoscalingFlags(args.autoscaling, args.computeNodes)
+	err = arguments.CheckAutoscalingFlags(args.autoscaling, args.computeNodes)
 	if err != nil {
 		return err
 	}
@@ -622,15 +622,19 @@ func promptAutoscaling(fs *pflag.FlagSet) error {
 		return err
 	}
 	if args.autoscaling.Enabled {
-		// set default
-		args.autoscaling.MinReplicas = minComputeNodes(args.ccs.Enabled, args.multiAZ)
+		// set default for interactive mode
+		if args.interactive && args.autoscaling.MinReplicas == 0 {
+			args.autoscaling.MinReplicas = minComputeNodes(args.ccs.Enabled, args.multiAZ)
+		}
 		err = arguments.PromptInt(fs, "min-replicas", validateAutoscalingMin)
 		if err != nil {
 			return err
 		}
 
-		// set default
-		args.autoscaling.MaxReplicas = args.autoscaling.MinReplicas
+		// set default for interactive mode
+		if args.interactive && args.autoscaling.MaxReplicas == 0 {
+			args.autoscaling.MaxReplicas = args.autoscaling.MinReplicas
+		}
 		err = arguments.PromptInt(fs, "max-replicas", validateAutoscalingMax)
 		if err != nil {
 			return err
