@@ -183,9 +183,11 @@ func AddAutoscalingFlags(fs *pflag.FlagSet, value *cluster.Autoscaling) {
 	SetQuestion(fs, "max-replicas", "Max replicas:")
 }
 
-// CheckIgnoredAutoscalingFlags errors if --min-replicas or --max-replicas
+// CheckAutoscalingFlags errors if --min-replicas or --max-replicas
 // were used without --enable-autoscaling (and vice-versa with --compute-nodes)
-func CheckIgnoredAutoscalingFlags(autoscaling cluster.Autoscaling, computeNodes int) error {
+// It also errors if --min-replicas or --max-replicas were not supplied
+// when --enable-autoscaling is used
+func CheckAutoscalingFlags(autoscaling cluster.Autoscaling, computeNodes int) error {
 	if !autoscaling.Enabled {
 		bad := []string{}
 		if autoscaling.MinReplicas != 0 {
@@ -203,6 +205,14 @@ func CheckIgnoredAutoscalingFlags(autoscaling cluster.Autoscaling, computeNodes 
 	} else {
 		if computeNodes != 0 {
 			return fmt.Errorf("--compute-nodes is meaningless with --enable-autoscaling")
+		}
+
+		if autoscaling.MinReplicas == 0 {
+			return fmt.Errorf("--min-replicas flag is required with --enable-autoscaling")
+		}
+
+		if autoscaling.MaxReplicas == 0 {
+			return fmt.Errorf("--max-replicas flag is required with --enable-autoscaling")
 		}
 	}
 
