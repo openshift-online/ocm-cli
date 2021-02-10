@@ -168,7 +168,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	}
 
-	if config.ComputeMachineType != "" || config.ComputeNodes != 0 ||
+	if config.ComputeMachineType != "" || config.ComputeNodes > 0 ||
 		config.Autoscaling.Enabled {
 		clusterNodesBuilder := cmv1.NewClusterNodes()
 		if config.ComputeMachineType != "" {
@@ -283,7 +283,7 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 	}
 
 	// Scale cluster
-	if config.ComputeNodes != 0 || config.Autoscaling.Enabled {
+	if config.ComputeNodes > 0 || config.Autoscaling.Enabled {
 		clusterBuilder = clusterBuilder.Nodes(buildCompute(config, cmv1.NewClusterNodes()))
 	}
 
@@ -325,7 +325,7 @@ func buildCompute(config Spec, clusterNodesBuilder *cmv1.ClusterNodesBuilder) *c
 			autoscalingBuilder = autoscalingBuilder.MaxReplicas(config.Autoscaling.MaxReplicas)
 		}
 		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscalingBuilder)
-	} else if config.ComputeNodes != 0 {
+	} else if config.ComputeNodes > 0 {
 		clusterNodesBuilder = clusterNodesBuilder.Compute(config.ComputeNodes)
 	}
 	return clusterNodesBuilder
