@@ -61,7 +61,7 @@ func init() {
 		&args.replicas,
 		"replicas",
 		-1,
-		"Restrict application route to direct, private connectivity.",
+		"Count of machines for this machine pool.",
 	)
 
 	arguments.AddAutoscalingFlags(flags, &args.autoscaling)
