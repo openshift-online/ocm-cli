@@ -93,7 +93,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	sshuttleArgs := []string{
-		"--remote", sshURL,
+		"--dns", "--remote", sshURL,
 		cluster.Network().MachineCIDR(),
 		cluster.Network().ServiceCIDR(),
 		cluster.Network().PodCIDR(),
