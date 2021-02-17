@@ -35,12 +35,14 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/describe"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/get"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/hibernate"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/login"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/logout"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/patch"
 	plugincmd "github.com/openshift-online/ocm-cli/cmd/ocm/plugin"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/post"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/resume"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/token"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/tunnel"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/version"
@@ -91,6 +93,8 @@ func init() {
 	root.AddCommand(whoami.Cmd)
 	root.AddCommand(config.Cmd)
 	root.AddCommand(plugincmd.Cmd)
+	root.AddCommand(hibernate.Cmd)
+	root.AddCommand(resume.Cmd)
 }
 
 func main() {
