@@ -32,7 +32,7 @@ import (
 )
 
 var args struct {
-	hostOnly bool
+	useSubnets bool
 }
 
 var Cmd = &cobra.Command{
@@ -50,11 +50,12 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.BoolVarP(
-		&args.hostOnly,
-		"host-only",
+		&args.useSubnets,
+		"subnets",
 		"",
 		false,
-		"Only tunnel to the IPs of console and api server, instead of the whole subnet.",
+		"If specified, tunnel the entire subnets of MachineCIDR, ServiceCIDR and PodCIDR. "+
+			"Otherwise, only tunnel to the IPs of console and API Servers. ",
 	)
 }
 
@@ -110,7 +111,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		"--dns", "--remote", sshURL,
 	}
 
-	if args.hostOnly {
+	if args.useSubnets {
+		sshuttleArgs = append(sshuttleArgs,
+			cluster.Network().MachineCIDR(),
+			cluster.Network().ServiceCIDR(),
+			cluster.Network().PodCIDR())
+	} else {
 		consoleIPs, err := resolveURL(cluster.Console().URL())
 		if err != nil {
 			return fmt.Errorf("can't get console IPs: %s", err)
@@ -122,11 +128,6 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		sshuttleArgs = append(sshuttleArgs, consoleIPs...)
 		sshuttleArgs = append(sshuttleArgs, apiIPs...)
-	} else {
-		sshuttleArgs = append(sshuttleArgs,
-			cluster.Network().MachineCIDR(),
-			cluster.Network().ServiceCIDR(),
-			cluster.Network().PodCIDR())
 	}
 	sshuttleArgs = append(sshuttleArgs, argv[1:]...)
 
