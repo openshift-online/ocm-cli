@@ -33,6 +33,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 
 	"github.com/openshift-online/ocm-cli/pkg/debug"
+	"github.com/openshift-online/ocm-cli/pkg/info"
 )
 
 // Config is the type used to store the configuration of the client.
@@ -202,6 +203,7 @@ func (c *Config) Connection() (connection *sdk.Connection, err error) {
 	// values in the configuration, so that default values won't be overridden:
 	builder := sdk.NewConnectionBuilder()
 	builder.Logger(logger)
+	builder.Agent("OCM-CLI/" + info.Version)
 	if c.TokenURL != "" {
 		builder.TokenURL(c.TokenURL)
 	}
