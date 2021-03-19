@@ -18,6 +18,8 @@ package tunnel
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
@@ -28,6 +30,10 @@ import (
 	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 )
+
+var args struct {
+	useSubnets bool
+}
 
 var Cmd = &cobra.Command{
 	Use:   "tunnel [flags] {CLUSTERID|CLUSTER_NAME|CLUSTER_NAME_SEARCH} -- [sshuttle arguments]",
@@ -42,6 +48,15 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
+	flags := Cmd.Flags()
+	flags.BoolVarP(
+		&args.useSubnets,
+		"subnets",
+		"",
+		false,
+		"If specified, tunnel the entire subnets of MachineCIDR, ServiceCIDR and PodCIDR. "+
+			"Otherwise, only tunnel to the IPs of console and API Servers. ",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -94,9 +109,25 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	sshuttleArgs := []string{
 		"--dns", "--remote", sshURL,
-		cluster.Network().MachineCIDR(),
-		cluster.Network().ServiceCIDR(),
-		cluster.Network().PodCIDR(),
+	}
+
+	if args.useSubnets {
+		sshuttleArgs = append(sshuttleArgs,
+			cluster.Network().MachineCIDR(),
+			cluster.Network().ServiceCIDR(),
+			cluster.Network().PodCIDR())
+	} else {
+		consoleIPs, err := resolveURL(cluster.Console().URL())
+		if err != nil {
+			return fmt.Errorf("can't get console IPs: %s", err)
+		}
+		apiIPs, err := resolveURL(cluster.API().URL())
+		if err != nil {
+			return fmt.Errorf("can't get api server IPs: %s", err)
+		}
+
+		sshuttleArgs = append(sshuttleArgs, consoleIPs...)
+		sshuttleArgs = append(sshuttleArgs, apiIPs...)
 	}
 	sshuttleArgs = append(sshuttleArgs, argv[1:]...)
 
@@ -128,4 +159,21 @@ func generateSSHURI(cluster *clustersmgmtv1.Cluster) (string, error) {
 	}
 
 	return "sre-user@rh-ssh." + base, nil
+}
+
+func resolveURL(rawurl string) ([]string, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, fmt.Errorf("can't parse url: %s", err)
+	}
+	hostname := u.Hostname()
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return nil, fmt.Errorf("failed looking up %s: %s", hostname, err)
+	}
+	result := []string{}
+	for _, ip := range ips {
+		result = append(result, ip.String())
+	}
+	return result, nil
 }
