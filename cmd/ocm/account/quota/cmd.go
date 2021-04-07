@@ -105,13 +105,14 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return fmt.Errorf("Can't retrieve organization information: %v", err)
 	}
-	quotaClient := orgCollection.QuotaSummary()
+	quotaClient := orgCollection.QuotaCost()
 
 	// Simple output:
 	if !args.json {
 
 		// Request
-		quotasListResponse, err := quotaClient.List().
+		quotasCostListResponse, err := quotaClient.List().
+			Parameter("fetchRelatedResources", true).
 			Send()
 		if err != nil {
 			return fmt.Errorf("Failed to retrieve quota: %v", err)
@@ -120,13 +121,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		// Display quota information:
 		fmt.Printf("Cluster quota for organization '%s' ID: '%s'\n",
 			orgResponse.Body().Name(), orgResponse.Body().ID())
-		quotasListResponse.Items().Each(func(quota *amv1.QuotaSummary) bool {
-			var byoc string
-			if quota.BYOC() {
-				byoc = " BYOC"
-			}
-			fmt.Printf("%d/%d %s %s%s\n", quota.Reserved(), quota.Allowed(), quota.ResourceName(),
-				strings.ToUpper(quota.AvailabilityZoneType()), byoc)
+		quotasCostListResponse.Items().Each(func(quotaCost *amv1.QuotaCost) bool {
+			quotaCostRelatedResources := quotaCost.RelatedResources()[0]
+			byoc := quotaCostRelatedResources.BYOC()
+
+			fmt.Printf("%d %s %s %s\n", quotaCost.Allowed(), quotaCostRelatedResources.ResourceName(),
+				strings.ToUpper(quotaCostRelatedResources.AvailabilityZoneType()), strings.ToUpper(byoc))
 			return true
 		})
 
