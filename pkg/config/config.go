@@ -154,7 +154,7 @@ func (c *Config) Armed() (armed bool, err error) {
 		if err != nil {
 			return
 		}
-		expires, left, err = sdk.GetTokenExpiry(accessToken, now)
+		expires, left, err = tokenExpiry(accessToken, now)
 		if err != nil {
 			return
 		}
@@ -171,7 +171,7 @@ func (c *Config) Armed() (armed bool, err error) {
 		if err != nil {
 			return
 		}
-		expires, left, err = sdk.GetTokenExpiry(refreshToken, now)
+		expires, left, err = tokenExpiry(refreshToken, now)
 		if err != nil {
 			return
 		}
@@ -248,4 +248,31 @@ func parseToken(textToken string) (token *jwt.Token, err error) {
 		return
 	}
 	return token, nil
+}
+
+// tokenExpiry determines if the given token expires, and the time that remains till it expires.
+func tokenExpiry(token *jwt.Token, now time.Time) (expires bool,
+	left time.Duration, err error) {
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		err = fmt.Errorf("expected map claims bug got %T", claims)
+		return
+	}
+	var exp float64
+	claim, ok := claims["exp"]
+	if ok {
+		exp, ok = claim.(float64)
+		if !ok {
+			err = fmt.Errorf("expected floating point 'exp' but got %T", claim)
+			return
+		}
+	}
+	if exp == 0 {
+		expires = false
+		left = 0
+	} else {
+		expires = true
+		left = time.Unix(int64(exp), 0).Sub(now)
+	}
+	return
 }
