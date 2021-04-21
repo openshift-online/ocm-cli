@@ -38,6 +38,7 @@ var args struct {
 	header    []string
 	managed   bool
 	step      bool
+	noHeaders bool
 	columns   string
 	padding   int
 }
@@ -67,6 +68,12 @@ func init() {
 		"step",
 		false,
 		"Load pages one step at a time",
+	)
+	fs.BoolVar(
+		&args.noHeaders,
+		"no-headers",
+		false,
+		"Don't print header row",
 	)
 	fs.StringVar(
 		&args.columns,
@@ -112,8 +119,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		paddingByColumn = []int{args.padding}
 	}
 
-	// Print Header Row:
-	table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
+	// Unless noHeaders set, print header row:
+	if !args.noHeaders {
+		table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
+	}
 
 	size := 100
 	index := 1
