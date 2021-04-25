@@ -32,6 +32,8 @@ var args struct {
 
 	// Networking options
 	private bool
+
+	channelGroup string
 }
 
 var Cmd = &cobra.Command{
@@ -84,6 +86,13 @@ func init() {
 		"Restrict master API endpoint to direct, private connectivity.",
 	)
 
+	flags.StringVar(
+		&args.channelGroup,
+		"channel-group",
+		"",
+		"The channel group which the cluster version belongs to.",
+	)
+
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -125,9 +134,15 @@ func run(cmd *cobra.Command, argv []string) error {
 		private = &args.private
 	}
 
+	var channelGroup string
+	if cmd.Flags().Changed("channel-group") {
+		channelGroup = args.channelGroup
+	}
+
 	clusterConfig := c.Spec{
-		Expiration: expiration,
-		Private:    private,
+		Expiration:   expiration,
+		Private:      private,
+		ChannelGroup: channelGroup,
 	}
 	err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
 	if err != nil {
