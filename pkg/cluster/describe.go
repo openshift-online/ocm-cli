@@ -130,6 +130,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"ID:            %s\n"+
 		"External ID:   %s\n"+
 		"Name:          %s\n"+
+		"State:         %s\n"+
 		"API URL:       %s\n"+
 		"API Listening: %s\n"+
 		"Console URL:   %s\n"+
@@ -152,6 +153,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
+		cluster.State(),
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
