@@ -38,14 +38,15 @@ const (
 // Spec is the configuration for a cluster spec.
 type Spec struct {
 	// Basic configs
-	Name       string
-	Region     string
-	Provider   string
-	CCS        CCS
-	Flavour    string
-	MultiAZ    bool
-	Version    string
-	Expiration time.Time
+	Name         string
+	Region       string
+	Provider     string
+	CCS          CCS
+	Flavour      string
+	MultiAZ      bool
+	Version      string
+	ChannelGroup string
+	Expiration   time.Time
 
 	// Scaling config
 	ComputeMachineType string
@@ -300,6 +301,10 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 					Listening(cmv1.ListeningMethodExternal),
 			)
 		}
+	}
+
+	if config.ChannelGroup != "" {
+		clusterBuilder = clusterBuilder.Version(cmv1.NewVersion().ChannelGroup(config.ChannelGroup))
 	}
 
 	clusterSpec, err := clusterBuilder.Build()
