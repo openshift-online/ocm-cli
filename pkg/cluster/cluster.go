@@ -161,13 +161,9 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		).
 		Properties(clusterProperties)
 
-	if config.Version != "" {
-		clusterBuilder = clusterBuilder.Version(
-			cmv1.NewVersion().
-				ID(config.Version),
-		)
-
-	}
+	clusterBuilder = clusterBuilder.Version(
+		cmv1.NewVersion().
+			ID(config.Version).ChannelGroup(config.ChannelGroup))
 
 	if config.ComputeMachineType != "" || config.ComputeNodes > 0 ||
 		config.Autoscaling.Enabled {
