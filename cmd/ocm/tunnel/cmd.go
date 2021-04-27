@@ -108,7 +108,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	sshuttleArgs := []string{
-		"--dns", "--remote", sshURL,
+		"--remote", sshURL,
 	}
 
 	if args.useSubnets {
