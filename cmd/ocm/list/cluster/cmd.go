@@ -104,7 +104,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	colUpper := strings.ToUpper(args.columns)
 	colUpper = strings.Replace(colUpper, ".", " ", -1)
 	columnNames := strings.Split(colUpper, ",")
-	paddingByColumn := []int{34, 40, 60, 20}
+	paddingByColumn := []int{34, 30, 60, 20, 16}
 	if args.padding != -1 {
 		if args.padding < 2 {
 			return fmt.Errorf("Padding flag needs to be an integer greater than 2")
