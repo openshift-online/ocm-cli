@@ -47,27 +47,49 @@ func run(cmd *cobra.Command, argv []string) error {
 	resource := connection.ClustersMgmt().V1().Clusters()
 
 	// Get the resource that manages the cluster that we want to display:
-	clusterResource := resource.Cluster(argv[0])
+	clusterID := argv[0]
+	clusterResource := resource.Cluster(clusterID)
 
 	// Retrieve the collection of clusters:
-	response, err := clusterResource.Get().
-		Send()
+	response, err := clusterResource.Get().Send()
 	if err != nil {
 		return fmt.Errorf("Can't retrieve clusters: %s", err)
 	}
 
 	cluster := response.Body()
 
-	//Get data out of the response
-	clusterMemory := cluster.Metrics().Memory()
-	clusterCPU := cluster.Metrics().CPU()
+	// Get data out of the response
+	state := cluster.State()
+
+	// Fetch metrics from AMS
+	search := fmt.Sprintf("cluster_id = '%s'", clusterID)
+	subsList, err := connection.AccountsMgmt().V1().Subscriptions().List().Search(search).Send()
+	if err != nil {
+		return fmt.Errorf("Can't retrieve subscriptions: %s", err)
+	}
+	size, ok := subsList.GetSize()
+	if !ok || size == 0 {
+		fmt.Printf("State: %s\n", state)
+		return nil
+	}
+
+	sub := subsList.Items().Get(0)
+	metrics, ok := sub.GetMetrics()
+	if !ok {
+		// No metrics
+		fmt.Printf("State: %s\n", state)
+		return nil
+	}
+
+	clusterMemory := metrics[0].Memory()
+	clusterCPU := metrics[0].Cpu()
 	memUsed := clusterMemory.Used().Value() / 1000000000
 	memTotal := clusterMemory.Total().Value() / 1000000000
 
 	fmt.Printf("State:   %s\n"+
 		"Memory:  %.2f/%.2f used\n"+
 		"CPU:     %.2f/%.2f used\n",
-		cluster.State(),
+		state,
 		memUsed, memTotal,
 		clusterCPU.Used().Value(), clusterCPU.Total().Value(),
 	)
