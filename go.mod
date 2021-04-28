@@ -13,7 +13,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
-	github.com/openshift-online/ocm-sdk-go v0.1.168
+	github.com/openshift-online/ocm-sdk-go v0.1.171
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
