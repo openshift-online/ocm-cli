@@ -46,6 +46,7 @@ var args struct {
 
 	region                string
 	version               string
+	channelGroup          string
 	flavour               string
 	provider              string
 	expirationTime        string
@@ -116,6 +117,13 @@ func init() {
 	)
 	arguments.SetQuestion(fs, "version", "OpenShift version:")
 	Cmd.RegisterFlagCompletionFunc("version", arguments.MakeCompleteFunc(getVersionOptions))
+
+	fs.StringVar(
+		&args.channelGroup,
+		"channel-group",
+		"",
+		"The channel group to create the cluster at (for example, \"stable\")",
+	)
 
 	fs.StringVar(
 		&args.flavour,
@@ -356,6 +364,10 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	if cmd.Flags().Changed("channel-group") && !cmd.Flags().Changed("version") {
+		return fmt.Errorf("Version is required for channel group '%s'", args.channelGroup)
+	}
+
 	// Retrieve valid flavours
 	flavours, err := getFlavourOptions(connection)
 	if err != nil {
@@ -433,6 +445,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Flavour:            args.flavour,
 		MultiAZ:            args.multiAZ,
 		Version:            clusterVersion,
+		ChannelGroup:       args.channelGroup,
 		Expiration:         expiration,
 		ComputeMachineType: args.computeMachineType,
 		ComputeNodes:       args.computeNodes,
