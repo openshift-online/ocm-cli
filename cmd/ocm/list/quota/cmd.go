@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,11 +20,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
-	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
 
@@ -34,12 +35,11 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:        "quota",
-	Short:      "Retrieve cluster quota information.",
-	Long:       "Retrieve cluster quota information of a specific organization.",
-	Args:       cobra.NoArgs,
-	Deprecated: "please use `ocm list quota` command",
-	RunE:       run,
+	Use:   "quota",
+	Short: "Retrieve cluster quota information.",
+	Long:  "Retrieve cluster quota information of a specific organization.",
+	Args:  cobra.NoArgs,
+	RunE:  run,
 }
 
 func init() {
@@ -60,35 +60,13 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-
-	// Load the configuration file:
-	cfg, err := config.Load()
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
-	}
-	if cfg == nil {
-		return fmt.Errorf("Not logged in, run the 'login' command")
-	}
-
-	// Check that the configuration has credentials or tokens that haven't have expired:
-	armed, err := cfg.Armed()
-	if err != nil {
-		return fmt.Errorf("Can't check if tokens have expired: %v", err)
-	}
-	if !armed {
-		return fmt.Errorf("Tokens have expired, run the 'login' command")
-	}
-
-	// Create the connection, and remember to close it:
-	connection, err := cfg.Connection()
-	if err != nil {
-		return fmt.Errorf("Can't create connection: %v", err)
+		return fmt.Errorf("Failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
-
 	orgID := args.org
 
-	// Organization to search in case one was not provided:
 	if args.org == "" {
 		// Get organization of current user:
 		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
@@ -100,44 +78,43 @@ func run(cmd *cobra.Command, argv []string) error {
 		orgID = userOrg.ID()
 	}
 
-	// Get connection
 	orgCollection := connection.AccountsMgmt().V1().Organizations().Organization(orgID)
-	orgResponse, err := orgCollection.Get().Send()
 	if err != nil {
 		return fmt.Errorf("Can't retrieve organization information: %v", err)
 	}
-	quotaClient := orgCollection.QuotaCost()
 
-	// Simple output:
+	quotaClient := orgCollection.QuotaSummary()
+
 	if !args.json {
-
-		// Request
-		quotasCostListResponse, err := quotaClient.List().
+		quotasListResponse, err := quotaClient.List().
 			Parameter("fetchRelatedResources", true).
 			Send()
 		if err != nil {
 			return fmt.Errorf("Failed to retrieve quota: %v", err)
 		}
+		writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		fmt.Fprintf(
+			writer,
+			"RESERVED/ALLOWED\t\tRESOURCE NAME\t\tRESOURCE TYPE\t\tAVAILABILITY ZONE\t\tCCS\n")
 
-		// Display quota information:
-		fmt.Printf("Cluster quota for organization '%s' ID: '%s'\n",
-			orgResponse.Body().Name(), orgResponse.Body().ID())
-		quotasCostListResponse.Items().Each(func(quotaCost *amv1.QuotaCost) bool {
-			quotaCostRelatedResources := quotaCost.RelatedResources()[0]
-			byoc := quotaCostRelatedResources.BYOC()
-
-			fmt.Printf("%d %s %s %s\n", quotaCost.Allowed(), quotaCostRelatedResources.ResourceName(),
-				strings.ToUpper(quotaCostRelatedResources.AvailabilityZoneType()), strings.ToUpper(byoc))
+		quotasListResponse.Items().Each(func(quota *amv1.QuotaSummary) bool {
+			fmt.Fprintf(writer, "%d/%d\t\t%s\t\t%s\t\t%s\t\t%t\n", quota.Reserved(), quota.Allowed(), quota.ResourceName(),
+				quota.ResourceType(), strings.ToUpper(quota.AvailabilityZoneType()), quota.BYOC())
 			return true
 		})
 
-		return nil
+		err = writer.Flush()
+		if err != nil {
+			return nil
+		}
 
+		return nil
 	}
 
 	// TODO: Do this without hard-code; could not find any marshall method
 	jsonDisplay, err := connection.Get().Path(
 		fmt.Sprintf("/api/accounts_mgmt/v1/organizations/%s/resource_quota", orgID)).
+		Parameter("fetchRelatedResources", true).
 		Send()
 	if err != nil {
 		return fmt.Errorf("Failed to get resource quota: %v", err)
