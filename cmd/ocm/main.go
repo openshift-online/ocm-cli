@@ -36,6 +36,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/get"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/hibernate"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/jobs"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/login"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/logout"
@@ -95,6 +96,7 @@ func init() {
 	root.AddCommand(plugincmd.Cmd)
 	root.AddCommand(hibernate.Cmd)
 	root.AddCommand(resume.Cmd)
+	root.AddCommand(jobs.Cmd)
 }
 
 func main() {
