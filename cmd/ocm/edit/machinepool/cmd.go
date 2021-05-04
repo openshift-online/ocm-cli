@@ -157,6 +157,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	isMinReplicasSet := cmd.Flags().Changed("min-replicas")
+	isMaxReplicasSet := cmd.Flags().Changed("max-replicas")
 	isReplicasSet := cmd.Flags().Changed("replicas")
 
 	// Editing the default machine pool is a different process
@@ -195,10 +196,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	if args.autoscaling.Enabled {
 		asBuilder := cmv1.NewMachinePoolAutoscaling()
 
-		if args.autoscaling.MinReplicas > 0 {
+		if isMinReplicasSet {
 			asBuilder = asBuilder.MinReplicas(args.autoscaling.MinReplicas)
 		}
-		if args.autoscaling.MaxReplicas > 0 {
+		if isMaxReplicasSet {
 			asBuilder = asBuilder.MaxReplicas(args.autoscaling.MaxReplicas)
 		}
 
