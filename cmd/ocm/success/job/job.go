@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fail
+package job
 
 import (
 	"fmt"
@@ -24,12 +24,11 @@ import (
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:     "failure QUEUE_NAME JOB_ID RECEIPT_ID FAILURE_REASON",
-	Aliases: []string{"fail"},
-	Short:   "Mark the new Job as a failure",
-	Long:    "Mark the new Job as a failure with specific reason on the specified Job Queue.",
-	Args:    cobra.ExactArgs(4),
-	RunE:    run,
+	Use:   "job QUEUE_NAME JOB_ID RECEIPT_ID",
+	Short: "Mark the Job as a success",
+	Long:  "Mark the Job as a success on the specified Job Queue.",
+	Args:  cobra.ExactArgs(3),
+	RunE:  run,
 }
 
 func run(_ *cobra.Command, argv []string) error {
@@ -46,9 +45,9 @@ func run(_ *cobra.Command, argv []string) error {
 	client := connection.JobQueue().V1()
 
 	// Send a request to Success a Job:
-	_, err = client.Queues().Queue(argv[0]).Jobs().Job(argv[1]).Failure().ReceiptId(argv[2]).FailureReason(argv[3]).Send()
+	_, err = client.Queues().Queue(argv[0]).Jobs().Job(argv[1]).Success().ReceiptId(argv[2]).Send()
 	if err != nil {
-		return fmt.Errorf("unable to fail a Job: %v", err)
+		return fmt.Errorf("unable to success a job: %v", err)
 	}
 
 	return nil

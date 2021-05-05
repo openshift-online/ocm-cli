@@ -14,30 +14,42 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pop
+package job
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	v1 "github.com/openshift-online/ocm-sdk-go/jobqueue/v1"
+	"github.com/openshift-online/ocm-sdk-go/jobqueue/v1"
 )
+
+var args struct {
+	parameter []string
+}
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
-	Use:   "pop QUEUE_NAME",
-	Short: "Pop (i.e. fetch) a new Job",
-	Long:  "Fetch a jobs from the specified Job Queue.",
+	Use:   "job QUEUE_NAME",
+	Short: "Push (i.e. create) a new Job",
+	Long:  "Create a new Job on the specified Job Queue.",
 	Args:  cobra.ExactArgs(1),
 	RunE:  run,
 }
 
+func init() {
+	// Add flags to rootCmd:
+	flags := Cmd.Flags()
+	arguments.AddParameterFlag(flags, &args.parameter)
+}
+
 func run(_ *cobra.Command, argv []string) error {
 	var (
-		pop *v1.QueuePopResponse
-		err error
+		push *v1.QueuePushResponse
+		err  error
 	)
 
 	// Create the client for the OCM API:
@@ -50,33 +62,30 @@ func run(_ *cobra.Command, argv []string) error {
 	// Get the client for the Job Queue management api
 	client := connection.JobQueue().V1()
 
-	// Send a request to create the Job:
-	pop, err = client.Queues().Queue(argv[0]).Pop().Send()
-	if err != nil {
-		if pop != nil && pop.Status() == 204 {
-			// No Content
-			fmt.Printf("No jobs found\n")
-			return nil
+	// Send a request to create a Job:
+	request := client.Queues().Queue(argv[0]).Push()
+	for _, arg := range args.parameter {
+		if strings.HasPrefix(arg, "Arguments") {
+			params := strings.Split(arg, "=")
+			// Apply parameters
+			request.Arguments(params[1])
 		}
-		return fmt.Errorf("unable to fetch Job: %v", err)
+	}
+	push, err = request.Send()
+	if err != nil {
+		return fmt.Errorf("unable to create Job: %v", err)
 	}
 	fmt.Printf("{\n"+
 		"  \"id\": \"%s\",\n"+
 		"  \"kind\": \"Job\",\n"+
 		"  \"href\": \"%s\",\n"+
-		"  \"attempts\": \"%d\",\n"+
-		"  \"abandoned_at\": \"%s\",\n"+
+		"  \"arguments\": \"%s\",\n"+
 		"  \"created_at\": \"%s\",\n"+
-		"  \"updated_at\": \"%s\",\n"+
-		"  \"receipt_id\": \"%s\",\n"+
 		"}",
-		pop.ID(),
-		pop.HREF(),
-		pop.Attempts(),
-		pop.AbandonedAt(),
-		pop.CreatedAt(),
-		pop.UpdatedAt(),
-		pop.ReceiptId(),
+		push.ID(),
+		push.HREF(),
+		push.Arguments(),
+		push.CreatedAt(),
 	)
 
 	return nil
