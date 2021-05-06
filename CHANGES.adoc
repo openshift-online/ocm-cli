@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.49 May 4 2021
+- Update ocm-sdk-go to 0.1.173
+- Commands for Job Queues
+
 == 0.1.48 Mar 10 2021
 - Add support for hibernate / resume cluster.
 - Add flag to sshuttle.

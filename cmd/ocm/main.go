@@ -34,6 +34,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/describe"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/fail"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/get"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/hibernate"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list"
@@ -41,8 +42,11 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/logout"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/patch"
 	plugincmd "github.com/openshift-online/ocm-cli/cmd/ocm/plugin"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/pop"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/post"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/push"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/resume"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/success"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/token"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/tunnel"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/version"
@@ -75,26 +79,30 @@ func init() {
 
 	// Register the subcommands:
 	root.AddCommand(account.Cmd)
+	root.AddCommand(cluster.Cmd)
+	root.AddCommand(completion.Cmd)
+	root.AddCommand(config.Cmd)
 	root.AddCommand(create.Cmd)
 	root.AddCommand(delete.Cmd)
 	root.AddCommand(describe.Cmd)
 	root.AddCommand(edit.Cmd)
+	root.AddCommand(fail.Cmd)
 	root.AddCommand(get.Cmd)
+	root.AddCommand(hibernate.Cmd)
 	root.AddCommand(list.Cmd)
 	root.AddCommand(login.Cmd)
 	root.AddCommand(logout.Cmd)
 	root.AddCommand(patch.Cmd)
+	root.AddCommand(plugincmd.Cmd)
 	root.AddCommand(post.Cmd)
+	root.AddCommand(pop.Cmd)
+	root.AddCommand(push.Cmd)
+	root.AddCommand(resume.Cmd)
+	root.AddCommand(success.Cmd)
 	root.AddCommand(token.Cmd)
 	root.AddCommand(tunnel.Cmd)
 	root.AddCommand(version.Cmd)
-	root.AddCommand(cluster.Cmd)
-	root.AddCommand(completion.Cmd)
 	root.AddCommand(whoami.Cmd)
-	root.AddCommand(config.Cmd)
-	root.AddCommand(plugincmd.Cmd)
-	root.AddCommand(hibernate.Cmd)
-	root.AddCommand(resume.Cmd)
 }
 
 func main() {
