@@ -6,6 +6,13 @@ This document describes the relevant changes between releases of the
 == 0.1.49 May 4 2021
 - Update ocm-sdk-go to 0.1.173
 - Commands for Job Queues
+- Convert ocm account quota to ocm list quota command
+- Support creating clusters in different channel groups
+- Edit cluster channel group
+- Adjust column padding for `list clusters`
+- Add flag to suppress printing of headers
+- Add cluster state to `describe cluster` command
+- Allow autoscaling non-default machine pool with 0 replicas
 
 == 0.1.48 Mar 10 2021
 - Add support for hibernate / resume cluster.
