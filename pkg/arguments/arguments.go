@@ -252,14 +252,7 @@ func applyNVFlag(request interface{}, method string, values []string) {
 	// Split the values into name value pairs and call the method for each one:
 	for _, value := range values {
 		var name string
-		position := strings.Index(value, "=")
-		if position != -1 {
-			name = value[:position]
-			value = value[position+1:]
-		} else {
-			name = value
-			value = ""
-		}
+		name, value = ParseNameValuePair(value)
 		args := []reflect.Value{
 			reflect.ValueOf(name),
 			reflect.ValueOf(value),
@@ -306,4 +299,17 @@ func ApplyPathArg(request *sdk.Request, value string) error {
 
 func Split(r rune) bool {
 	return r == '=' || r == ':'
+}
+
+// ParseNameValuePair parses a name value pair.
+func ParseNameValuePair(text string) (name, value string) {
+	position := strings.Index(text, "=")
+	if position != -1 {
+		name = strings.TrimSpace(text[:position])
+		value = text[position+1:]
+	} else {
+		name = strings.TrimSpace(text)
+		value = ""
+	}
+	return
 }
