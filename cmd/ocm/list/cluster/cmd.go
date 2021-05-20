@@ -97,14 +97,54 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	defer connection.Close()
 
-	// Get the client for the resource that manages the collection of clusters:
-	ocmClient := connection.ClustersMgmt().V1().Clusters()
+	// This will contain the terms used to construct the search query:
+	var searchTerms []string
 
 	// If there is a parameter specified, assume its a filter:
-	var argFilter string
 	if len(argv) == 1 && argv[0] != "" {
-		argFilter = fmt.Sprintf("(name like '%%%s%%' or id like '%%%s%%')", argv[0], argv[0])
+		term := fmt.Sprintf("name like '%%%s%%' or id like '%%%s%%'", argv[0], argv[0])
+		searchTerms = append(searchTerms, term)
 	}
+
+	// Add the search term for the `--managed` flag:
+	if cmd.Flags().Changed("managed") {
+		var value string
+		if args.managed {
+			value = "t"
+		} else {
+			value = "f"
+		}
+		term := fmt.Sprintf("managed = '%s'", value)
+		searchTerms = append(searchTerms, term)
+	}
+
+	// If the `search` parameter has been specified with the `--parameter` flag then we have to
+	// remove it and add the values to the list of search terms, otherwise we will be sending
+	// multiple `search` query parameters and the server will ignore all but one of them. Note
+	// that this modification of the `search` parameter isn't applicable in general, as other
+	// endpoints may assign a different meaning to the `search` parameter, so be careful if you
+	// try to apply this in other places.
+	var cleanParameters []string
+	for _, parameter := range args.parameter {
+		name, value := arguments.ParseNameValuePair(parameter)
+		if name == "search" {
+			searchTerms = append(searchTerms, value)
+		} else {
+			cleanParameters = append(cleanParameters, parameter)
+		}
+	}
+	args.parameter = cleanParameters
+
+	// If there are more than one search term then we need to soround each of them with
+	// parenthesis before joining them with the `and` connective.
+	if len(searchTerms) > 1 {
+		for i, term := range searchTerms {
+			searchTerms[i] = fmt.Sprintf("(%s)", term)
+		}
+	}
+
+	// Join all the search terms using the `and` connective:
+	searchQuery := strings.Join(searchTerms, " and ")
 
 	// Update our column name and padding variables:
 	args.columns = strings.Replace(args.columns, " ", "", -1)
@@ -124,43 +164,19 @@ func run(cmd *cobra.Command, argv []string) error {
 		table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
 	}
 
+	// Create the request. Note that this request can be created outside of the loop and used
+	// for all the iterations just changing the values of the `size` and `page` parameters.
+	request := connection.ClustersMgmt().V1().Clusters().List().Search(searchQuery)
+	arguments.ApplyParameterFlag(request, args.parameter)
+	arguments.ApplyHeaderFlag(request, args.header)
+
+	// Send the request till we receive a page with less items than requested:
 	size := 100
 	index := 1
 	for {
 		// Fetch the next page:
-		request := ocmClient.List().Size(size).Page(index)
-		arguments.ApplyParameterFlag(request, args.parameter)
-		arguments.ApplyHeaderFlag(request, args.header)
-		var search strings.Builder
-		if cmd.Flags().Changed("managed") {
-			if search.Len() > 0 {
-				_, err = search.WriteString(" and ")
-				if err != nil {
-					return fmt.Errorf("Can't write to string: %v", err)
-				}
-			}
-			if args.managed {
-				_, err = search.WriteString("managed = 't'")
-			} else {
-				_, err = search.WriteString("managed = 'f'")
-			}
-			if err != nil {
-				return fmt.Errorf("Can't write to string: %v", err)
-			}
-		}
-		if argFilter != "" {
-			if search.Len() > 0 {
-				_, err = search.WriteString(" and ")
-				if err != nil {
-					return fmt.Errorf("Can't write to string: %v", err)
-				}
-			}
-			_, err = search.WriteString(argFilter)
-			if err != nil {
-				return fmt.Errorf("Can't write to string: %v", err)
-			}
-		}
-		request.Search(strings.TrimSpace(search.String()))
+		request.Size(size)
+		request.Page(index)
 		response, err := request.Send()
 		if err != nil {
 			return fmt.Errorf("Can't retrieve clusters: %v", err)
