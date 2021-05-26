@@ -418,19 +418,16 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 	}
 	organization := acctResponse.Body().Organization().ID()
 
-	// Get a list of add-on quotas for the current organization
-	resourceQuotasResponse, err := connection.AccountsMgmt().V1().Organizations().
-		Organization(organization).
-		ResourceQuota().
+	// Get a list of quota-cost for the current organization
+	quotaCostResponse, err := connection.AccountsMgmt().V1().Organizations().
+		Organization(organization).QuotaCost().
 		List().
-		Search("resource_type='addon'").
-		Page(1).
-		Size(-1).
+		Parameter("fetchRelatedResources", true).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get add-ons: %v", err)
+		return nil, fmt.Errorf("Failed to get quota-cost: %v", err)
 	}
-	resourceQuotas := resourceQuotasResponse.Items()
+	quotaCosts := quotaCostResponse.Items()
 
 	// Get complete list of enabled add-ons
 	addOnsResponse, err := connection.ClustersMgmt().V1().Addons().
@@ -470,9 +467,14 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 			}
 
 			// Only display add-ons for which the org has quota
-			resourceQuotas.Each(func(resourceQuota *amsv1.ResourceQuota) bool {
-				if addOn.ResourceName() == resourceQuota.ResourceName() {
-					clusterAddOn.Available = float64(resourceQuota.SkuCount()) >= addOn.ResourceCost()
+			quotaCosts.Each(func(quotaCost *amsv1.QuotaCost) bool {
+				relatedResources := quotaCost.RelatedResources()
+				for _, relatedResource := range relatedResources {
+					if relatedResource.ResourceType() == "add-on" &&
+						addOn.ResourceName() == relatedResource.ResourceName() {
+						clusterAddOn.Available = true
+						break
+					}
 				}
 				return true
 			})
