@@ -125,6 +125,11 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		}
 	}
 
+	privateLinkEnabled := false
+	if cluster.CloudProvider().ID() == ProviderAWS && cluster.AWS() != nil {
+		privateLinkEnabled = cluster.AWS().PrivateLink()
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:            %s\n"+
@@ -143,6 +148,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Region:        %s\n"+
 		"Multi-az:      %t\n"+
 		"CCS:           %t\n"+
+		"PrivateLink:   %t\n"+
 		"Channel Group: %v\n"+
 		"Cluster Admin: %t\n"+
 		"Organization:  %s\n"+
@@ -166,6 +172,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
 		cluster.CCS().Enabled(),
+		privateLinkEnabled,
 		cluster.Version().ChannelGroup(),
 		clusterAdminEnabled,
 		organization,
