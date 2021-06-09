@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -41,14 +42,18 @@ func EnsureOpenshiftVPrefix(v string) string {
 // GetEnabledVersions returns the versions with enabled=true, and the one that has default=true.
 // The returned strings are the IDs without "openshift-v" prefix (e.g. "4.6.0-rc.4-candidate")
 // sorted in approximate SemVer order (handling of text parts is somewhat arbitrary).
-func GetEnabledVersions(client *cmv1.Client) (
+func GetEnabledVersions(client *cmv1.Client, channelGroup string) (
 	versions []string, defaultVersion string, err error) {
 	collection := client.Versions()
 	page := 1
 	size := 100
+	filter := "enabled = 'true'"
+	if channelGroup != "" {
+		filter = fmt.Sprintf("%s AND channel_group = '%s'", filter, channelGroup)
+	}
 	for {
 		response, err := collection.List().
-			Search("enabled = 'true'").
+			Search(filter).
 			Page(page).
 			Size(size).
 			Send()

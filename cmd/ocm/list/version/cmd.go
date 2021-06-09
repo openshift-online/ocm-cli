@@ -26,6 +26,7 @@ import (
 
 var args struct {
 	defaultVersion bool
+	channelGroup   string
 }
 
 var Cmd = &cobra.Command{
@@ -48,6 +49,12 @@ func init() {
 		false,
 		"Show only the default version",
 	)
+	fs.StringVar(
+		&args.channelGroup,
+		"channel-group",
+		"stable",
+		"List only versions from the specified channel group",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -59,7 +66,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	defer connection.Close()
 
 	client := connection.ClustersMgmt().V1()
-	versions, defaultVersion, err := cluster.GetEnabledVersions(client)
+	versions, defaultVersion, err := cluster.GetEnabledVersions(client, args.channelGroup)
 	if err != nil {
 		return fmt.Errorf("Can't retrieve versions: %v", err)
 	}
