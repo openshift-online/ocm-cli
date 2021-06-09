@@ -51,17 +51,20 @@ func getMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1
 	return
 }
 
-func GetMachineTypeOptions(client *cmv1.Client, provider string) (options []arguments.Option, err error) {
+func GetMachineTypeOptions(client *cmv1.Client, provider string, ccs bool) (options []arguments.Option, err error) {
 	machineTypes, err := getMachineTypes(client, provider)
 	if err != nil {
 		err = fmt.Errorf("Failed to retrieve machine types: %s", err)
 		return
 	}
 
-	for _, v := range machineTypes {
+	for _, m := range machineTypes {
+		if m.CCSOnly() && !ccs {
+			continue
+		}
 		options = append(options, arguments.Option{
-			Value:       v.ID(),
-			Description: v.Name(),
+			Value:       m.ID(),
+			Description: m.Name(),
 		})
 	}
 	return
