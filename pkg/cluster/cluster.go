@@ -38,15 +38,16 @@ const (
 // Spec is the configuration for a cluster spec.
 type Spec struct {
 	// Basic configs
-	Name         string
-	Region       string
-	Provider     string
-	CCS          CCS
-	Flavour      string
-	MultiAZ      bool
-	Version      string
-	ChannelGroup string
-	Expiration   time.Time
+	Name           string
+	Region         string
+	Provider       string
+	CCS            CCS
+	Flavour        string
+	MultiAZ        bool
+	Version        string
+	ChannelGroup   string
+	Expiration     time.Time
+	EtcdEncryption bool
 
 	// Scaling config
 	ComputeMachineType string
@@ -159,6 +160,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 			cmv1.NewFlavour().
 				ID(config.Flavour),
 		).
+		EtcdEncryption(config.EtcdEncryption).
 		Properties(clusterProperties)
 
 	clusterBuilder = clusterBuilder.Version(

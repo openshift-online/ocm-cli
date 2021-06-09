@@ -55,6 +55,7 @@ var args struct {
 	multiAZ               bool
 	ccs                   c.CCS
 	gcpServiceAccountFile arguments.FilePath
+	etcdEncryption        bool
 
 	// Scaling options
 	computeMachineType string
@@ -163,6 +164,13 @@ func init() {
 		"Deploy to multiple data centers.",
 	)
 	arguments.SetQuestion(fs, "multi-az", "Multiple AZ:")
+
+	fs.BoolVar(
+		&args.etcdEncryption,
+		"etcd-encryption",
+		false,
+		"Encrypt etcd.",
+	)
 
 	// Scaling options
 	fs.StringVar(
@@ -456,6 +464,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		PodCIDR:            args.podCIDR,
 		HostPrefix:         args.hostPrefix,
 		Private:            &args.private,
+		EtcdEncryption:     args.etcdEncryption,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
