@@ -260,15 +260,16 @@ func getFlavourOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 }
 
 func getVersionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
-	options, _, err := getVersionOptionsWithDefault(connection)
+	options, _, err := getVersionOptionsWithDefault(connection, "")
 	return options, err
 }
 
-func getVersionOptionsWithDefault(connection *sdk.Connection) (
+func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup string) (
 	options []arguments.Option, defaultVersion string, err error,
 ) {
 	// Check and set the cluster version
-	versionList, defaultVersion, err := c.GetEnabledVersions(connection.ClustersMgmt().V1())
+	versionList, defaultVersion, err := c.GetEnabledVersions(
+		connection.ClustersMgmt().V1(), channelGroup)
 	if err != nil {
 		return
 	}
@@ -351,7 +352,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	versions, defaultVersion, err := getVersionOptionsWithDefault(connection)
+	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channelGroup)
 	if err != nil {
 		return err
 	}
