@@ -183,7 +183,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	machineTypeList, err := provider.GetMachineTypeOptions(connection.ClustersMgmt().V1(),
-		cluster.CloudProvider().ID())
+		cluster.CloudProvider().ID(),
+		cluster.CCS().Enabled())
 	if err != nil {
 		return err
 	}
