@@ -71,7 +71,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		os.Exit(1)
 	}
 	arguments.ApplyParameterFlag(request, args.parameter)
-	arguments.ApplyHeaderFlag(request, args.parameter)
+	arguments.ApplyHeaderFlag(request, args.header)
 	err = arguments.ApplyBodyFlag(request, args.body)
 	if err != nil {
 		return fmt.Errorf("Can't read body: %v", err)
