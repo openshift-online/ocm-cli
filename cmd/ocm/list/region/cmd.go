@@ -18,7 +18,6 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/provider"
@@ -26,12 +25,14 @@ import (
 )
 
 var args struct {
-	provider string
-	ccs      cluster.CCS
+	provider           string
+	ccs                bool
+	awsAccessKeyID     string
+	awsSecretAccessKey string
 }
 
 var Cmd = &cobra.Command{
-	Use:     "regions --provider=CLOUD_PROVIDER [--ccs CCS FLAGS]",
+	Use:     "regions --provider=CLOUD_PROVIDER [--ccs --aws-access-key-id --aws-secret-access-key] ",
 	Aliases: []string{"regions"},
 	Short:   "List known/available cloud provider regions",
 	Long: "List regions of a cloud provider.\n\n" +
@@ -42,25 +43,64 @@ var Cmd = &cobra.Command{
 
 func init() {
 	fs := Cmd.Flags()
-	arguments.AddProviderFlag(fs, &args.provider)
+	fs.StringVar(
+		&args.provider,
+		"provider",
+		"",
+		"Lists the regions for the specific cloud provider",
+	)
+
 	//nolint:gosec
 	Cmd.MarkFlagRequired("provider")
-	arguments.AddCCSFlagsWithoutAccountID(fs, &args.ccs)
+	fs.BoolVar(
+		&args.ccs,
+		"ccs",
+		false,
+		"Lists  the regions specific to your cloud account",
+	)
+	fs.StringVar(
+		&args.awsAccessKeyID,
+		"aws-access-key-id",
+		"",
+		"AWS access key",
+	)
+
+	fs.StringVar(
+		&args.awsSecretAccessKey,
+		"aws-secret-access-key",
+		"",
+		"AWS Secret Access",
+	)
+
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-	err := arguments.CheckIgnoredCCSFlags(args.ccs)
-	if err != nil {
-		return err
+	ccs := cluster.CCS{}
+	if args.ccs {
+		if args.provider == "gcp" {
+			return fmt.Errorf("--ccs flag is not yet supported for GCP clusters")
+		}
+		if args.awsAccessKeyID == "" {
+			return fmt.Errorf("--aws-access-key-id flag is mandatory for --ccs=true")
+		}
+		if args.awsSecretAccessKey == "" {
+			return fmt.Errorf("--aws-secret-access-key flag is mandatory for --ccs=true")
+		}
+		ccs = cluster.CCS{
+			Enabled: args.ccs,
+			AWS: cluster.AWSCredentials{
+				AccessKeyID:     args.awsAccessKeyID,
+				SecretAccessKey: args.awsSecretAccessKey,
+			},
+		}
 	}
-
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return fmt.Errorf("Failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
-	regions, err := provider.GetRegions(connection.ClustersMgmt().V1(), args.provider, args.ccs)
+	regions, err := provider.GetRegions(connection.ClustersMgmt().V1(), args.provider, ccs)
 	if err != nil {
 		return err
 	}
@@ -68,21 +108,26 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the writer that will be used to print the tabulated results:
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent)
 
-	// `Enabled` field checked only on Ret Hat infra, all regions supported with GCP CCS,
-	// account-specific list on AWS CCS.
-	// Use appropriate columns to make it easier to understand, with some always true.
-	if args.provider == "aws" && args.ccs.Enabled {
-		fmt.Fprintf(writer, "ID\t\tCCS (THIS AWS ACCOUNT)\tSUPPORTS MULTI-AZ\n")
+	//We display only the enabled region for both ccs and non ccs regions
+	if args.provider == "aws" && args.ccs {
+		fmt.Fprintf(writer, "ID\t\tSUPPORTS MULTI-AZ\n")
 		for _, region := range regions {
-			fmt.Fprintf(writer, "%s\t\t%v\t%v\n",
-				region.ID(), true, region.SupportsMultiAZ())
+			if !region.Enabled() {
+				continue
+			}
+			fmt.Fprintf(writer, "%s\t\t%v\n",
+				region.ID(), region.SupportsMultiAZ())
 		}
 	} else {
-		fmt.Fprintf(writer, "ID\t\tON RED HAT INFRA\tON CCS\tSUPPORTS MULTI-AZ\n")
+		fmt.Fprintf(writer, "ID\t\tON RED HAT INFRA\t\tCCS ONLY\t\tSUPPORTS MULTI-AZ\n")
 		for _, region := range regions {
-			fmt.Fprintf(writer, "%s\t\t%v\t%v\t%v\n",
-				region.ID(), region.Enabled(), true, region.SupportsMultiAZ())
+			if !region.Enabled() {
+				continue
+			}
+			fmt.Fprintf(writer, "%s\t\t%v\t\t%v\t\t%v\n",
+				region.ID(), !region.CCSOnly(), region.CCSOnly(), region.SupportsMultiAZ())
 		}
+
 	}
 
 	err = writer.Flush()
