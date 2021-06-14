@@ -296,7 +296,9 @@ func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup strin
 }
 
 func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
-	return provider.GetMachineTypeOptions(connection.ClustersMgmt().V1(), args.provider)
+	return provider.GetMachineTypeOptions(
+		connection.ClustersMgmt().V1(),
+		args.provider, args.ccs.Enabled)
 }
 
 func minComputeNodes(ccs bool, multiAZ bool) (min int) {
