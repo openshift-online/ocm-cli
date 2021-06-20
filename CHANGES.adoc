@@ -3,6 +3,18 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.52 Jun 20 2021
+
+- Update ocm-sdk-go to 0.1.186
+- Use `less` to page cluster list
+- Added ccs_only to cloud regions
+- Honor machine_types ccs_only field
+- ocm post: pass correct info to ApplyHeaderFlag()
+- Add option to encrypt etcd during cluster installation
+- list versions by channel group
+- Modify resource_name comparison when populating add-ons
+- Add PrivateLink To Describe Cluster
+
 == 0.1.51 May 25 2021
 
 - Remove ResourceQuota Allowed field
