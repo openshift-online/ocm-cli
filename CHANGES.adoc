@@ -3,6 +3,28 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.53 Jun 22 2021
+
+The only change in this release is the removal of the paging feature that was
+introduced in the previous release. Users have complained that it disrupts
+their workflows. In particular the fact that _less_ clears the screen after
+finishing when the results fit in one page.
+
+Note that in version of less included in many _Linux_ operating systems can be
+configured to disable this screen clearing adding the `-F` option to the `LESS`
+environment variable:
+
+....
+export LESS="-F"
+....
+
+But apparently other operating systems, in particular _macOS_, don't have this
+version or less, or have a version that doesn't support that option or
+environment variable.
+
+This feature will be reintroduced later with a mechanism to persistently enable
+or disable it.
+
 == 0.1.52 Jun 20 2021
 
 - Update ocm-sdk-go to 0.1.186
