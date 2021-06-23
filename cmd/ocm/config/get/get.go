@@ -48,14 +48,20 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("Can't load config file: %v", err)
 	}
+
+	// If the configuration file doesn't exist yet assume that all the configuration settings
+	// are empty:
 	if cfg == nil {
-		return fmt.Errorf("Not logged in, run the 'login' command")
+		fmt.Printf("\n")
+		return nil
 	}
 
+	// Print the value of the requested configuration setting:
 	switch argv[0] {
 	case "access_token":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.AccessToken)
