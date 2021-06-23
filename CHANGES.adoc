@@ -3,6 +3,12 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.54 Jun 23 2021
+
+- Update to OCM SDK 0.1.190.
+** Don't require refresh token for client credentials grant.
+** Don't use refresh token if have client credentials.
+
 == 0.1.53 Jun 22 2021
 
 The only change in this release is the removal of the paging feature that was
