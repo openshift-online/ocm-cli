@@ -37,7 +37,7 @@ var _ = Describe("Get", func() {
 
 	})
 
-	When("Not logged in", func() {
+	When("Config file doesn't exist", func() {
 		It("Fails", func() {
 			getResult := NewCommand().
 				Args(
@@ -48,7 +48,19 @@ var _ = Describe("Get", func() {
 		})
 	})
 
-	When("Logged in", func() {
+	When("Config file doesn't contain valid credentials", func() {
+		It("Fails", func() {
+			getResult := NewCommand().
+				ConfigString(`{}`).
+				Args(
+					"get", "/api/my_service/v1/my_object",
+				).Run(ctx)
+			Expect(getResult.ExitCode()).ToNot(BeZero())
+			Expect(getResult.ErrString()).To(ContainSubstring("Not logged in"))
+		})
+	})
+
+	When("Config file contains valid credentials", func() {
 		var ssoServer *Server
 		var apiServer *Server
 		var config string

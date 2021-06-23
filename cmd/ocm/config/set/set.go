@@ -48,16 +48,21 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	// Load the configuration:
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("Can't load config file: %v", err)
 	}
-	if cfg == nil {
-		return fmt.Errorf("Not logged in, run the 'login' command")
-	}
-	value := argv[1]
 
-	switch argv[0] {
+	// Create an empty configuration if the configuration file doesn't exist:
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
+
+	// Copy the value given in the command line to the configuration:
+	name := argv[0]
+	value := argv[1]
+	switch name {
 	case "access_token":
 		cfg.AccessToken = value
 	case "client_id":
@@ -83,6 +88,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Unknown setting")
 	}
 
+	// Save the configuration:
 	err = config.Save(cfg)
 	if err != nil {
 		return fmt.Errorf("Can't save config file: %v", err)

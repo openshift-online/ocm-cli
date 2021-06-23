@@ -27,16 +27,25 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Log out",
-	Long:  "Log out, removing the configuration file.",
+	Long:  "Log out, removing connection related variables from the config file.",
 	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-	// Remove the configuration file:
-	err := config.Remove()
+	// Load the configuration file:
+	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't remove config file: %v", err)
+		return fmt.Errorf("can't load configuration file: %w", err)
+	}
+
+	// Remove all the login related settings from the configuration file:
+	cfg.Disarm()
+
+	// Save the configuration file:
+	err = config.Save(cfg)
+	if err != nil {
+		return fmt.Errorf("can't save configuration file: %w", err)
 	}
 
 	return nil
