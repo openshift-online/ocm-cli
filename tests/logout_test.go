@@ -111,4 +111,17 @@ var _ = Describe("Logout", func() {
 		Expect(result.ExitCode()).To(BeZero())
 		Expect(result.ConfigString()).To(MatchJSON(`{}`))
 	})
+
+	It("Doesn't remove settings not related to authentication", func() {
+		result := NewCommand().
+			ConfigString(`{
+				"pager": "less"
+			}`).
+			Args("logout").
+			Run(ctx)
+		Expect(result.ExitCode()).To(BeZero())
+		Expect(result.ConfigString()).To(MatchJSON(`{
+			"pager": "less"
+		}`))
+	})
 })
