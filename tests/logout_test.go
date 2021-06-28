@@ -31,7 +31,7 @@ var _ = Describe("Logout", func() {
 	})
 
 	It("Removes the configuration file", func() {
-		result := NewCommand().Config(`{}`).Args("logout").Run(ctx)
+		result := NewCommand().ConfigString(`{}`).Args("logout").Run(ctx)
 		Expect(result.ExitCode()).To(BeZero())
 		Expect(result.ConfigFile()).To(BeEmpty())
 	})

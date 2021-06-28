@@ -28,7 +28,7 @@ import (
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
-var _ = Describe("Get", func() {
+var _ = Describe("Post", func() {
 	var ctx context.Context
 
 	BeforeEach(func() {
@@ -41,7 +41,7 @@ var _ = Describe("Get", func() {
 		It("Fails", func() {
 			getResult := NewCommand().
 				Args(
-					"get", "/api/my_service/v1/my_object",
+					"post", "/api/my_service/v1/my_object",
 				).Run(ctx)
 			Expect(getResult.ExitCode()).ToNot(BeZero())
 			Expect(getResult.ErrString()).To(ContainSubstring("Not logged in"))
@@ -86,23 +86,23 @@ var _ = Describe("Get", func() {
 			apiServer.Close()
 		})
 
-		It("Writes the JSON returned by the server", func() {
+		It("Sends the standard input to the server", func() {
 			// Prepare the server:
 			apiServer.AppendHandlers(
-				RespondWithJSON(
-					http.StatusOK,
-					`{ "my_field": "my_value" }`,
+				CombineHandlers(
+					VerifyBody([]byte(`{ "my_field": "my_value" }`)),
+					RespondWithJSON(http.StatusOK, `{}`),
 				),
 			)
 
 			// Run the command:
 			result := NewCommand().
 				ConfigString(config).
-				Args("get", "/api/my_service/v1/my_object").
+				Args("post", "/api/my_service/v1/my_object").
+				InString(`{ "my_field": "my_value" }`).
 				Run(ctx)
 			Expect(result.ExitCode()).To(BeZero())
 			Expect(result.ErrString()).To(BeEmpty())
-			Expect(result.OutString()).To(MatchJSON(`{ "my_field": "my_value" }`))
 		})
 
 		It("Honours the --parameter flag", func() {
@@ -118,7 +118,7 @@ var _ = Describe("Get", func() {
 			result := NewCommand().
 				ConfigString(config).
 				Args(
-					"get",
+					"post",
 					"--parameter", "my_param=my_value",
 					"/api/my_service/v1/my_object",
 				).
@@ -140,7 +140,7 @@ var _ = Describe("Get", func() {
 			result := NewCommand().
 				ConfigString(config).
 				Args(
-					"get",
+					"post",
 					"--header", "my_header=my_value",
 					"/api/my_service/v1/my_object",
 				).
