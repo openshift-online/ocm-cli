@@ -34,13 +34,13 @@ cmds:
 install:
 	go install ./cmd/ocm
 
-.PHONY: test
-test:
-	ginkgo -r cmd pkg
+.PHONY: test tests
+test tests: cmds
+	ginkgo -r cmd pkg tests
 
 .PHONY: fmt
 fmt:
-	gofmt -s -l -w cmd pkg
+	gofmt -s -l -w cmd pkg tests
 
 .PHONY: lint
 lint:
