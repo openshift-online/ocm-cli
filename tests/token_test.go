@@ -34,10 +34,6 @@ var _ = Describe("Token", func() {
 		ctx = context.Background()
 	})
 
-	AfterEach(func() {
-		cmd.Close()
-	})
-
 	When("Logged in", func() {
 		var accessToken string
 		var refreshToken string
@@ -62,31 +58,30 @@ var _ = Describe("Token", func() {
 		})
 
 		It("Displays current access token", func() {
-			cmd.Run(ctx)
-			Expect(cmd.OutString()).To(Equal(accessToken + "\n"))
-			Expect(cmd.ErrString()).To(BeEmpty())
-			Expect(cmd.ExitCode()).To(BeZero())
+			result := cmd.Run(ctx)
+			Expect(result.OutString()).To(Equal(accessToken + "\n"))
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.ExitCode()).To(BeZero())
 		})
 
 		It("Displays current refresh token", func() {
-			cmd.Arg("--refresh").Run(ctx)
-			Expect(cmd.OutString()).To(Equal(refreshToken + "\n"))
-			Expect(cmd.ErrString()).To(BeEmpty())
-			Expect(cmd.ExitCode()).To(BeZero())
+			result := cmd.Arg("--refresh").Run(ctx)
+			Expect(result.OutString()).To(Equal(refreshToken + "\n"))
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.ExitCode()).To(BeZero())
 		})
 	})
 
 	When("Not logged in", func() {
 		BeforeEach(func() {
-			// Create the command:
 			cmd = NewCommand().Arg("token")
 		})
 
 		It("Fails", func() {
-			cmd.Run(ctx)
-			Expect(cmd.OutString()).To(BeEmpty())
-			Expect(cmd.ErrString()).To(ContainSubstring("Not logged in"))
-			Expect(cmd.ExitCode()).ToNot(BeZero())
+			result := cmd.Run(ctx)
+			Expect(result.OutString()).To(BeEmpty())
+			Expect(result.ErrString()).To(ContainSubstring("Not logged in"))
+			Expect(result.ExitCode()).ToNot(BeZero())
 		})
 	})
 })
