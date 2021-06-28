@@ -37,8 +37,13 @@ var _ = Describe("Login", func() {
 		// Create the context:
 		ctx = context.Background()
 
-		// Create the SSO server:
+		// Create the server:
 		ssoServer = MakeTCPServer()
+	})
+
+	AfterEach(func() {
+		// Close the server:
+		ssoServer.Close()
 	})
 
 	When("Using offline token", func() {
