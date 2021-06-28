@@ -21,21 +21,18 @@ import (
 
 	. "github.com/onsi/ginkgo" // nolint
 	. "github.com/onsi/gomega" // nolint
-
-	"github.com/openshift-online/ocm-cli/pkg/info"
 )
 
-var _ = Describe("Version", func() {
-	It("Prints the version", func() {
-		// Create a context:
-		ctx := context.Background()
+var _ = Describe("Logout", func() {
+	var ctx context.Context
 
-		// Run the command:
-		result := NewCommand().Args("version").Run(ctx)
+	BeforeEach(func() {
+		ctx = context.Background()
+	})
 
-		// Check the result:
-		Expect(result.OutString()).To(Equal(info.Version + "\n"))
-		Expect(result.ErrString()).To(BeEmpty())
+	It("Removes the configuration file", func() {
+		result := NewCommand().Config(`{}`).Args("logout").Run(ctx)
 		Expect(result.ExitCode()).To(BeZero())
+		Expect(result.ConfigFile()).To(BeEmpty())
 	})
 })

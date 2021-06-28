@@ -19,6 +19,7 @@ package tests
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -26,6 +27,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/onsi/gomega/types"
 	sdktesting "github.com/openshift-online/ocm-sdk-go/testing"
 
 	. "github.com/onsi/ginkgo" // nolint
@@ -56,11 +58,15 @@ var _ = BeforeSuite(func() {
 type CommandRunner struct {
 	args   []string
 	config string
-	tmp    string
-	in     *bytes.Buffer
-	out    *bytes.Buffer
-	err    *bytes.Buffer
-	cmd    *exec.Cmd
+}
+
+// CommandResult contains the result of executing a CLI command.
+type CommandResult struct {
+	configFile string
+	configData []byte
+	out        []byte
+	err        []byte
+	exitCode   int
 }
 
 // NewCommand creates a new CLI command runner.
@@ -87,18 +93,22 @@ func (r *CommandRunner) Args(values ...string) *CommandRunner {
 }
 
 // Run runs the command.
-func (r *CommandRunner) Run(ctx context.Context) {
+func (r *CommandRunner) Run(ctx context.Context) *CommandResult {
 	var err error
 
 	// Create a temporary directory for the configuration file, so that we don't interfere with
-	// the configuration that may already exist for the user running the tests:
-	r.tmp, err = ioutil.TempDir("", "ocm-test-*.d")
+	// the configuration that may already exist for the user running the tests.
+	tmpDir, err := ioutil.TempDir("", "ocm-test-*.d")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	defer func() {
+		err = os.RemoveAll(tmpDir)
+		ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	}()
 
 	// Create the configuration file:
-	config := filepath.Join(r.tmp, ".ocm.json")
+	configFile := filepath.Join(tmpDir, ".ocm.json")
 	if r.config != "" {
-		err = ioutil.WriteFile(config, []byte(r.config), 0600)
+		err = ioutil.WriteFile(configFile, []byte(r.config), 0600)
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	}
 
@@ -118,22 +128,22 @@ func (r *CommandRunner) Run(ctx context.Context) {
 	}
 
 	// Add to the environment the variable that points to a configuration file:
-	env = append(env, "OCM_CONFIG="+config)
+	env = append(env, "OCM_CONFIG="+configFile)
 
 	// Create the buffers:
-	r.in = &bytes.Buffer{}
-	r.out = &bytes.Buffer{}
-	r.err = &bytes.Buffer{}
+	inBuf := &bytes.Buffer{}
+	outBuf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
 
 	// Create the command:
-	r.cmd = exec.Command(binary, r.args...)
-	r.cmd.Env = env
-	r.cmd.Stdin = r.in
-	r.cmd.Stdout = r.out
-	r.cmd.Stderr = r.err
+	cmd := exec.Command(binary, r.args...)
+	cmd.Env = env
+	cmd.Stdin = inBuf
+	cmd.Stdout = outBuf
+	cmd.Stderr = errBuf
 
 	// Run the command:
-	err = r.cmd.Run()
+	err = cmd.Run()
 	switch err.(type) {
 	case *exec.ExitError:
 		// Nothing, this is a normal situation and the caller is expected to check it using
@@ -141,30 +151,61 @@ func (r *CommandRunner) Run(ctx context.Context) {
 	default:
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	}
+
+	// Read the potentially created or modified configuration file:
+	_, err = os.Stat(configFile)
+	if errors.Is(err, os.ErrNotExist) {
+		configFile = ""
+	} else if err != nil {
+		Expect(err).ToNot(HaveOccurred())
+	}
+	var configData []byte
+	if configFile != "" {
+		configData, err = ioutil.ReadFile(configFile)
+		Expect(err).ToNot(HaveOccurred())
+	}
+
+	// Create the result:
+	result := &CommandResult{
+		configFile: configFile,
+		configData: configData,
+		out:        outBuf.Bytes(),
+		err:        errBuf.Bytes(),
+		exitCode:   cmd.ProcessState.ExitCode(),
+	}
+
+	return result
+}
+
+// ConfigFile returns the name of the configuration file. It will be an empty string if the config
+// file doesn't exist. Note that at the time this is called the actual file has already been
+// deleted. If you need to check the contents of the file use the ConfigString method.
+func (r *CommandResult) ConfigFile() string {
+	return r.configFile
+}
+
+// ConfigString returns the content of the configuration file.
+func (r *CommandResult) ConfigString() string {
+	return string(r.configData)
 }
 
 // OutString returns the standard output of the CLI command.
-func (r *CommandRunner) OutString() string {
-	return r.out.String()
+func (r *CommandResult) OutString() string {
+	return string(r.out)
 }
 
 // Err returns the standard errour output of the CLI command.
-func (r *CommandRunner) ErrString() string {
-	return r.err.String()
+func (r *CommandResult) ErrString() string {
+	return string(r.err)
 }
 
 // ExitCode returns the exit code of the CLI command.
-func (r *CommandRunner) ExitCode() int {
-	return r.cmd.ProcessState.ExitCode()
+func (r *CommandResult) ExitCode() int {
+	return r.exitCode
 }
 
-// Close releases all the resources used to run the CLI command, like temporary files.
-func (r *CommandRunner) Close() {
-	var err error
-
-	// Remove the temporary directory:
-	if r.tmp != "" {
-		err = os.RemoveAll(r.tmp)
-		ExpectWithOffset(1, err).ToNot(HaveOccurred())
-	}
+// MatchJSONTemplate succeeds if actual is a string or stringer of JSON that matches the result of
+// evaluating the given template with the given arguments.
+func MatchJSONTemplate(template string, args ...interface{}) types.GomegaMatcher {
+	return MatchJSON(sdktesting.EvaluateTemplate(template, args...))
 }
