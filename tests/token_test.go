@@ -45,7 +45,7 @@ var _ = Describe("Token", func() {
 
 			// Create the command:
 			cmd = NewCommand().
-				Config(
+				ConfigString(
 					`{
 						"refresh_token": "{{ .refreshToken }}",
 						"access_token": "{{ .accessToken }}"

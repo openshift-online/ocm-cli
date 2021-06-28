@@ -58,6 +58,7 @@ var _ = BeforeSuite(func() {
 type CommandRunner struct {
 	args   []string
 	config string
+	in     []byte
 }
 
 // CommandResult contains the result of executing a CLI command.
@@ -74,8 +75,8 @@ func NewCommand() *CommandRunner {
 	return &CommandRunner{}
 }
 
-// Config sets the content of the CLI configuration file.
-func (r *CommandRunner) Config(template string, vars ...interface{}) *CommandRunner {
+// ConfigString sets the content of the CLI configuration file.
+func (r *CommandRunner) ConfigString(template string, vars ...interface{}) *CommandRunner {
 	r.config = sdktesting.EvaluateTemplate(template, vars...)
 	return r
 }
@@ -89,6 +90,12 @@ func (r *CommandRunner) Arg(value string) *CommandRunner {
 // Args adds a set of command line arguments for the CLI command.
 func (r *CommandRunner) Args(values ...string) *CommandRunner {
 	r.args = append(r.args, values...)
+	return r
+}
+
+// In sets the standard input for the CLI command.
+func (r *CommandRunner) InString(value string) *CommandRunner {
+	r.in = []byte(value)
 	return r
 }
 
@@ -132,6 +139,9 @@ func (r *CommandRunner) Run(ctx context.Context) *CommandResult {
 
 	// Create the buffers:
 	inBuf := &bytes.Buffer{}
+	if r.in != nil {
+		inBuf.Write(r.in)
+	}
 	outBuf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 
