@@ -59,13 +59,14 @@ func FindMapValue(data map[string]interface{}, key string) (string, bool) {
 }
 
 // PrintPadded turns an array into a padded string and outputs it into the given writer.
-func PrintPadded(w io.Writer, columns []string, padding []int) {
+func PrintPadded(w io.Writer, columns []string, padding []int) error {
 	updated := updateRowPad(columns, padding)
 	var finalString string
 	for _, str := range updated {
 		finalString = fmt.Sprint(finalString, str)
 	}
-	fmt.Fprint(w, finalString+"\n")
+	_, err := fmt.Fprint(w, finalString+"\n")
+	return err
 }
 
 func updateRowPad(columnList []string, columnPad []int) []string {

@@ -271,6 +271,7 @@ func tokenUsable(token string, margin time.Duration) (usable bool, err error) {
 		return
 	}
 	if !expires {
+		usable = true
 		return
 	}
 	if left >= margin {
