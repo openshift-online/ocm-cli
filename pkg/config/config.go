@@ -52,6 +52,7 @@ type Config struct {
 	TokenURL     string   `json:"token_url,omitempty" doc:"OpenID token URL."`
 	URL          string   `json:"url,omitempty" doc:"URL of the API gateway. The value can be the complete URL or an alias. The valid aliases are 'production', 'staging' and 'integration'."`
 	User         string   `json:"user,omitempty" doc:"User name."`
+	Pager        string   `json:"pager,omitempty" doc:"Pager command, for example 'less'. If empty no pager will be used."`
 }
 
 // Load loads the configuration from the configuration file. If the configuration file doesn't exist
