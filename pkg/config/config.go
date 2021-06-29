@@ -103,23 +103,6 @@ func Save(cfg *Config) error {
 	return nil
 }
 
-// Remove removes the configuration file.
-func Remove() error {
-	file, err := Location()
-	if err != nil {
-		return err
-	}
-	_, err = os.Stat(file)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	err = os.Remove(file)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Location returns the location of the configuration file.
 func Location() (path string, err error) {
 	if ocmconfig := os.Getenv("OCM_CONFIG"); ocmconfig != "" {
@@ -136,51 +119,77 @@ func Location() (path string, err error) {
 
 // Armed checks if the configuration contains either credentials or tokens that haven't expired, so
 // that it can be used to perform authenticated requests.
-func (c *Config) Armed() (armed bool, err error) {
-	if c.User != "" && c.Password != "" {
-		armed = true
+func (c *Config) Armed() (armed bool, reason string, err error) {
+	// Check URLs:
+	haveURL := c.URL != ""
+	haveTokenURL := c.TokenURL != ""
+	haveURLs := haveURL && haveTokenURL
+
+	// Check credentials:
+	havePassword := c.User != "" && c.Password != ""
+	haveSecret := c.ClientID != "" && c.ClientSecret != ""
+	haveCredentials := havePassword || haveSecret
+
+	// Check tokens:
+	haveAccess := c.AccessToken != ""
+	accessUsable := false
+	if haveAccess {
+		accessUsable, err = tokenUsable(c.AccessToken, 5*time.Second)
+		if err != nil {
+			return
+		}
+	}
+	haveRefresh := c.RefreshToken != ""
+	refreshUsable := false
+	if haveRefresh {
+		refreshUsable, err = tokenUsable(c.RefreshToken, 10*time.Second)
+		if err != nil {
+			return
+		}
+	}
+
+	// Calculate the result:
+	armed = haveURLs && (haveCredentials || accessUsable || refreshUsable)
+	if armed {
 		return
 	}
-	if c.ClientID != "" && c.ClientSecret != "" {
-		armed = true
-		return
+
+	// If it isn't armed then we should return a human readable reason. We should try to
+	// generate a message that describes the more relevant reason. For example, missing
+	// credentials is more important than missing URLs, so that condition should be checked
+	// first.
+	switch {
+	case haveAccess && !haveRefresh && !accessUsable:
+		reason = "access token is expired"
+	case !haveAccess && haveRefresh && !refreshUsable:
+		reason = "refresh token is expired"
+	case haveAccess && !accessUsable && haveRefresh && !refreshUsable:
+		reason = "access and refresh tokens are expired"
+	case !haveCredentials:
+		reason = "credentials aren't set"
+	case !haveURL && haveTokenURL:
+		reason = "server URL isn't set"
+	case haveURL && !haveTokenURL:
+		reason = "token URL isn't set"
+	case !haveURL && !haveTokenURL:
+		reason = "server and token URLs aren't set"
 	}
-	now := time.Now()
-	if c.AccessToken != "" {
-		var expires bool
-		var left time.Duration
-		var accessToken *jwt.Token
-		accessToken, err = parseToken(c.AccessToken)
-		if err != nil {
-			return
-		}
-		expires, left, err = tokenExpiry(accessToken, now)
-		if err != nil {
-			return
-		}
-		if !expires || left > 5*time.Second {
-			armed = true
-			return
-		}
-	}
-	if c.RefreshToken != "" {
-		var expires bool
-		var left time.Duration
-		var refreshToken *jwt.Token
-		refreshToken, err = parseToken(c.RefreshToken)
-		if err != nil {
-			return
-		}
-		expires, left, err = tokenExpiry(refreshToken, now)
-		if err != nil {
-			return
-		}
-		if !expires || left > 10*time.Second {
-			armed = true
-			return
-		}
-	}
+
 	return
+}
+
+// Disarm removes from the configuration all the settings that are needed for authentication.
+func (c *Config) Disarm() {
+	c.AccessToken = ""
+	c.ClientID = ""
+	c.ClientSecret = ""
+	c.Insecure = false
+	c.Password = ""
+	c.RefreshToken = ""
+	c.Scopes = nil
+	c.TokenURL = ""
+	c.URL = ""
+	c.User = ""
 }
 
 // Connection creates a connection using this configuration.
@@ -250,29 +259,46 @@ func parseToken(textToken string) (token *jwt.Token, err error) {
 	return token, nil
 }
 
-// tokenExpiry determines if the given token expires, and the time that remains till it expires.
-func tokenExpiry(token *jwt.Token, now time.Time) (expires bool,
-	left time.Duration, err error) {
+// tokenUsable checks if the given token is usable.
+func tokenUsable(token string, margin time.Duration) (usable bool, err error) {
+	parsed, err := parseToken(token)
+	if err != nil {
+		return
+	}
+	expires, left, err := tokenExpiration(parsed)
+	if err != nil {
+		return
+	}
+	if !expires {
+		return
+	}
+	if left >= margin {
+		usable = true
+		return
+	}
+	return
+}
+
+// tokenExpiration determines if the given token expires, and the time that remains till it expires.
+func tokenExpiration(token *jwt.Token) (expires bool, left time.Duration, err error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		err = fmt.Errorf("expected map claims bug got %T", claims)
 		return
 	}
-	var exp float64
 	claim, ok := claims["exp"]
-	if ok {
-		exp, ok = claim.(float64)
-		if !ok {
-			err = fmt.Errorf("expected floating point 'exp' but got %T", claim)
-			return
-		}
+	if !ok {
+		return
+	}
+	exp, ok := claim.(float64)
+	if !ok {
+		err = fmt.Errorf("expected floating point 'exp' but got %T", claim)
+		return
 	}
 	if exp == 0 {
-		expires = false
-		left = 0
-	} else {
-		expires = true
-		left = time.Unix(int64(exp), 0).Sub(now)
+		return
 	}
+	expires = true
+	left = time.Until(time.Unix(int64(exp), 0))
 	return
 }

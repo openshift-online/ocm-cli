@@ -45,27 +45,27 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 		// Load the configuration file:
 		b.cfg, err = config.Load()
 		if err != nil {
-			err = fmt.Errorf("Failed to load config file: %v", err)
-			return result, err
+			return
 		}
 		if b.cfg == nil {
 			err = fmt.Errorf("Not logged in, run the 'login' command")
-			return result, err
+			return
 		}
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
-	armed, err := b.cfg.Armed()
+	armed, reason, err := b.cfg.Armed()
 	if err != nil {
-		return result, fmt.Errorf("Can't check if tokens have expired: %v", err)
+		return
 	}
 	if !armed {
-		return result, fmt.Errorf("Tokens have expired, run the 'login' command")
+		err = fmt.Errorf("not logged in, %s, run the 'login' command", reason)
+		return
 	}
 
 	result, err = b.cfg.Connection()
 	if err != nil {
-		return result, fmt.Errorf("Can't create connection: %v", err)
+		return
 	}
 
 	return

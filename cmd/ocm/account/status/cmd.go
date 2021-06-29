@@ -62,12 +62,12 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Check that the configuration has credentials or tokens that haven't have expired:
-	armed, err := cfg.Armed()
+	armed, reason, err := cfg.Armed()
 	if err != nil {
-		return fmt.Errorf("Can't check if tokens have expired: %v", err)
+		return err
 	}
 	if !armed {
-		return fmt.Errorf("Tokens have expired, run the 'login' command")
+		return fmt.Errorf("Not logged in, %s, run the 'login' command", reason)
 	}
 
 	// Create the connection, and remember to close it:

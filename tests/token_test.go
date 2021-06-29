@@ -48,7 +48,9 @@ var _ = Describe("Token", func() {
 				ConfigString(
 					`{
 						"refresh_token": "{{ .refreshToken }}",
-						"access_token": "{{ .accessToken }}"
+						"access_token": "{{ .accessToken }}",
+						"url": "http://my-server.example.com",
+						"token_url": "http://my-sso.example.com"
 					}`,
 					"accessToken", accessToken,
 					"refreshToken", refreshToken,
