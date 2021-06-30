@@ -59,7 +59,7 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 		return
 	}
 	if !armed {
-		err = fmt.Errorf("not logged in, %s, run the 'login' command", reason)
+		err = fmt.Errorf("Not logged in, %s, run the 'login' command", reason)
 		return
 	}
 

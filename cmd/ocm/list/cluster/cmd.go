@@ -17,19 +17,21 @@ limitations under the License.
 package cluster
 
 import (
-	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
-	"os/exec"
 	"strings"
 
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
+	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/output"
 	table "github.com/openshift-online/ocm-cli/pkg/table"
 )
 
@@ -37,7 +39,6 @@ var args struct {
 	parameter []string
 	header    []string
 	managed   bool
-	step      bool
 	noHeaders bool
 	columns   string
 	padding   int
@@ -63,11 +64,12 @@ func init() {
 		false,
 		"Filter managed/unmanaged clusters",
 	)
-	fs.BoolVar(
-		&args.step,
+	_ = fs.Bool(
 		"step",
-		false,
-		"Load pages one step at a time",
+		true,
+		"This option is deprectaed and has no effect. To display output page by page use "+
+			"the 'pager' config variable to enable use a pager command. For "+
+			"example, to use the 'less' command run 'ocm config set pager less'.",
 	)
 	fs.BoolVar(
 		&args.noHeaders,
@@ -90,12 +92,31 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	// Create a context:
+	ctx := context.Background()
+
+	// Load the configuration:
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return err
 	}
 	defer connection.Close()
+
+	// Create the output printer:
+	printer, err := output.NewPrinter().
+		Writer(os.Stdout).
+		Pager(cfg.Pager).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	defer printer.Close()
 
 	// This will contain the terms used to construct the search query:
 	var searchTerms []string
@@ -161,7 +182,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Unless noHeaders set, print header row:
 	if !args.noHeaders {
-		table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
+		table.PrintPadded(printer, columnNames, paddingByColumn)
 	}
 
 	// Create the request. Note that this request can be created outside of the loop and used
@@ -182,67 +203,17 @@ func run(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf("Can't retrieve clusters: %v", err)
 		}
 
-		// Display the fetched page:
+		// Display the items of the fetched page:
 		response.Items().Each(func(cluster *v1.Cluster) bool {
-
-			// String to output marshal -
-			// Map used to parse Cluster data -
-			// Writer to body variable:
-			var body string
-			var jsonBody map[string]interface{}
-			boddyBuffer := bytes.NewBufferString(body)
-
-			// Write Cluster data to body variable:
-			err := v1.MarshalCluster(cluster, boddyBuffer)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to marshal cluster into byte buffer: %s\n", err)
-				os.Exit(1)
-			}
-
-			// Get JSON from Cluster bytes:
-			err = json.Unmarshal(boddyBuffer.Bytes(), &jsonBody)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to turn cluster bytes into JSON map: %s\n", err)
-				os.Exit(1)
-			}
-
-			// Loop through wanted columns and populate a cluster instance:
-			iter := strings.Split(args.columns, ",")
-			thisCluster := []string{}
-			for _, element := range iter {
-				value, status := table.FindMapValue(jsonBody, element)
-				if !status {
-					value = "NONE"
-				}
-				thisCluster = append(thisCluster, value)
-			}
-			table.PrintPadded(os.Stdout, thisCluster, paddingByColumn)
-			return true
-
+			err = printItem(printer, cluster, paddingByColumn)
+			return err == nil
 		})
-
-		// if step was flagged, load only one page at a time:
-		if args.step {
-			if response.Size() < size {
-				break
-			}
-			fmt.Println()
-			fmt.Println("Press the 'Enter' to load more:")
-			_, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
-			// var input string
-			if err != nil {
-				return fmt.Errorf("Failed to retrieve input: %v", err)
-			}
-			err = clearPage()
-			if err != nil {
-				return fmt.Errorf("Failed to clear page: %v", err)
-			}
-			table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
-			fmt.Println()
+		if err != nil {
+			break
 		}
 
-		// If the number of fetched results is less than requested, then
-		// this was the last page, otherwise process the next one:
+		// If the number of fetched items is less than requested, then this was the last
+		// page, otherwise process the next one:
 		if response.Size() < size {
 			break
 		}
@@ -252,12 +223,37 @@ func run(cmd *cobra.Command, argv []string) error {
 	return nil
 }
 
-// clearPage clears the page.
-func clearPage() error {
-	// #nosec 204
-	cmd := exec.Command("clear")
-	cmd.Stdout = os.Stdout
-	err := cmd.Run()
+func printItem(writer io.Writer, item *v1.Cluster, padding []int) error {
+	// String to output marshal -
+	// Map used to parse Cluster data -
+	// Writer to body variable:
+	var body string
+	var jsonBody map[string]interface{}
+	boddyBuffer := bytes.NewBufferString(body)
+
+	// Write Cluster data to body variable:
+	err := v1.MarshalCluster(item, boddyBuffer)
+	if err != nil {
+		return err
+	}
+
+	// Get JSON from Cluster bytes:
+	err = json.Unmarshal(boddyBuffer.Bytes(), &jsonBody)
+	if err != nil {
+		return err
+	}
+
+	// Loop through wanted columns and populate a cluster instance:
+	iter := strings.Split(args.columns, ",")
+	thisCluster := []string{}
+	for _, element := range iter {
+		value, status := table.FindMapValue(jsonBody, element)
+		if !status {
+			value = "NONE"
+		}
+		thisCluster = append(thisCluster, value)
+	}
+	err = table.PrintPadded(writer, thisCluster, padding)
 	if err != nil {
 		return err
 	}

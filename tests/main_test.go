@@ -204,6 +204,21 @@ func (r *CommandResult) OutString() string {
 	return string(r.out)
 }
 
+// OutLines returns the standard output of the CLI command as an array of strings.
+func (r *CommandResult) OutLines() []string {
+	// Split the output into lines:
+	lines := strings.Split(string(r.out), "\n")
+
+	// If there is a blank line at the end remove it:
+	count := len(lines)
+	if count > 0 && lines[count-1] == "" {
+		lines = lines[0 : count-1]
+	}
+
+	// Return the lines:
+	return lines
+}
+
 // Err returns the standard errour output of the CLI command.
 func (r *CommandResult) ErrString() string {
 	return string(r.err)
