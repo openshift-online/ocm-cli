@@ -26,17 +26,25 @@ import (
 	"strings"
 
 	"github.com/mattn/go-isatty"
+	"github.com/openshift-online/ocm-cli/pkg/data"
 )
 
 // PrinterBuilder contains the data and logic needed to create new printers.
 type PrinterBuilder struct {
 	writer io.Writer
+	digger *data.Digger
 	pager  string
 }
 
 // Printer knows how to write output text.
 type Printer struct {
-	writer      io.Writer
+	// Underlying writer:
+	writer io.Writer
+
+	// Digger used to extract fields from objects:
+	digger *data.Digger
+
+	// Command used to display output page by page:
 	pagerCmd    *exec.Cmd
 	pagerStop   chan int
 	pagerReader *os.File
@@ -60,6 +68,13 @@ func (b *PrinterBuilder) Writer(value io.Writer) *PrinterBuilder {
 	return b
 }
 
+// Digger sets the digger that will be used to extract fields from objects. This is optional. If not
+// specified a digger with the default configuration will be automatically created.
+func (b *PrinterBuilder) Digger(value *data.Digger) *PrinterBuilder {
+	b.digger = value
+	return b
+}
+
 // Pager indicates the command that will be used to display output page by page. If empty no pager
 // will be used.
 func (b *PrinterBuilder) Pager(value string) *PrinterBuilder {
@@ -73,6 +88,16 @@ func (b *PrinterBuilder) Build(ctx context.Context) (result *Printer, err error)
 	if b.writer == nil {
 		err = fmt.Errorf("writer is mandatory")
 		return
+	}
+
+	// Create the digger if needed:
+	digger := b.digger
+	if digger == nil {
+		digger, err = data.NewDigger().
+			Build(ctx)
+		if err != nil {
+			return
+		}
 	}
 
 	// Check if there pager tool is available:
@@ -129,6 +154,7 @@ func (b *PrinterBuilder) Build(ctx context.Context) (result *Printer, err error)
 	// Create and populate the object:
 	result = &Printer{
 		writer:      writer,
+		digger:      digger,
 		pagerCmd:    pagerCmd,
 		pagerStop:   pagerStop,
 		pagerReader: pagerReader,

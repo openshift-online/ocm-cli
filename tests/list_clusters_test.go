@@ -190,5 +190,47 @@ var _ = Describe("List clusters", func() {
 				`^\s*456\s+your_cluster\s+http://api.your-cluster.com\s+4\.8\s+ocp\s+gcp\s+us-west1\s+installing\s*$`,
 			))
 		})
+
+		It("Doesn't trim `external_id` column", func() {
+			// Prepare the server:
+			apiServer.AppendHandlers(
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"kind": "ClusterList",
+						"page": 1,
+						"size": 1,
+						"total": 1,
+						"items": [
+							{
+								"kind": "Cluster",
+								"id": "123",
+								"external_id": "e30bac0b-b337-47d7-a378-2c302b4c868a",
+								"name": "my_cluster"
+							}
+						]
+					}`,
+				),
+			)
+
+			// Run the command:
+			result := NewCommand().
+				ConfigString(config).
+				Args(
+					"list", "clusters",
+					"--columns", "id,external_id,name",
+				).
+				Run(ctx)
+			Expect(result.ExitCode()).To(BeZero())
+			Expect(result.ErrString()).To(BeEmpty())
+			lines := result.OutLines()
+			Expect(lines).To(HaveLen(2))
+			Expect(lines[0]).To(MatchRegexp(
+				`^\s*ID\s+EXTERNAL ID\s+NAME\s*$`,
+			))
+			Expect(lines[1]).To(MatchRegexp(
+				`^\s*123\s+e30bac0b-b337-47d7-a378-2c302b4c868a\s+my_cluster\s*$`,
+			))
+		})
 	})
 })

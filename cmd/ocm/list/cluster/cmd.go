@@ -17,11 +17,8 @@ limitations under the License.
 package cluster
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -32,7 +29,6 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/output"
-	table "github.com/openshift-online/ocm-cli/pkg/table"
 )
 
 var args struct {
@@ -118,6 +114,16 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	defer printer.Close()
 
+	// Create the output table:
+	table, err := printer.NewTable().
+		Name("clusters").
+		Columns(args.columns).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	defer table.Close()
+
 	// This will contain the terms used to construct the search query:
 	var searchTerms []string
 
@@ -167,22 +173,9 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Join all the search terms using the `and` connective:
 	searchQuery := strings.Join(searchTerms, " and ")
 
-	// Update our column name and padding variables:
-	args.columns = strings.Replace(args.columns, " ", "", -1)
-	colUpper := strings.ToUpper(args.columns)
-	colUpper = strings.Replace(colUpper, ".", " ", -1)
-	columnNames := strings.Split(colUpper, ",")
-	paddingByColumn := []int{34, 30, 60, 20, 16}
-	if args.padding != -1 {
-		if args.padding < 2 {
-			return fmt.Errorf("Padding flag needs to be an integer greater than 2")
-		}
-		paddingByColumn = []int{args.padding}
-	}
-
 	// Unless noHeaders set, print header row:
 	if !args.noHeaders {
-		table.PrintPadded(printer, columnNames, paddingByColumn)
+		table.WriteHeaders()
 	}
 
 	// Create the request. Note that this request can be created outside of the loop and used
@@ -205,7 +198,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		// Display the items of the fetched page:
 		response.Items().Each(func(cluster *v1.Cluster) bool {
-			err = printItem(printer, cluster, paddingByColumn)
+			err = table.WriteRow(cluster)
 			return err == nil
 		})
 		if err != nil {
@@ -218,44 +211,6 @@ func run(cmd *cobra.Command, argv []string) error {
 			break
 		}
 		index++
-	}
-
-	return nil
-}
-
-func printItem(writer io.Writer, item *v1.Cluster, padding []int) error {
-	// String to output marshal -
-	// Map used to parse Cluster data -
-	// Writer to body variable:
-	var body string
-	var jsonBody map[string]interface{}
-	boddyBuffer := bytes.NewBufferString(body)
-
-	// Write Cluster data to body variable:
-	err := v1.MarshalCluster(item, boddyBuffer)
-	if err != nil {
-		return err
-	}
-
-	// Get JSON from Cluster bytes:
-	err = json.Unmarshal(boddyBuffer.Bytes(), &jsonBody)
-	if err != nil {
-		return err
-	}
-
-	// Loop through wanted columns and populate a cluster instance:
-	iter := strings.Split(args.columns, ",")
-	thisCluster := []string{}
-	for _, element := range iter {
-		value, status := table.FindMapValue(jsonBody, element)
-		if !status {
-			value = "NONE"
-		}
-		thisCluster = append(thisCluster, value)
-	}
-	err = table.PrintPadded(writer, thisCluster, padding)
-	if err != nil {
-		return err
 	}
 
 	return nil
