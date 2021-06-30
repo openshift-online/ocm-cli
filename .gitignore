@@ -1,5 +1,9 @@
+*.orig
+*.patch
+*.rej
 /ocm
 /ocm-darwin-amd64
 /ocm-darwin-amd64.sha256sum
 /ocm-linux-amd64
 /ocm-linux-amd64.sha256sum
+bindata.go
