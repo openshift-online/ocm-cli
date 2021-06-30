@@ -14,12 +14,14 @@ limitations under the License.
 package idp
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"text/tabwriter"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
+	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/output"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/spf13/cobra"
@@ -27,6 +29,7 @@ import (
 
 var args struct {
 	clusterKey string
+	columns    string
 }
 
 var Cmd = &cobra.Command{
@@ -41,20 +44,51 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	flags := Cmd.Flags()
-
-	flags.StringVarP(
+	fs := Cmd.Flags()
+	fs.StringVarP(
 		&args.clusterKey,
 		"cluster",
 		"c",
 		"",
 		"Name or ID or external_id of the cluster to list the IdP of (required).",
 	)
+	fs.StringVar(
+		&args.columns,
+		"columns",
+		"name, type, auth_url",
+		"Comma separated list of columns to display.",
+	)
+
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	// Create a context:
+	ctx := context.Background()
+
+	// Load the configuration:
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	// Create the client for the OCM API:
+	connection, err := ocm.NewConnection().Build()
+	if err != nil {
+		return err
+	}
+	defer connection.Close()
+
+	// Create the output printer:
+	printer, err := output.NewPrinter().
+		Writer(os.Stdout).
+		Pager(cfg.Pager).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	defer printer.Close()
 
 	// Check that the cluster key (name, identifier or external identifier) given by the user
 	// is reasonably safe so that there is no risk of SQL injection:
@@ -66,12 +100,6 @@ func run(cmd *cobra.Command, argv []string) error {
 			clusterKey,
 		)
 	}
-
-	connection, err := ocm.NewConnection().Build()
-	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
-	}
-	defer connection.Close()
 
 	// Get the client for the resource that manages the collection of clusters:
 	ocmClient := connection.ClustersMgmt().V1().Clusters()
@@ -90,16 +118,37 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to get identity providers for cluster '%s': %v", clusterKey, err)
 	}
 
-	// Create the writer that will be used to print the tabulated results:
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(writer, "NAME\t\tTYPE\t\tAUTH URL\n")
-	for _, idp := range idps {
-		fmt.Fprintf(writer, "%s\t\t%s\t\t%s\n", idp.Name(), getType(idp), getAuthURL(cluster, idp.Name()))
-	}
-	err = writer.Flush()
+	// Create the output table:
+	table, err := printer.NewTable().
+		Name("idps").
+		Columns(args.columns).
+		Value("type", getType).
+		Value("auth_url", func(idp *cmv1.IdentityProvider) string {
+			return getAuthURL(cluster, idp.Name())
+		}).
+		Build(ctx)
 	if err != nil {
-		return nil
+		return err
 	}
+	defer table.Close()
+
+	// Write the column headers:
+	err = table.WriteHeaders()
+	if err != nil {
+		return err
+	}
+
+	// Write the rows:
+	for _, idp := range idps {
+		err = table.WriteRow(idp)
+		if err != nil {
+			break
+		}
+	}
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
