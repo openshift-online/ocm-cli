@@ -17,6 +17,7 @@ limitations under the License.
 package plugin
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -25,80 +26,163 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openshift-online/ocm-cli/pkg/table"
+	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/output"
 	"github.com/spf13/cobra"
 )
 
-// Cmd represents the plugin command
 var Cmd = &cobra.Command{
 	Use:   "list",
-	Short: "list ocm plugins",
-	Long:  "list all the plugins under the user executable path",
+	Short: "List ocm plugins",
+	Long:  "List all the plugins under the user executable path",
 	Args:  cobra.NoArgs,
 	RunE:  run,
 }
 
 var args struct {
+	columns  string
 	nameOnly bool
 }
 
 func init() {
-	flags := Cmd.Flags()
-	flags.BoolVar(
+	fs := Cmd.Flags()
+	fs.BoolVar(
 		&args.nameOnly,
 		"nameonly",
 		false,
-		"Show the plugin name only",
+		"Show the plugin name only. This option is deprecated, use '--columns name' instead.",
+	)
+	fs.StringVar(
+		&args.columns,
+		"columns",
+		"name, path",
+		"Comma separated list of columns to display.",
 	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-	defaultPath := filepath.SplitList(os.Getenv("PATH"))
-	newPath := uniquePath(defaultPath)
-	pluginPrefix := "ocm-"
+	// Create a context:
+	ctx := context.Background()
 
-	columns := "NAME,PATH"
-	paddingByColumn := []int{20, 30}
+	// If the deprecated --nameonly option has been used translate it into the corresponding
+	// --columns option:
+	if args.nameOnly {
+		args.columns = "name"
+	}
 
-	table.PrintPadded(os.Stdout, strings.Split(columns, ","), paddingByColumn)
+	// Load the configuration:
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
 
-	for _, dir := range newPath {
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			continue
-		}
+	// Find the plugins:
+	plugins, err := findPlugins()
+	if err != nil {
+		return err
+	}
 
-		items, err := ioutil.ReadDir(dir)
+	// Create the output printer:
+	printer, err := output.NewPrinter().
+		Writer(os.Stdout).
+		Pager(cfg.Pager).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	defer printer.Close()
+
+	// Create the output table:
+	table, err := printer.NewTable().
+		Name("plugins").
+		Columns(args.columns).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	defer table.Close()
+
+	// Write the column headers:
+	err = table.WriteHeaders()
+	if err != nil {
+		return err
+	}
+
+	// Write the rows:
+	for _, plugin := range plugins {
+		err = table.WriteRow(plugin)
 		if err != nil {
-			return err
-		}
-		for _, f := range items {
-			if f.IsDir() {
-				continue
-			}
-
-			if !strings.HasPrefix(f.Name(), pluginPrefix) {
-				continue
-			}
-
-			plugin := f.Name()
-
-			var pluginOutput []string
-			absPath := filepath.Join(dir, plugin)
-			if isExec, err := isExecutable(absPath); err == nil && !isExec {
-				defer fmt.Printf("Warning: %s identified as an ocm plugin, but it is not executable. \n", absPath)
-			} else if err != nil {
-				return err
-			} else {
-				if args.nameOnly {
-					pluginOutput = []string{plugin}
-				} else {
-					pluginOutput = []string{plugin, dir}
-				}
-				table.PrintPadded(os.Stdout, pluginOutput, paddingByColumn)
-			}
+			break
 		}
 	}
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// Plugin contains the description fo a Plugin.
+type Plugin struct {
+	Name string
+	Path string
+}
+
+// findPlugins scans the directories listed in the `PATH` environment variable looking for
+// files that are plugins.
+func findPlugins() (result []Plugin, err error) {
+	defaultPath := filepath.SplitList(os.Getenv("PATH"))
+	newPath := uniquePath(defaultPath)
+
+	for _, dir := range newPath {
+		_, err = os.Stat(dir)
+		if os.IsNotExist(err) {
+			err = nil
+			continue
+		}
+		if err != nil {
+			return
+		}
+		var list []Plugin
+		list, err = listPlugins(dir)
+		if err != nil {
+			return
+		}
+		result = append(result, list...)
+	}
+	return
+}
+
+// listPlugins scans the given directory looking for files that are plugins.
+func listPlugins(dir string) (result []Plugin, err error) {
+	items, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, item := range items {
+		if item.IsDir() {
+			continue
+		}
+		name := item.Name()
+		if !strings.HasPrefix(name, pluginPrefix) {
+			continue
+		}
+		path := filepath.Join(dir, name)
+		var exec bool
+		exec, err = isExecutable(path)
+		if err != nil {
+			return
+		}
+		if !exec {
+			fmt.Printf("Warning: %s identified as an ocm plugin, but it is not executable.\n", path)
+		}
+		plugin := Plugin{
+			Name: name,
+			Path: dir,
+		}
+		result = append(result, plugin)
+	}
+	return
 }
 
 // uniquePath remove the duplicate items from the PATH
@@ -145,3 +229,6 @@ func isExecutable(file string) (bool, error) {
 
 	return false, nil
 }
+
+// pluginPrefix is the prefix that plugin file names should have.
+const pluginPrefix = "ocm-"

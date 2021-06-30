@@ -28,19 +28,17 @@ import (
 
 var _ = Describe("Plugin list", func() {
 	var ctx context.Context
+	var tmp string
 
 	BeforeEach(func() {
-		ctx = context.Background()
-	})
+		var err error
 
-	It("Writes the list of plugins", func() {
+		// Create a context:
+		ctx = context.Background()
+
 		// Create a temporary directory for the plugins:
-		tmp, err := ioutil.TempDir("", "ocm-test-*.d")
+		tmp, err = ioutil.TempDir("", "ocm-test-*.d")
 		Expect(err).ToNot(HaveOccurred())
-		defer func() {
-			err = os.RemoveAll(tmp)
-			Expect(err).ToNot(HaveOccurred())
-		}()
 
 		// Create a collection of empty scripts that will be used as plugins:
 		names := []string{
@@ -54,7 +52,15 @@ var _ = Describe("Plugin list", func() {
 			err = file.Close()
 			Expect(err).ToNot(HaveOccurred())
 		}
+	})
 
+	AfterEach(func() {
+		// Delete the temporary plugins directory:
+		err := os.RemoveAll(tmp)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Writes the list of plugins", func() {
 		// Run the command replacing the `PATH` environment variable with the temporary
 		// directory for plugins, so that it will not accidentally find other plugins that
 		// may be available in the machine where the tests run.
@@ -74,6 +80,58 @@ var _ = Describe("Plugin list", func() {
 		))
 		Expect(lines[2]).To(MatchRegexp(
 			`^\s*ocm-your-plugin\s+%s\s*$`, tmp,
+		))
+	})
+
+	It("Honors the --columns option", func() {
+		// Run the command replacing the `PATH` environment variable with the temporary
+		// directory for plugins, so that it will not accidentally find other plugins that
+		// may be available in the machine where the tests run.
+		result := NewCommand().
+			Env("PATH", tmp).
+			Args(
+				"plugin", "list",
+				"--columns", "name",
+			).
+			Run(ctx)
+		Expect(result.ExitCode()).To(BeZero())
+		Expect(result.ErrString()).To(BeEmpty())
+		lines := result.OutLines()
+		Expect(lines).To(HaveLen(3))
+		Expect(lines[0]).To(MatchRegexp(
+			`^\s*NAME\s*$`,
+		))
+		Expect(lines[1]).To(MatchRegexp(
+			`^\s*ocm-my-plugin\s*$`,
+		))
+		Expect(lines[2]).To(MatchRegexp(
+			`^\s*ocm-your-plugin\s*$`,
+		))
+	})
+
+	It("Honors the --nameonly option", func() {
+		// Run the command replacing the `PATH` environment variable with the temporary
+		// directory for plugins, so that it will not accidentally find other plugins that
+		// may be available in the machine where the tests run.
+		result := NewCommand().
+			Env("PATH", tmp).
+			Args(
+				"plugin", "list",
+				"--nameonly",
+			).
+			Run(ctx)
+		Expect(result.ExitCode()).To(BeZero())
+		Expect(result.ErrString()).To(BeEmpty())
+		lines := result.OutLines()
+		Expect(lines).To(HaveLen(3))
+		Expect(lines[0]).To(MatchRegexp(
+			`^\s*NAME\s*$`,
+		))
+		Expect(lines[1]).To(MatchRegexp(
+			`^\s*ocm-my-plugin\s*$`,
+		))
+		Expect(lines[2]).To(MatchRegexp(
+			`^\s*ocm-your-plugin\s*$`,
 		))
 	})
 })
