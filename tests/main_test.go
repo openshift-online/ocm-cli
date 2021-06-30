@@ -56,6 +56,7 @@ var _ = BeforeSuite(func() {
 
 // CommandRunner contains the data and logic needed to run a CLI command.
 type CommandRunner struct {
+	env    map[string]string
 	args   []string
 	config string
 	in     []byte
@@ -72,12 +73,20 @@ type CommandResult struct {
 
 // NewCommand creates a new CLI command runner.
 func NewCommand() *CommandRunner {
-	return &CommandRunner{}
+	return &CommandRunner{
+		env: map[string]string{},
+	}
 }
 
 // ConfigString sets the content of the CLI configuration file.
 func (r *CommandRunner) ConfigString(template string, vars ...interface{}) *CommandRunner {
 	r.config = sdktesting.EvaluateTemplate(template, vars...)
+	return r
+}
+
+// Env sets an environment variable to the CLI command.
+func (r *CommandRunner) Env(name, value string) *CommandRunner {
+	r.env[name] = value
 	return r
 }
 
@@ -119,23 +128,35 @@ func (r *CommandRunner) Run(ctx context.Context) *CommandResult {
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	}
 
-	// Remove from the environment the variable that points to the configuration file, if it exists:
-	var env []string
+	// Parse the current environment into a map so that it is easy to update it:
+	envMap := map[string]string{}
 	for _, text := range os.Environ() {
 		index := strings.Index(text, "=")
 		var name string
+		var value string
 		if index > 0 {
 			name = text[0:index]
+			value = text[index+1:]
 		} else {
 			name = text
+			value = ""
 		}
-		if name != "OCM_CONFIG" {
-			env = append(env, text)
-		}
+		envMap[name] = value
+	}
+
+	// Add the environment variables:
+	for name, value := range r.env {
+		envMap[name] = value
 	}
 
 	// Add to the environment the variable that points to a configuration file:
-	env = append(env, "OCM_CONFIG="+configFile)
+	envMap["OCM_CONFIG"] = configFile
+
+	// Reconstruct the environment list:
+	envList := make([]string, 0, len(envMap))
+	for name, value := range envMap {
+		envList = append(envList, name+"="+value)
+	}
 
 	// Create the buffers:
 	inBuf := &bytes.Buffer{}
@@ -147,7 +168,7 @@ func (r *CommandRunner) Run(ctx context.Context) *CommandResult {
 
 	// Create the command:
 	cmd := exec.Command(binary, r.args...)
-	cmd.Env = env
+	cmd.Env = envList
 	cmd.Stdin = inBuf
 	cmd.Stdout = outBuf
 	cmd.Stderr = errBuf
