@@ -120,7 +120,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		// Display the items of the fetched page:
 		response.Items().Each(func(org *amv1.Organization) bool {
-			err = table.WriteRow(org)
+			err = table.WriteObject(org)
 			return err == nil
 		})
 		if err != nil {

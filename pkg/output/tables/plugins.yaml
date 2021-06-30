@@ -14,10 +14,4 @@
 # limitations under the License.
 #
 
-columns:
-- name: name
-  header: NAME
-  width: 20
-- name: path
-  header: PATH
-  width: 30
+# Empty on purpose.

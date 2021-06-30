@@ -198,7 +198,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		// Display the items of the fetched page:
 		response.Items().Each(func(cluster *v1.Cluster) bool {
-			err = table.WriteRow(cluster)
+			err = table.WriteObject(cluster)
 			return err == nil
 		})
 		if err != nil {

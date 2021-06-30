@@ -110,7 +110,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Write the rows:
 	for _, plugin := range plugins {
-		err = table.WriteRow(plugin)
+		err = table.WriteObject(plugin)
 		if err != nil {
 			break
 		}

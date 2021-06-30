@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+	"unicode/utf8"
 )
 
 // DiggerBuilder contains the information and logic needed to build a digger.
@@ -172,9 +173,9 @@ func (d *Digger) digFieldFromMethod(value reflect.Value, method reflect.Method) 
 	return result.Interface()
 }
 
-// lookupMethod tries to find a method of the given value that matches the given path segment. For
-// example, if the path segment is `my_field` it will look for a method named `GetMyField` or
-// `MyField`. Only methods that don't have input parameters will be considered.
+// lookupMethod tries to find a public method of the given value that matches the given path
+// segment. For example, if the path segment is `my_field` it will look for a method named
+// `GetMyField` or `MyField`. Only methods that don't have input parameters will be considered.
 func (d *Digger) lookupMethod(class reflect.Type, field string) (result reflect.Method, ok bool) {
 	// Acquire the method cache lock:
 	d.methodCacheLock.Lock()
@@ -198,6 +199,9 @@ func (d *Digger) lookupMethod(class reflect.Type, field string) (result reflect.
 	// return nil when the field isn't present, instead of returning the zero value of the type.
 	for i := 0; i < count; i++ {
 		method := class.Method(i)
+		if !d.isPublic(method.Name) {
+			continue
+		}
 		if method.Type.NumIn() != 1 || method.Type.NumOut() != 2 {
 			continue
 		}
@@ -245,8 +249,8 @@ func (d *Digger) methodNameMatches(method, segment string) bool {
 	return d.nameMatches(name, segment)
 }
 
-// lookupField tries to find a field of the given value that matches the given path segment. For
-// example, if the path segment is `my_field` it will look for a field named `MyField`.
+// lookupField tries to find a public field of the given value that matches the given path segment.
+// For example, if the path segment is `my_field` it will look for a field named `MyField`.
 func (d *Digger) lookupField(class reflect.Type, name string) (result int, ok bool) {
 	// Acquire the field cache lock:
 	d.fieldCacheLock.Lock()
@@ -266,6 +270,9 @@ func (d *Digger) lookupField(class reflect.Type, name string) (result int, ok bo
 	count := class.NumField()
 	for i := 0; i < count; i++ {
 		field := class.Field(i)
+		if !d.isPublic(field.Name) {
+			continue
+		}
 		if !d.fieldNameMatches(field.Name, name) {
 			continue
 		}
@@ -317,6 +324,15 @@ func (d *Digger) nameMatches(name, segment string) bool {
 
 	// If we have consumed all the runes of both names then there is a match:
 	return nameI == nameLen && segmentI == segmentLen
+}
+
+// isPublic checks if the given name is public according to the Go rules.
+func (d *Digger) isPublic(name string) bool {
+	first, _ := utf8.DecodeRuneInString(name)
+	if first == utf8.RuneError {
+		return false
+	}
+	return unicode.IsUpper(first)
 }
 
 // getMethodRE is a regular expression used to check if a method name starts with `Get`. Note that

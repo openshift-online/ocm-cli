@@ -25,8 +25,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/mattn/go-isatty"
 	"github.com/openshift-online/ocm-cli/pkg/data"
+	"golang.org/x/term"
 )
 
 // PrinterBuilder contains the data and logic needed to create new printers.
@@ -43,6 +43,13 @@ type Printer struct {
 
 	// Digger used to extract fields from objects:
 	digger *data.Digger
+
+	// Flag indicating if the output is a terminal.
+	terminal bool
+
+	// Terminal width and heigth. Both will be zero if the output isn't a terminal.
+	width  int
+	height int
 
 	// Command used to display output page by page:
 	pagerCmd    *exec.Cmd
@@ -106,19 +113,19 @@ func (b *PrinterBuilder) Build(ctx context.Context) (result *Printer, err error)
 		return
 	}
 
-	// Check if the output is a TTY:
-	isTTY, err := b.isTTY(b.writer)
+	// Check if the output is a terminal:
+	terminal, width, height, err := b.isTerminal(b.writer)
 	if err != nil {
 		return
 	}
 
-	// If paging is enabled, a pager is available and the output is a TTY, then start that pager
-	// in the background and redirect all the output to it:
+	// If paging is enabled, a pager is available and the output is a terminal, then start that
+	// pager in the background and redirect all the output to it:
 	writer := b.writer
 	var pagerCmd *exec.Cmd
 	var pagerStop chan int
 	var pagerReader, pagerWriter *os.File
-	if pagerEnabled && isTTY {
+	if pagerEnabled && terminal {
 		// Create a pipe to connect us to the pager process:
 		pagerReader, pagerWriter, err = os.Pipe()
 		if err != nil {
@@ -155,6 +162,9 @@ func (b *PrinterBuilder) Build(ctx context.Context) (result *Printer, err error)
 	result = &Printer{
 		writer:      writer,
 		digger:      digger,
+		terminal:    terminal,
+		width:       width,
+		height:      height,
 		pagerCmd:    pagerCmd,
 		pagerStop:   pagerStop,
 		pagerReader: pagerReader,
@@ -164,11 +174,20 @@ func (b *PrinterBuilder) Build(ctx context.Context) (result *Printer, err error)
 	return
 }
 
-// isTTY checks if the given writer is a TTY.
-func (b *PrinterBuilder) isTTY(writer io.Writer) (result bool, err error) {
+// isTerminal checks the given writer and returns true if it is a terminal, together with two
+// integers indicating the width and height of the terminal.
+func (b *PrinterBuilder) isTerminal(writer io.Writer) (result bool, width, height int, err error) {
 	file, ok := writer.(*os.File)
-	if ok {
-		result = isatty.IsTerminal(file.Fd())
+	if !ok {
+		return
+	}
+	fd := int(file.Fd())
+	result = term.IsTerminal(fd)
+	if result {
+		width, height, err = term.GetSize(fd)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
@@ -211,6 +230,21 @@ func (p *Printer) Write(b []byte) (n int, err error) {
 	}
 	n, err = writer.Write(b)
 	return
+}
+
+// Terminal returns true if the output is a terminal.
+func (p *Printer) Terminal() bool {
+	return p.terminal
+}
+
+// Width returns the width of the terminal. If the output isn't a terminal the result will be zero.
+func (p *Printer) Width() int {
+	return p.width
+}
+
+// Height returns the height of the terminal. If the output isn't a terminal the result will be zero.
+func (p *Printer) Height() int {
+	return p.height
 }
 
 // Close releases all the resources used by the printer.
