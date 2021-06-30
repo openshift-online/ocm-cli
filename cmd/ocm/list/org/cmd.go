@@ -104,7 +104,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// for all iterations just changing the values of the `size` and `page` parameters.
 	request := connection.AccountsMgmt().V1().Organizations().List()
 	arguments.ApplyParameterFlag(request, args.parameter)
-	arguments.ApplyHeaderFlag(request, args.parameter)
+	arguments.ApplyHeaderFlag(request, args.header)
 
 	// Send the request till we receive a page with less items than requested:
 	size := 100
