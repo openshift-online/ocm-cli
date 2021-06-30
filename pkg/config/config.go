@@ -64,7 +64,7 @@ func Load() (cfg *Config, err error) {
 	}
 	_, err = os.Stat(file)
 	if os.IsNotExist(err) {
-		cfg = nil
+		cfg = &Config{}
 		err = nil
 		return
 	}
@@ -78,7 +78,7 @@ func Load() (cfg *Config, err error) {
 		err = fmt.Errorf("can't read config file '%s': %v", file, err)
 		return
 	}
-	cfg = new(Config)
+	cfg = &Config{}
 	err = json.Unmarshal(data, cfg)
 	if err != nil {
 		err = fmt.Errorf("can't parse config file '%s': %v", file, err)
