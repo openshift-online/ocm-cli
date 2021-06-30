@@ -1,6 +1,7 @@
 *.orig
 *.patch
 *.rej
+/.vscode
 /ocm
 /ocm-darwin-amd64
 /ocm-darwin-amd64.sha256sum

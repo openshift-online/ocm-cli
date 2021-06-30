@@ -17,27 +17,25 @@ limitations under the License.
 package org
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"os"
-	"strings"
 
+	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
+	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	table "github.com/openshift-online/ocm-cli/pkg/table"
-	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
+	"github.com/openshift-online/ocm-cli/pkg/output"
 )
 
 var args struct {
-	columns   string
 	parameter []string
-	padding   int
+	header    []string
+	columns   string
 }
 
-// Cmd ...
 var Cmd = &cobra.Command{
 	Use:     "organization",
 	Aliases: []string{"organizations", "org", "orgs"},
@@ -48,109 +46,93 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	// Add flags to rootCmd:
 	fs := Cmd.Flags()
 	arguments.AddParameterFlag(fs, &args.parameter)
+	arguments.AddHeaderFlag(fs, &args.header)
 	fs.StringVar(
 		&args.columns,
 		"columns",
-		"id,name", // Default value gets assigned later as connection is needed.
-		"columns to show.",
-	)
-	fs.IntVar(
-		&args.padding,
-		"padding",
-		45,
-		"Takes padding for custom columns, default to 45.",
+		"id, name",
+		"Comma separated list of columns to display.",
 	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	// Create a context:
+	ctx := context.Background()
+
+	// Load the configuration:
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return err
 	}
 	defer connection.Close()
 
-	// Indices
-	pageIndex := 1
-	pageSize := 100
+	// Create the output printer:
+	printer, err := output.NewPrinter().
+		Writer(os.Stdout).
+		Pager(cfg.Pager).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	defer printer.Close()
 
-	// Setting column names and padding size
-	// Update our column name displaying variable:
-	args.columns = strings.Replace(args.columns, " ", "", -1)
-	colUpper := strings.ToUpper(args.columns)
-	colUpper = strings.Replace(colUpper, ".", " ", -1)
-	columnNames := strings.Split(colUpper, ",")
-	paddingByColumn := []int{29, 65, 70}
-	if args.columns != "id,name" {
-		paddingByColumn = []int{args.padding}
+	// Create the output table:
+	table, err := printer.NewTable().
+		Name("orgs").
+		Columns(args.columns).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	defer table.Close()
+
+	// Write the header row:
+	err = table.WriteHeaders()
+	if err != nil {
+		return err
 	}
 
-	// Print Header Row:
-	table.PrintPadded(os.Stdout, columnNames, paddingByColumn)
+	// Create the request. Note that this request can be created outside of the loop and used
+	// for all iterations just changing the values of the `size` and `page` parameters.
+	request := connection.AccountsMgmt().V1().Organizations().List()
+	arguments.ApplyParameterFlag(request, args.parameter)
+	arguments.ApplyHeaderFlag(request, args.parameter)
 
+	// Send the request till we receive a page with less items than requested:
+	size := 100
+	index := 1
 	for {
-		// Next page request:
-		request := connection.AccountsMgmt().V1().Organizations().
-			List().
-			Page(pageIndex).
-			Size(pageSize)
-
-		// Apply parameters
-		arguments.ApplyParameterFlag(request, args.parameter)
-
-		// Fetch next page
-		orgList, err := request.Send()
+		// Fetch the next page:
+		request.Size(size)
+		request.Page(index)
+		response, err := request.Send()
 		if err != nil {
-			return fmt.Errorf("Failed to retrieve organization list: %v", err)
+			return fmt.Errorf("can't retrieve organizations: %w", err)
 		}
 
-		// Display organization information
-		orgList.Items().Each(func(org *amv1.Organization) bool {
-			// String to output marshal -
-			// Map used to parse Organization data -
-			// Writer to body variable:
-			var body string
-			var jsonBody map[string]interface{}
-			bodyBuffer := bytes.NewBufferString(body)
-
-			// Write Organization data to body variable:
-			err := amv1.MarshalOrganization(org, bodyBuffer)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to marshal organization into byte buffer: %s\n", err)
-				os.Exit(1)
-			}
-
-			// Get JSON from Organization bytes
-			err = json.Unmarshal(bodyBuffer.Bytes(), &jsonBody)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to turn organization bytes into JSON map: %s\n", err)
-				os.Exit(1)
-			}
-
-			// Loop through wanted columns and populate an organization instance
-			iter := strings.Split(args.columns, ",")
-			thisOrg := []string{}
-			for _, element := range iter {
-				value, status := table.FindMapValue(jsonBody, element)
-				if !status {
-					value = "NONE"
-				}
-				thisOrg = append(thisOrg, value)
-			}
-			table.PrintPadded(os.Stdout, thisOrg, paddingByColumn)
-			return true
+		// Display the items of the fetched page:
+		response.Items().Each(func(org *amv1.Organization) bool {
+			err = table.WriteRow(org)
+			return err == nil
 		})
-
-		// Break if we reach last page
-		if orgList.Size() < pageSize {
+		if err != nil {
 			break
 		}
 
-		pageIndex++
+		// If the number of fetched items is less than requested, then this was the last
+		// page, otherwise process the next one:
+		if response.Size() < size {
+			break
+		}
+		index++
 	}
 
 	return nil
