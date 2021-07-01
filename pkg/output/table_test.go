@@ -75,7 +75,7 @@ var _ = Describe("Table", func() {
 
 		// Check the generated text:
 		Expect(buffer.String()).To(MatchRegexp(
-			`^ID\s+EXTERNAL ID\s+NAME\s+$`,
+			`^ID\s+EXTERNAL ID\s+NAME\s*$`,
 		))
 	})
 
@@ -105,26 +105,23 @@ var _ = Describe("Table", func() {
 
 		// Check the generated text:
 		Expect(buffer.String()).To(MatchRegexp(
-			`^123\s+e30bac0b-b337-47d7-a378-2c302b4c868a\s+mycluster\s+$`,
+			`^123\s+e30bac0b-b337-47d7-a378-2c302b4c868a\s+mycluster\s*$`,
 		))
 	})
 
-	It("Writes `NONE` for columns without value", func() {
+	It("Honors explicit column values", func() {
 		// Create the table:
 		table, err := printer.NewTable().
 			Name("clusters").
-			Columns(
-				"id",
-				"external_id",
-				"name",
-			).
+			Columns("id", "my_column", "your_column").
+			Value("my_column", "my_value").
+			Value("your_column", "your_value").
 			Build(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Create the object that will be written to the table:
 		object, err := cmv1.NewCluster().
 			ID("123").
-			Name("mycluster").
 			Build()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -134,7 +131,37 @@ var _ = Describe("Table", func() {
 
 		// Check the generated text:
 		Expect(buffer.String()).To(MatchRegexp(
-			`^123\s+NONE\s+mycluster\s+$`,
+			`^123\s+my_value\s+your_value\s*$`,
+		))
+	})
+
+	It("Honors calculated column", func() {
+		// Create the table:
+		table, err := printer.NewTable().
+			Name("clusters").
+			Columns("id", "my_column", "your_column").
+			Value("my_column", func(object *cmv1.Cluster) string {
+				return "my_" + object.ID()
+			}).
+			Value("your_column", func(object *cmv1.Cluster) string {
+				return "your_" + object.ID()
+			}).
+			Build(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create the object that will be written to the table:
+		object, err := cmv1.NewCluster().
+			ID("123").
+			Build()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Write the object to the table:
+		err = table.WriteRow(object)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Check the generated text:
+		Expect(buffer.String()).To(MatchRegexp(
+			`^123\s+my_123\s+your_123\s*$`,
 		))
 	})
 })

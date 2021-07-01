@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/openshift-online/ocm-cli/pkg/data"
@@ -36,6 +37,7 @@ type TableBuilder struct {
 	name    string
 	specs   []string
 	digger  *data.Digger
+	values  map[string]reflect.Value
 }
 
 // Table contains the data and logic needed to write tabular output.
@@ -53,9 +55,11 @@ type tableYAML struct {
 
 // Column contains the data and logic needed to write columns.
 type Column struct {
+	table  *Table
 	name   string
 	header string
 	width  int
+	value  reflect.Value
 }
 
 // columnYAML is used to load a column description from a YAML document.
@@ -69,6 +73,7 @@ type columnYAML struct {
 func (p *Printer) NewTable() *TableBuilder {
 	return &TableBuilder{
 		printer: p,
+		values:  map[string]reflect.Value{},
 	}
 }
 
@@ -89,6 +94,14 @@ func (b *TableBuilder) Column(spec string) *TableBuilder {
 // a set of comman separated column identifiers.
 func (b *TableBuilder) Columns(specs ...string) *TableBuilder {
 	b.specs = append(b.specs, specs...)
+	return b
+}
+
+// Value sets the value for the given column name. The value can be an object or a function. If it
+// is a function then it will be called passing as parameter the row object and it is expected to
+// return as first output parameter the value for the column.
+func (b *TableBuilder) Value(name string, value interface{}) *TableBuilder {
+	b.values[name] = reflect.ValueOf(value)
 	return b
 }
 
@@ -191,6 +204,7 @@ func (b *TableBuilder) loadTable(columnNames []string) (result *Table, err error
 		if column == nil {
 			column = b.defaultColumn(columnName)
 		}
+		column.table = table
 		table.columns[i] = column
 	}
 
@@ -233,6 +247,7 @@ func (b *TableBuilder) defaultColumn(columnName string) *Column {
 		name:   columnName,
 		header: b.defaultColumnHeader(columnName),
 		width:  b.defaultColumnWidth(columnName),
+		value:  b.defaultColumnValue(columnName),
 	}
 }
 
@@ -248,6 +263,11 @@ func (b *TableBuilder) defaultColumnHeader(columnName string) string {
 // defaultColumnWidth returns the default width for the given column name.
 func (b *TableBuilder) defaultColumnWidth(columnName string) int {
 	return len(columnName)
+}
+
+// defaultColumnValue returns the default value for the given column.
+func (b *TableBuilder) defaultColumnValue(columnName string) reflect.Value {
+	return b.values[columnName]
 }
 
 // WriteColumns writes a row of a table using the given values.
@@ -313,15 +333,41 @@ func (t *Table) WriteHeaders() error {
 }
 
 // WriteRow writes a row of a table extracting the values of the columns from the given object.
-func (t *Table) WriteRow(row interface{}) error {
-	fields := make([]interface{}, len(t.columns))
+func (t *Table) WriteRow(object interface{}) error {
+	values := make([]interface{}, len(t.columns))
 	for i, column := range t.columns {
-		fields[i] = t.digger.Dig(row, column.name)
+		values[i] = column.Value(object)
 	}
-	return t.WriteColumns(fields)
+	return t.WriteColumns(values)
 }
 
 // Close releases all the resources used by the table.
 func (t *Table) Close() error {
+	return nil
+}
+
+// Value extract the value of this column from the given object.
+func (c *Column) Value(object interface{}) interface{} {
+	// If the column doesn't have a explicit value then get it ussing the digger:
+	if !c.value.IsValid() {
+		return c.table.digger.Dig(object, c.name)
+	}
+
+	// If there is a explicit value then use reflection to get the value, calling it if it is a
+	// function or getting it directly othersise:
+	var result reflect.Value
+	switch c.value.Kind() {
+	case reflect.Func:
+		args := []reflect.Value{
+			reflect.ValueOf(object),
+		}
+		results := c.value.Call(args)
+		result = results[0]
+	default:
+		result = c.value
+	}
+	if result.IsValid() {
+		return result.Interface()
+	}
 	return nil
 }
