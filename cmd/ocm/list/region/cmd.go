@@ -32,7 +32,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "regions --provider=CLOUD_PROVIDER [--ccs --aws-access-key-id --aws-secret-access-key] ",
+	Use:     "region --provider=CLOUD_PROVIDER [--ccs --aws-access-key-id --aws-secret-access-key] ",
 	Aliases: []string{"regions"},
 	Short:   "List known/available cloud provider regions",
 	Long: "List regions of a cloud provider.\n\n" +
