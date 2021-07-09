@@ -34,7 +34,6 @@ var _ = Describe("Account orgs", func() {
 	BeforeEach(func() {
 		// Create a context:
 		ctx = context.Background()
-
 	})
 
 	When("Config file doesn't exist", func() {

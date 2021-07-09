@@ -34,7 +34,6 @@ var _ = Describe("List clusters", func() {
 	BeforeEach(func() {
 		// Create a context:
 		ctx = context.Background()
-
 	})
 
 	When("Config file doesn't exist", func() {
@@ -122,11 +121,6 @@ var _ = Describe("List clusters", func() {
 									"kind": "ProductLink",
 									"id": "osd",
 									"href": "/api/clusters_mgmt/v1/products/osd"
-								},
-								"cloud_provider": {
-									"kind": "CloudProviderLink",
-									"id": "aws",
-									"href": "/api/clusters_mgmt/v1/cloud_providers/aws"
 								},
 								"cloud_provider": {
 									"kind": "CloudProviderLink",
