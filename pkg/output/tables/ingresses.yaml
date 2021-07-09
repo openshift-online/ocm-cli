@@ -14,4 +14,14 @@
 # limitations under the License.
 #
 
-# Empty on purpose.
+columns:
+- name: id
+  header: ID
+- name: application_router
+  header: APPLICATION ROUTER
+- name: listening
+  header: PRIVATE
+- name: default
+  header: DEFAULT
+- name: route_selectors
+  header: ROUTE SELECTORS

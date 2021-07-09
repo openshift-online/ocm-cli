@@ -14,13 +14,4 @@
 # limitations under the License.
 #
 
-columns:
-- name: name
-  header: NAME
-  width: 20
-- name: type
-  header: TYPE
-  width: 6
-- name: auth_url
-  header: AUTH URL
-  width: 120
+# Empty on purpose.

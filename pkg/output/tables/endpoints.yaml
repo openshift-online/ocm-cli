@@ -14,4 +14,10 @@
 # limitations under the License.
 #
 
-# Empty on purpose.
+columns:
+- name: id
+  header: ID
+- name: api.url
+  header: API ENDPOINT
+- name: api.listening
+  header: PRIVATE

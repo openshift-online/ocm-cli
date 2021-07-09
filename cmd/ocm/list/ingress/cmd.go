@@ -17,13 +17,15 @@ limitations under the License.
 package ingress
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
+	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/output"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/spf13/cobra"
@@ -45,20 +47,46 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	flags := Cmd.Flags()
+	fs := Cmd.Flags()
 
-	flags.StringVarP(
+	fs.StringVarP(
 		&args.clusterKey,
 		"cluster",
 		"c",
 		"",
 		"Name or ID or external_id of the cluster to list the routes of (required).",
 	)
+
 	//nolint:gosec
 	Cmd.MarkFlagRequired("cluster")
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	// Create a context:
+	ctx := context.Background()
+
+	// Load the configuration:
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	// Create the client for the OCM API:
+	connection, err := ocm.NewConnection().Build()
+	if err != nil {
+		return err
+	}
+	defer connection.Close()
+
+	// Create the output printer:
+	printer, err := output.NewPrinter().
+		Writer(os.Stdout).
+		Pager(cfg.Pager).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	defer printer.Close()
 
 	// Check that the cluster key (name, identifier or external identifier) given by the user
 	// is reasonably safe so that there is no risk of SQL injection:
@@ -70,13 +98,6 @@ func run(cmd *cobra.Command, argv []string) error {
 			clusterKey,
 		)
 	}
-
-	// Create the client for the OCM API:
-	connection, err := ocm.NewConnection().Build()
-	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
-	}
-	defer connection.Close()
 
 	// Get the client for the cluster management api
 	clusterCollection := connection.ClustersMgmt().V1().Clusters()
@@ -93,33 +114,63 @@ func run(cmd *cobra.Command, argv []string) error {
 	ingresses, err := c.GetIngresses(clusterCollection, cluster.ID())
 	if err != nil {
 		return fmt.Errorf("Failed to get ingresses for cluster '%s': %v", clusterKey, err)
-		os.Exit(1)
 	}
 
-	// Create the writer that will be used to print the tabulated results:
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	// Write the endpoints:
+	endpointsTable, err := printer.NewTable().
+		Name("endpoints").
+		Columns("id", "api.url", "api.listening").
+		Value("id", "api").
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	err = endpointsTable.WriteHeaders()
+	if err != nil {
+		return err
+	}
+	err = endpointsTable.WriteObject(cluster)
+	if err != nil {
+		return err
+	}
+	err = endpointsTable.Close()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(printer, "\n")
 
-	// Include API endpoint in routes table
-	fmt.Fprintf(writer, "ID\tAPI ENDPOINT\t\tPRIVATE\n")
-	fmt.Fprintf(writer, "api\t%s\t\t%s\n", cluster.API().URL(), cluster.API().Listening())
-	fmt.Fprintf(writer, "\n")
-	fmt.Fprintf(writer, "ID\tAPPLICATION ROUTER\t\t\tPRIVATE\t\tDEFAULT\t\tROUTE SELECTORS\n")
+	// Write the ingresses:
+	ingressesTable, err := printer.NewTable().
+		Name("ingresses").
+		Columns("id", "application_router", "listening", "default", "route_selectors").
+		Value("application_router", applicationRouter).
+		Value("route_selectors", routeSelectors).
+		Build(ctx)
+	if err != nil {
+		return err
+	}
+	err = ingressesTable.WriteHeaders()
+	if err != nil {
+		return err
+	}
 	for _, ingress := range ingresses {
-		fmt.Fprintf(writer, "%s\thttps://%s\t\t\t%s\t\t%t\t\t%s\n",
-			ingress.ID(),
-			ingress.DNSName(),
-			ingress.Listening(),
-			ingress.Default(),
-			printRouteSelectors(ingress),
-		)
+		err = ingressesTable.WriteObject(ingress)
+		if err != nil {
+			break
+		}
 	}
-	//nolint:gosec
-	writer.Flush()
+	if err != nil {
+		return err
+	}
+	err = ingressesTable.Close()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func printRouteSelectors(ingress *cmv1.Ingress) string {
+func routeSelectors(ingress *cmv1.Ingress) string {
 	routeSelectors := ingress.RouteSelectors()
 	if len(routeSelectors) == 0 {
 		return ""
@@ -130,4 +181,8 @@ func printRouteSelectors(ingress *cmv1.Ingress) string {
 	}
 
 	return strings.Join(output, ", ")
+}
+
+func applicationRouter(ingress *cmv1.Ingress) string {
+	return "https://" + ingress.DNSName()
 }

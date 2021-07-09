@@ -19,6 +19,7 @@ package output
 import (
 	"bytes"
 	"context"
+	"strings"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
@@ -72,6 +73,8 @@ var _ = Describe("Table", func() {
 		// Write the headers:
 		err = table.WriteHeaders()
 		Expect(err).ToNot(HaveOccurred())
+		err = table.Close()
+		Expect(err).ToNot(HaveOccurred())
 
 		// Check the generated text:
 		Expect(buffer.String()).To(MatchRegexp(
@@ -100,7 +103,9 @@ var _ = Describe("Table", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Write the object to the table:
-		err = table.WriteRow(object)
+		err = table.WriteObject(object)
+		Expect(err).ToNot(HaveOccurred())
+		err = table.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		// Check the generated text:
@@ -126,7 +131,9 @@ var _ = Describe("Table", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Write the object to the table:
-		err = table.WriteRow(object)
+		err = table.WriteObject(object)
+		Expect(err).ToNot(HaveOccurred())
+		err = table.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		// Check the generated text:
@@ -156,12 +163,144 @@ var _ = Describe("Table", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Write the object to the table:
-		err = table.WriteRow(object)
+		err = table.WriteObject(object)
+		Expect(err).ToNot(HaveOccurred())
+		err = table.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		// Check the generated text:
 		Expect(buffer.String()).To(MatchRegexp(
 			`^123\s+my_123\s+your_123\s*$`,
 		))
+	})
+
+	It("Learns column widths from values", func() {
+		// Create the table:
+		table, err := printer.NewTable().
+			Name("idps").
+			Columns("name", "type").
+			Build(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create the object that will be written to the table:
+		object, err := cmv1.NewIdentityProvider().
+			Name("my_github").
+			Type(cmv1.IdentityProviderTypeGithub).
+			Build()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Write the object to the table:
+		err = table.WriteHeaders()
+		Expect(err).ToNot(HaveOccurred())
+		err = table.WriteObject(object)
+		Expect(err).ToNot(HaveOccurred())
+		err = table.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Check the generated text:
+		lines := strings.Split(buffer.String(), "\n")
+		Expect(lines).To(HaveLen(3))
+		Expect(lines[0]).To(Equal(`NAME       TYPE  `))
+		Expect(lines[1]).To(Equal(`my_github  github`))
+	})
+
+	It("Learns column widths from headers", func() {
+		// Create the table:
+		table, err := printer.NewTable().
+			Name("idps").
+			Columns("name", "type").
+			Build(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create the object that will be written to the table:
+		object, err := cmv1.NewIdentityProvider().
+			Name("1").
+			Type("my").
+			Build()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Write the object to the table:
+		err = table.WriteHeaders()
+		Expect(err).ToNot(HaveOccurred())
+		err = table.WriteObject(object)
+		Expect(err).ToNot(HaveOccurred())
+		err = table.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Check the generated text:
+		lines := strings.Split(buffer.String(), "\n")
+		Expect(lines).To(HaveLen(3))
+		Expect(lines[0]).To(Equal(`NAME  TYPE`))
+		Expect(lines[1]).To(Equal(`1     my  `))
+	})
+
+	It("Honours disabled learning", func() {
+		// Create the table:
+		table, err := printer.NewTable().
+			Name("clusters").
+			Columns("id", "name").
+			Learning(false).
+			Build(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create the object that will be written to the table:
+		object, err := cmv1.NewCluster().
+			ID("123").
+			Name("mycluster").
+			Build()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Write the object to the table:
+		err = table.WriteHeaders()
+		Expect(err).ToNot(HaveOccurred())
+		err = table.WriteObject(object)
+		Expect(err).ToNot(HaveOccurred())
+		err = table.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Check the generated text:
+		lines := strings.Split(buffer.String(), "\n")
+		Expect(lines).To(HaveLen(3))
+		Expect(lines[0]).To(Equal(`ID                                NAME                        `))
+		Expect(lines[1]).To(Equal(`123                               mycluster                   `))
+	})
+
+	It("Honours learning limit", func() {
+		// Create the table:
+		table, err := printer.NewTable().
+			Name("idps").
+			Columns("name", "type").
+			LearningLimit(2).
+			Build(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create the objects that will be written to the table:
+		first, err := cmv1.NewIdentityProvider().
+			Name("123").
+			Type("my_github").
+			Build()
+		Expect(err).ToNot(HaveOccurred())
+		second, err := cmv1.NewIdentityProvider().
+			Name("456").
+			Type("your_github").
+			Build()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Write the object to the table:
+		err = table.WriteHeaders()
+		Expect(err).ToNot(HaveOccurred())
+		err = table.WriteObject(first)
+		Expect(err).ToNot(HaveOccurred())
+		err = table.WriteObject(second)
+		Expect(err).ToNot(HaveOccurred())
+		err = table.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Check the generated text:
+		lines := strings.Split(buffer.String(), "\n")
+		Expect(lines).To(HaveLen(4))
+		Expect(lines[0]).To(Equal(`NAME  TYPE     `))
+		Expect(lines[1]).To(Equal(`123   my_github`))
+		Expect(lines[2]).To(Equal(`456   your_gith`))
 	})
 })

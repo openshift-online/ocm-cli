@@ -130,6 +130,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	if len(clusterAddOns) == 0 {
 		fmt.Printf("There are no add-ons installed on cluster '%s'", clusterKey)
+		return nil
 	}
 
 	// Write the column headers:
@@ -140,7 +141,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Write the rows:
 	for _, clusterAddOn := range clusterAddOns {
-		err = table.WriteRow(clusterAddOn)
+		err = table.WriteObject(clusterAddOn)
 		if err != nil {
 			break
 		}

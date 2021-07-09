@@ -140,7 +140,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Write the rows:
 	for _, idp := range idps {
-		err = table.WriteRow(idp)
+		err = table.WriteObject(idp)
 		if err != nil {
 			break
 		}
