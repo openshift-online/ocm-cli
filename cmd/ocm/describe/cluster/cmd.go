@@ -93,16 +93,17 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Try to find the cluster that has the name, identifier or external identifier matching the
 	// value given by the user:
-	search := fmt.Sprintf("name = '%s' or id = '%s' or external_id = '%s'", key, key, key)
-	response, err := connection.ClustersMgmt().V1().Clusters().List().
-		Search(search).
-		Size(1).
-		Send()
+	search := fmt.Sprintf("display_name = '%s' "+
+		"or cluster_id = '%s' "+
+		"or external_cluster_id = '%s' "+
+		"and status = 'Active'",
+		key, key, key)
+	response, err := connection.AccountsMgmt().V1().Subscriptions().List().Search(search).Size(1).Send()
 	if err != nil {
 		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", key, err)
 	}
-	clusters := response.Items().Slice()
-	if len(clusters) == 0 {
+	subs := response.Items().Slice()
+	if len(subs) == 0 {
 		fmt.Fprintf(
 			os.Stderr,
 			"There is no cluster with name, identifier or external identifier '%s'\n",
@@ -110,8 +111,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		)
 		os.Exit(1)
 	}
-	cluster := clusters[0]
-
+	clusterID := subs[0].ClusterID()
+	clusterResponse, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Get().Send()
+	if err != nil {
+		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", key, err)
+	}
+	cluster := clusterResponse.Body()
 	if args.output {
 		// Create a filename based on cluster name:
 		filename := fmt.Sprintf("cluster-%s.json", cluster.ID())
