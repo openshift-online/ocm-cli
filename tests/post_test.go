@@ -34,7 +34,6 @@ var _ = Describe("Post", func() {
 	BeforeEach(func() {
 		// Create a context:
 		ctx = context.Background()
-
 	})
 
 	When("Not logged in", func() {
