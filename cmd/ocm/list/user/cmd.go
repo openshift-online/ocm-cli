@@ -75,7 +75,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	clusterCollection := connection.ClustersMgmt().V1().Clusters()
 
-	cluster, err := c.GetCluster(clusterCollection, clusterKey)
+	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
 		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
 	}

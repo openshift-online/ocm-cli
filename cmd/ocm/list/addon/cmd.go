@@ -111,10 +111,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		)
 	}
 
-	// Get the client for the resource that manages the collection of clusters:
-	ocmClient := connection.ClustersMgmt().V1().Clusters()
-
-	cluster, err := c.GetCluster(ocmClient, clusterKey)
+	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
 		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
 	}

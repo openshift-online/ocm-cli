@@ -110,25 +110,28 @@ func IsValidClusterKey(clusterKey string) bool {
 	return clusterKeyRE.MatchString(clusterKey)
 }
 
-func GetCluster(client *cmv1.ClustersClient, clusterKey string) (*cmv1.Cluster, error) {
-	query := fmt.Sprintf(
-		"(id = '%s' or name = '%s' or external_id = '%s')",
-		clusterKey, clusterKey, clusterKey,
-	)
-	response, err := client.List().
-		Search(query).
-		Page(1).
-		Size(1).
-		Send()
+func GetCluster(connection *sdk.Connection, clusterKey string) (*cmv1.Cluster, error) {
+	search := fmt.Sprintf("display_name = '%s' "+
+		"or cluster_id = '%s' "+
+		"or external_cluster_id = '%s' "+
+		"and status = 'Active'",
+		clusterKey, clusterKey, clusterKey)
+	response, err := connection.AccountsMgmt().V1().Subscriptions().List().Search(search).Size(1).Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to locate cluster '%s': %v", clusterKey, err)
+		return nil, fmt.Errorf("Can't retrieve cluster for key '%s': %v", clusterKey, err)
 	}
 
 	switch response.Total() {
 	case 0:
 		return nil, fmt.Errorf("There is no cluster with identifier or name '%s'", clusterKey)
 	case 1:
-		return response.Items().Slice()[0], nil
+		subs := response.Items().Slice()
+		clusterID := subs[0].ClusterID()
+		clusterResponse, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Get().Send()
+		if err != nil {
+			return nil, fmt.Errorf("Can't retrieve cluster for key '%s': %v", clusterKey, err)
+		}
+		return clusterResponse.Body(), nil
 	default:
 		return nil, fmt.Errorf("There are %d clusters with identifier or name '%s'", response.Total(), clusterKey)
 	}
