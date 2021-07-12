@@ -30,6 +30,7 @@ var args struct {
 	clusterKey string
 
 	idpType string
+	idpName string
 
 	clientID      string
 	clientSecret  string
@@ -93,6 +94,14 @@ func init() {
 		"t",
 		"",
 		fmt.Sprintf("Type of identity provider. Options are %s\n", validIdps),
+	)
+
+	flags.StringVarP(
+		&args.idpName,
+		"name",
+		"n",
+		"",
+		"Name of the identity provider.",
 	)
 
 	flags.StringVar(
@@ -265,8 +274,23 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
+	idpName := args.idpName
+
+	if idpName == "" {
+		prompt := &survey.Input{
+			Message: "Name of the identity provider:",
+		}
+		err = survey.AskOne(prompt, &idpName)
+		if err != nil {
+			return fmt.Errorf("Failed to get a valid IDP name")
+		}
+	}
+
 	var idpBuilder cmv1.IdentityProviderBuilder
-	idpName := getNextName(idpType, idps)
+	if idpName == "" {
+		idpName = getNextName(idpType, idps)
+	}
+
 	switch idpType {
 	case "github":
 		idpBuilder, err = buildGithubIdp(cluster, idpName)
