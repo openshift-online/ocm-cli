@@ -111,9 +111,9 @@ func IsValidClusterKey(clusterKey string) bool {
 }
 
 func GetCluster(connection *sdk.Connection, clusterKey string) (*cmv1.Cluster, error) {
-	search := fmt.Sprintf("display_name = '%s' "+
+	search := fmt.Sprintf("(display_name = '%s' "+
 		"or cluster_id = '%s' "+
-		"or external_cluster_id = '%s' "+
+		"or external_cluster_id = '%s' )"+
 		"and status = 'Active'",
 		clusterKey, clusterKey, clusterKey)
 	response, err := connection.AccountsMgmt().V1().Subscriptions().List().Search(search).Size(1).Send()

@@ -25,6 +25,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 
+	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	clusterpkg "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -91,32 +92,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	defer connection.Close()
 
-	// Try to find the cluster that has the name, identifier or external identifier matching the
-	// value given by the user:
-	search := fmt.Sprintf("display_name = '%s' "+
-		"or cluster_id = '%s' "+
-		"or external_cluster_id = '%s' "+
-		"and status = 'Active'",
-		key, key, key)
-	response, err := connection.AccountsMgmt().V1().Subscriptions().List().Search(search).Size(1).Send()
+	cluster, err := c.GetCluster(connection, key)
 	if err != nil {
 		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", key, err)
 	}
-	subs := response.Items().Slice()
-	if len(subs) == 0 {
-		fmt.Fprintf(
-			os.Stderr,
-			"There is no cluster with name, identifier or external identifier '%s'\n",
-			key,
-		)
-		os.Exit(1)
-	}
-	clusterID := subs[0].ClusterID()
-	clusterResponse, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Get().Send()
-	if err != nil {
-		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", key, err)
-	}
-	cluster := clusterResponse.Body()
+
 	if args.output {
 		// Create a filename based on cluster name:
 		filename := fmt.Sprintf("cluster-%s.json", cluster.ID())
@@ -146,11 +126,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf("Failed to Marshal cluster into JSON encoder: %v", err)
 		}
 
-		if response.Status() < 400 {
-			err = dump.Pretty(os.Stdout, buf.Bytes())
-		} else {
-			err = dump.Pretty(os.Stderr, buf.Bytes())
-		}
+		err = dump.Pretty(os.Stdout, buf.Bytes())
 		if err != nil {
 			return fmt.Errorf("Can't print body: %v", err)
 		}
