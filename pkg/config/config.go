@@ -79,6 +79,9 @@ func Load() (cfg *Config, err error) {
 		return
 	}
 	cfg = &Config{}
+	if len(data) == 0 {
+		return
+	}
 	err = json.Unmarshal(data, cfg)
 	if err != nil {
 		err = fmt.Errorf("can't parse config file '%s': %v", file, err)
