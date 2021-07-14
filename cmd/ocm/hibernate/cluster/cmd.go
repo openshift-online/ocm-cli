@@ -52,7 +52,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterCollection := connection.ClustersMgmt().V1().Clusters()
 
 	// Verify the cluster exists in OCM.
-	cluster, err := c.GetCluster(connection, clusterKey)
+	cluster, err := c.GetCluster(clusterCollection, clusterKey)
 	if err != nil {
 		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
 	}

@@ -93,7 +93,9 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	defer connection.Close()
 
-	cluster, err := c.GetCluster(connection, clusterKey)
+	// Get the client for the resource that manages the collection of clusters:
+	clusterCollection := connection.ClustersMgmt().V1().Clusters()
+	cluster, err := c.GetCluster(clusterCollection, clusterKey)
 	if err != nil {
 		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
