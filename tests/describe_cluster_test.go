@@ -148,9 +148,7 @@ var _ = Describe("Describe clusters", func() {
 								"href": "/api/accounts_mgmt/v1/accounts/111"
 							  },
 							"status": "Active",
-							"status": "Active",
-							"cluster_id": "111",
-							"status": "Active"
+							"cluster_id": "111"
 						  }
 						]
 					  }`,
@@ -321,6 +319,53 @@ var _ = Describe("Describe clusters", func() {
 			Expect(result.OutString()).To(ContainSubstring("Example Org"))
 			Expect(result.OutString()).To(ContainSubstring("test@example.com"))
 
+		})
+
+		It("Describe a cluster with multiple matching subscriptions", func() {
+			// Prepare the server:
+			apiServer.AppendHandlers(
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"kind": "SubscriptionList",
+						"page": 1,
+						"size": 1,
+						"total": 2,
+						"items": [
+						  {
+							"id": "111",
+							"kind": "Subscription",
+							"href": "/api/accounts_mgmt/v1/subscriptions/111",
+							"plan": {
+							  "id": "OSD",
+							  "kind": "Plan",
+							  "href": "/api/accounts_mgmt/v1/plans/OSD",
+							  "type": "OSD"
+							},
+							"creator": {
+								"id": "111",
+								"kind": "Account",
+								"href": "/api/accounts_mgmt/v1/accounts/111"
+							  },
+							"status": "Active",
+							"cluster_id": "111"
+						  }
+						]
+					  }`,
+				),
+			)
+
+			// Run the command:
+			result := NewCommand().
+				ConfigString(config).
+				Args(
+					"describe", "cluster", "test",
+				).
+				Run(ctx)
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring(
+				"There are 2 subscriptions with cluster identifier or name 'test'",
+			))
 		})
 	})
 })
