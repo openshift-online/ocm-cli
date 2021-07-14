@@ -98,6 +98,16 @@ var _ = Describe("Describe clusters", func() {
 						"items": []
 					  }`,
 				),
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"kind": "ClusterList",
+						"page": 1,
+						"size": 0,
+						"total": 0,
+						"items": []
+					  }`,
+				),
 			)
 
 			// Run the command:
@@ -106,7 +116,9 @@ var _ = Describe("Describe clusters", func() {
 				Args("describe", "cluster", "nonexist").
 				Run(ctx)
 			Expect(result.ExitCode()).ToNot(BeZero())
-			Expect(result.ErrString()).To(ContainSubstring("There is no cluster with identifier or name"))
+			Expect(result.ErrString()).To(ContainSubstring(
+				"There are no subscriptions or clusters with identifier or name 'nonexist'",
+			))
 		})
 
 		It("Describe an exist cluster", func() {
