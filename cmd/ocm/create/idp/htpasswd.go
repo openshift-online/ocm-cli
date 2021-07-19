@@ -20,9 +20,14 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/AlecAivazis/survey/v2"
+	pwdgen "github.com/m1/go-generate-password/generator"
 )
 
-func buildHtpasswdIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.IdentityProviderBuilder, err error) {
+func buildHtpasswdIdp(cluster *cmv1.Cluster, idpName string) (cmv1.IdentityProviderBuilder, string, error) {
+	idpBuilder := cmv1.IdentityProviderBuilder{}
+	message := fmt.Sprintf("Securely store your username and password.\n" +
+		"If you lose these credentials, you will have to delete and recreate the IDP.\n")
+
 	username := args.htpasswdUsername
 	password := args.htpasswdPassword
 
@@ -30,20 +35,32 @@ func buildHtpasswdIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Id
 		prompt := &survey.Input{
 			Message: "Enter username:",
 		}
-		err = survey.AskOne(prompt, &username)
+		err := survey.AskOne(prompt, &username)
 		if err != nil {
-			return idpBuilder, errors.New("Expected a username")
+			return idpBuilder, "", errors.New("Expected a username")
 		}
 	}
 
 	if password == "" {
 		prompt := &survey.Password{
-			Message: "Enter password:",
+			Message: "Enter password or leave empty to generate:",
 		}
-		err = survey.AskOne(prompt, &password)
+		err := survey.AskOne(prompt, &password)
 		if err != nil {
-			return idpBuilder, errors.New("Expected a password")
+			return idpBuilder, "", errors.New("Expected a password")
 		}
+	}
+	if password == "" {
+		generator, err := pwdgen.NewWithDefault()
+		if err != nil {
+			return idpBuilder, "", errors.New("Failed to initialize password generator")
+		}
+		generatedPwd, err := generator.Generate()
+		if err != nil {
+			return idpBuilder, "", errors.New("Failed to generate a password")
+		}
+		password = *generatedPwd
+		message += "You can now log in with the provided username and the password '" + password + "'.\n"
 	}
 
 	// Create HTPasswd IDP
@@ -58,7 +75,5 @@ func buildHtpasswdIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Id
 		MappingMethod(cmv1.IdentityProviderMappingMethod(args.mappingMethod)).
 		Htpasswd(htpasswdIDP)
 
-	fmt.Println("Securely store your username and password.")
-	fmt.Println("If you lose these credentials, you will have to delete and recreate the IDP.")
-	return
+	return idpBuilder, message, nil
 }

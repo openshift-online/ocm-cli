@@ -310,6 +310,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		idpName = getNextName(idpType, idps)
 	}
 
+	message := ""
 	switch idpType {
 	case "github":
 		idpBuilder, err = buildGithubIdp(cluster, idpName)
@@ -320,7 +321,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	case "openid":
 		idpBuilder, err = buildOpenidIdp(cluster, idpName)
 	case "htpasswd":
-		idpBuilder, err = buildHtpasswdIdp(cluster, idpName)
+		idpBuilder, message, err = buildHtpasswdIdp(cluster, idpName)
 	default:
 		err = fmt.Errorf("Invalid IDP type '%s'", idpType)
 	}
@@ -345,10 +346,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	fmt.Printf(
-		"Identity Provider '%s' has been created\n. You need to ensure that there is a list "+
-			"of cluster administrators defined\n. See 'ocm create user --help' for more "+
-			"information\n. To login into the console, open %s and click on %s\n",
-		idpName, cluster.Console().URL(), idpName,
+		"Identity Provider '%s' has been created.\nYou need to ensure that there is a list "+
+			"of cluster administrators defined.\nSee 'ocm create user --help' for more "+
+			"information.\nTo login into the console, open %s and click on %s.\n%s",
+		idpName, cluster.Console().URL(), idpName, message,
 	)
 	return nil
 }
