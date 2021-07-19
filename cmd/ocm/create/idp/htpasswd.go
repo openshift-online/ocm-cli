@@ -55,6 +55,7 @@ func buildHtpasswdIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Id
 	idpBuilder.
 		Type("HTPasswdIdentityProvider"). // FIXME: ocm-api-model has the wrong enum values
 		Name(idpName).
+		MappingMethod(cmv1.IdentityProviderMappingMethod(args.mappingMethod)).
 		Htpasswd(htpasswdIDP)
 
 	fmt.Println("Securely store your username and password.")
