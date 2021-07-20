@@ -58,9 +58,13 @@ var args struct {
 	openidEmail     string
 	openidName      string
 	openidUsername  string
+
+	// HTPasswd
+	htpasswdUsername string
+	htpasswdPassword string
 }
 
-var validIdps = []string{"github", "google", "ldap", "openid"}
+var validIdps = []string{"github", "google", "ldap", "openid", "htpasswd"}
 
 var Cmd = &cobra.Command{
 	Use:   "idp --cluster={NAME|ID|EXTERNAL_ID}",
@@ -222,6 +226,21 @@ func init() {
 		"",
 		"OpenID: List of claims to use as the preferred username when provisioning a user.\n",
 	)
+
+	// HTPasswd
+	flags.StringVar(
+		&args.htpasswdUsername,
+		"username",
+		"",
+		"HTPasswd: Username.\n",
+	)
+
+	flags.StringVar(
+		&args.htpasswdPassword,
+		"password",
+		"",
+		"HTPasswd: Password.\n",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -291,6 +310,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		idpName = getNextName(idpType, idps)
 	}
 
+	message := ""
 	switch idpType {
 	case "github":
 		idpBuilder, err = buildGithubIdp(cluster, idpName)
@@ -300,6 +320,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		idpBuilder, err = buildLdapIdp(cluster, idpName)
 	case "openid":
 		idpBuilder, err = buildOpenidIdp(cluster, idpName)
+	case "htpasswd":
+		idpBuilder, message, err = buildHtpasswdIdp(cluster, idpName)
+	default:
+		err = fmt.Errorf("Invalid IDP type '%s'", idpType)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to create IDP for cluster '%s': %v", clusterKey, err)
@@ -322,10 +346,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	fmt.Printf(
-		"Identity Provider '%s' has been created\n. You need to ensure that there is a list "+
-			"of cluster administrators defined\n. See 'ocm create user --help' for more "+
-			"information\n. To login into the console, open %s and click on %s\n",
-		idpName, cluster.Console().URL(), idpName,
+		"Identity Provider '%s' has been created.\nYou need to ensure that there is a list "+
+			"of cluster administrators defined.\nSee 'ocm create user --help' for more "+
+			"information.\nTo login into the console, open %s and click on %s.\n%s",
+		idpName, cluster.Console().URL(), idpName, message,
 	)
 	return nil
 }
