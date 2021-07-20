@@ -25,18 +25,18 @@ import (
 
 var Cmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish|powershell]",
-	Short: "Generate completion script",
+	Short: "Generate completion scripts for various shells",
 	Long: `To load completions:
 
 Bash:
 
-$ source <(yourprogram completion bash)
+$ source <(ocm completion bash)
 
 # To load completions for each session, execute once:
 Linux:
-  $ yourprogram completion bash > /etc/bash_completion.d/yourprogram
+  $ ocm completion bash > /etc/bash_completion.d/ocm
 MacOS:
-  $ yourprogram completion bash > /usr/local/etc/bash_completion.d/yourprogram
+  $ ocm completion bash > /usr/local/etc/bash_completion.d/ocm
 
 Zsh:
 
@@ -46,16 +46,16 @@ Zsh:
 $ echo "autoload -U compinit; compinit" >> ~/.zshrc
 
 # To load completions for each session, execute once:
-$ yourprogram completion zsh > "${fpath[1]}/_yourprogram"
+$ ocm completion zsh > "${fpath[1]}/_ocm"
 
 # You will need to start a new shell for this setup to take effect.
 
 Fish:
 
-$ yourprogram completion fish | source
+$ ocm completion fish | source
 
 # To load completions for each session, execute once:
-$ yourprogram completion fish > ~/.config/fish/completions/yourprogram.fish
+$ ocm completion fish > ~/.config/fish/completions/ocm.fish
 
 P.S. Debugging completion logic:
 - Set BASH_COMP_DEBUG_FILE env var to enable logging to that file.
