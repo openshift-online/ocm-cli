@@ -66,7 +66,7 @@ $ ocm completion --help
 The first step to use the tool is to log-in with your OpenShift Cluster Manager
 offline access token which you can get below:
 
-https://cloud.redhat.com/openshift/token[https://cloud.redhat.com/openshift/token]
+https://console.redhat.com/openshift/token[https://console.redhat.com/openshift/token]
 
 To do that use the `login` command:
 

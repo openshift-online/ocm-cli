@@ -47,7 +47,7 @@ var urlAliases = map[string]string{
 }
 
 // #nosec G101
-const uiTokenPage = "https://cloud.redhat.com/openshift/token"
+const uiTokenPage = "https://console.redhat.com/openshift/token"
 
 var args struct {
 	tokenURL     string
@@ -177,7 +177,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Fprintf(
 			os.Stderr,
 			"Authenticating with a user name and password is deprecated. To avoid "+
-				"this warning go to 'https://cloud.redhat.com/openshift/token' "+
+				"this warning go to 'https://console.redhat.com/openshift/token' "+
 				"to obtain your offline access token and then login using the "+
 				"'--token' option.\n",
 		)
