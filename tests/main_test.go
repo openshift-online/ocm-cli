@@ -27,7 +27,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/onsi/gomega/types"
 	sdktesting "github.com/openshift-online/ocm-sdk-go/testing"
 
 	. "github.com/onsi/ginkgo" // nolint
@@ -248,10 +247,4 @@ func (r *CommandResult) ErrString() string {
 // ExitCode returns the exit code of the CLI command.
 func (r *CommandResult) ExitCode() int {
 	return r.exitCode
-}
-
-// MatchJSONTemplate succeeds if actual is a string or stringer of JSON that matches the result of
-// evaluating the given template with the given arguments.
-func MatchJSONTemplate(template string, args ...interface{}) types.GomegaMatcher {
-	return MatchJSON(sdktesting.EvaluateTemplate(template, args...))
 }
