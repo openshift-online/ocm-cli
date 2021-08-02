@@ -29,8 +29,8 @@ func GetRegions(client *cmv1.Client, provider string, ccs cluster.CCS) (regions 
 	if ccs.Enabled && provider == "aws" {
 		// Build cmv1.AWS object to get list of available regions:
 		awsCredentials, err := cmv1.NewAWS().
-			AccessKeyID(ccs.AWS.AccessKeyID).
-			SecretAccessKey(ccs.AWS.SecretAccessKey).
+			AccessKeyID(ccs.AWS.Creds.AccessKeyID).
+			SecretAccessKey(ccs.AWS.Creds.SecretAccessKey).
 			Build()
 		if err != nil {
 			return nil, fmt.Errorf("Failed to build AWS credentials: %v", err)

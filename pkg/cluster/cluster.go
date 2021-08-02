@@ -73,8 +73,15 @@ type Autoscaling struct {
 
 type CCS struct {
 	Enabled bool
-	AWS     AWSCredentials
+	AWS     AWSParameters
 	GCP     GCPCredentials
+}
+
+type AWSParameters struct {
+	Creds             AWSCredentials
+	AvailabilityZones []string
+	PrivateSubnetID   string
+	PublicSubnetID    string
 }
 type AWSCredentials struct {
 	AccountID       string
@@ -290,9 +297,9 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		case ProviderAWS:
 			clusterBuilder = clusterBuilder.AWS(
 				cmv1.NewAWS().
-					AccountID(config.CCS.AWS.AccountID).
-					AccessKeyID(config.CCS.AWS.AccessKeyID).
-					SecretAccessKey(config.CCS.AWS.SecretAccessKey),
+					AccountID(config.CCS.AWS.Creds.AccountID).
+					AccessKeyID(config.CCS.AWS.Creds.AccessKeyID).
+					SecretAccessKey(config.CCS.AWS.Creds.SecretAccessKey),
 			)
 		case ProviderGCP:
 			clusterBuilder =

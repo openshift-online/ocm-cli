@@ -106,14 +106,14 @@ func AddCCSFlagsWithoutAccountID(fs *pflag.FlagSet, value *cluster.CCS) {
 	)
 	SetQuestion(fs, "ccs", "CCS:")
 	fs.StringVar(
-		&value.AWS.AccessKeyID,
+		&value.AWS.Creds.AccessKeyID,
 		"aws-access-key-id",
 		"",
 		"AWS access key ID.",
 	)
 	SetQuestion(fs, "aws-access-key-id", "AWS access key ID:")
 	fs.StringVar(
-		&value.AWS.SecretAccessKey,
+		&value.AWS.Creds.SecretAccessKey,
 		"aws-secret-access-key",
 		"",
 		"AWS secret access key.",
@@ -125,7 +125,7 @@ func AddCCSFlagsWithoutAccountID(fs *pflag.FlagSet, value *cluster.CCS) {
 func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
 	AddCCSFlagsWithoutAccountID(fs, value)
 	fs.StringVar(
-		&value.AWS.AccountID,
+		&value.AWS.Creds.AccountID,
 		"aws-account-id",
 		"",
 		"AWS account ID.",
@@ -137,13 +137,13 @@ func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
 func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
 	if !ccs.Enabled {
 		bad := []string{}
-		if ccs.AWS.AccountID != "" {
+		if ccs.AWS.Creds.AccountID != "" {
 			bad = append(bad, "--aws-account-id")
 		}
-		if ccs.AWS.AccessKeyID != "" {
+		if ccs.AWS.Creds.AccessKeyID != "" {
 			bad = append(bad, "--aws-access-key-id")
 		}
-		if ccs.AWS.SecretAccessKey != "" {
+		if ccs.AWS.Creds.SecretAccessKey != "" {
 			bad = append(bad, "--aws-secret-access-key")
 		}
 		if len(bad) == 1 {

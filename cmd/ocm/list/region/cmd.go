@@ -88,9 +88,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 		ccs = cluster.CCS{
 			Enabled: args.ccs,
-			AWS: cluster.AWSCredentials{
-				AccessKeyID:     args.awsAccessKeyID,
-				SecretAccessKey: args.awsSecretAccessKey,
+			AWS: cluster.AWSParameters{
+				Creds: cluster.AWSCredentials{
+					AccessKeyID:     args.awsAccessKeyID,
+					SecretAccessKey: args.awsSecretAccessKey,
+				},
 			},
 		}
 	}
