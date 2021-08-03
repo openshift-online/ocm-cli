@@ -80,8 +80,8 @@ type CCS struct {
 type AWSParameters struct {
 	Creds             AWSCredentials
 	AvailabilityZones []string
-	PrivateSubnetID   string
-	PublicSubnetID    string
+	PrivateSubnetIDs  []string
+	PublicSubnetIDs   []string
 }
 type AWSCredentials struct {
 	AccountID       string
@@ -242,12 +242,16 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 			ID(config.Version).ChannelGroup(config.ChannelGroup))
 
 	if config.ComputeMachineType != "" || config.ComputeNodes > 0 ||
-		config.Autoscaling.Enabled {
+		config.Autoscaling.Enabled || len(config.CCS.AWS.AvailabilityZones) > 0 {
 		clusterNodesBuilder := cmv1.NewClusterNodes()
 		if config.ComputeMachineType != "" {
 			clusterNodesBuilder = clusterNodesBuilder.ComputeMachineType(
 				cmv1.NewMachineType().ID(config.ComputeMachineType),
 			)
+		}
+		if len(config.CCS.AWS.AvailabilityZones) > 0 {
+			clusterNodesBuilder = clusterNodesBuilder.AvailabilityZones(
+				config.CCS.AWS.AvailabilityZones...)
 		}
 		clusterNodesBuilder = buildCompute(config, clusterNodesBuilder)
 		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
@@ -295,12 +299,17 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
 		switch config.Provider {
 		case ProviderAWS:
+			subnetIDs := []string{}
+			subnetIDs = append(subnetIDs, config.CCS.AWS.PrivateSubnetIDs...)
+			subnetIDs = append(subnetIDs, config.CCS.AWS.PublicSubnetIDs...)
 			clusterBuilder = clusterBuilder.AWS(
 				cmv1.NewAWS().
 					AccountID(config.CCS.AWS.Creds.AccountID).
 					AccessKeyID(config.CCS.AWS.Creds.AccessKeyID).
-					SecretAccessKey(config.CCS.AWS.Creds.SecretAccessKey),
+					SecretAccessKey(config.CCS.AWS.Creds.SecretAccessKey).
+					SubnetIDs(subnetIDs...),
 			)
+
 		case ProviderGCP:
 			clusterBuilder =
 				clusterBuilder.GCP(

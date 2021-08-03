@@ -121,6 +121,31 @@ func AddCCSFlagsWithoutAccountID(fs *pflag.FlagSet, value *cluster.CCS) {
 	SetQuestion(fs, "aws-secret-access-key", "AWS secret access key:")
 }
 
+// AddCCSFlagsWithoutAccountID is sufficient for list regions command.
+func AddAWSVPCFlags(fs *pflag.FlagSet, value *cluster.CCS) {
+	fs.StringArrayVar(
+		&value.AWS.AvailabilityZones,
+		"aws-availability-zones",
+		[]string{},
+		"AWS Availability Zones.",
+	)
+	SetQuestion(fs, "aws-availability-zones", "AWS Availability Zones:")
+	fs.StringArrayVar(
+		&value.AWS.PrivateSubnetIDs,
+		"aws-private-subnet-ids",
+		[]string{},
+		"AWS Private Subnet Ids.",
+	)
+	SetQuestion(fs, "aws-private-subnet-ids", "AWS Private Subnet Ids:")
+	fs.StringArrayVar(
+		&value.AWS.PublicSubnetIDs,
+		"aws-public-subnet-ids",
+		[]string{},
+		"AWS Public Subnet Ids.",
+	)
+	SetQuestion(fs, "aws-public-subnet-ids", "AWS Public Subnet Ids:")
+}
+
 // AddCCSFlags adds all the flags needed for creating a cluster.
 func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
 	AddCCSFlagsWithoutAccountID(fs, value)
@@ -131,6 +156,7 @@ func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
 		"AWS account ID.",
 	)
 	SetQuestion(fs, "aws-account-id", "AWS account ID:")
+	AddAWSVPCFlags(fs, value)
 }
 
 // CheckIgnoredCCSFlags errors if --aws-... were used without --ccs.
