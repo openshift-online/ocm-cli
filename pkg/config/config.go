@@ -96,6 +96,11 @@ func Save(cfg *Config) error {
 	if err != nil {
 		return err
 	}
+	dir := filepath.Dir(file)
+	err = os.MkdirAll(dir, os.FileMode(0755))
+	if err != nil {
+		return fmt.Errorf("can't create directory %s: %v", dir, err)
+	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return fmt.Errorf("can't marshal config: %v", err)
@@ -107,17 +112,34 @@ func Save(cfg *Config) error {
 	return nil
 }
 
-// Location returns the location of the configuration file.
+// Location returns the location of the configuration file. If a configuration file
+// already exists in the HOME directory, it uses that, otherwise it prefers to
+// use the XDG config directory.
 func Location() (path string, err error) {
 	if ocmconfig := os.Getenv("OCM_CONFIG"); ocmconfig != "" {
-		path = ocmconfig
-	} else {
-		home, err := homedir.Dir()
-		if err != nil {
-			return "", err
-		}
-		path = filepath.Join(home, ".ocm.json")
+		return ocmconfig, nil
 	}
+
+	// Determine home directory to use for the legacy file path
+	home, err := homedir.Dir()
+	if err != nil {
+		return "", err
+	}
+
+	path = filepath.Join(home, ".ocm.json")
+
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		// Determine standard config directory
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			return path, err
+		}
+
+		// Use standard config directory
+		path = filepath.Join(configDir, "/ocm/ocm.json")
+	}
+
 	return path, nil
 }
 
