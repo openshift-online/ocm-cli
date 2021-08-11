@@ -5,10 +5,8 @@ go 1.15
 require (
 	github.com/AlecAivazis/survey/v2 v2.2.7
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/go-bindata/go-bindata v3.1.2+incompatible // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529
-	github.com/grokify/html-strip-tags-go v0.0.1 // indirect
 	github.com/hashicorp/go-version v1.2.1
 	github.com/m1/go-generate-password v0.0.0-20191114193340-84682ecbc3fd
 	github.com/mattn/go-colorable v0.1.8 // indirect
@@ -17,7 +15,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
-	github.com/openshift-online/ocm-sdk-go v0.1.197
+	github.com/openshift-online/ocm-sdk-go v0.1.199
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/prometheus/common v0.28.0 // indirect
 	github.com/spf13/cobra v1.0.0
