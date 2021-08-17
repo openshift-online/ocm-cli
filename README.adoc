@@ -1,7 +1,7 @@
 = OCM API Command Line Tools
 
 This project contains the `ocm` command line tool that simplifies the use
-of the _OCM_ API available at `api.openshift.com`.
+of the _OCM_ API available at https://api.openshift.com.
 
 == Installation
 
