@@ -56,7 +56,6 @@ var _ = Describe("Token", func() {
 					"refreshToken", refreshToken,
 				).
 				Arg("token")
-
 		})
 
 		It("Displays current access token", func() {
