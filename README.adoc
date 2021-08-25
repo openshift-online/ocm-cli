@@ -75,8 +75,20 @@ $ ocm login --token=eyJ...
 ....
 
 This will use the provided token to request _OpenID_ access and refresh tokens
-to _sso.redhat.com_. The tokens will be saved to the `.ocm.json` file in your
-home directory, for future use.
+to _sso.redhat.com_. The tokens will be saved for future use to the
+`~/.config/ocm/ocm.json` file.
+
+[IMPORTANT]
+====
+Before version 0.1.56 the configuration file used to be `~/.ocm.json`. If that
+exists it will still be used. It is recommended to remove it and login again,
+or move it to the new location. For example:
+
+....
+$ mkdir -p ~/.config/ocm
+$ mv ~/.ocm.json ~/.config/ocm/ocm.json
+....
+====
 
 The `login` command has options to log-in to other environments. For example,
 if you have a service running in your local environment and you want to use the
@@ -94,21 +106,21 @@ names, do not use it in production environments.
 
 == Multiple Concurrent Logins with OCM_CONFIG
 
-An `.ocm.json` file stores login credentials for a single API gateway. Using
-multiple gateways therefore requires having to log in and out a lot or the
-ability to utilize multiple config files. The latter functionality is provided
-with the `OCM_CONFIG` environment variable. If running `ocm login` was
+An `~/config/ocm/ocm.json` file stores login credentials for a single API
+server. Using multiple serers therefore requires having to log in and out a lot
+or the ability to utilize multiple config files. The latter functionality is
+provided with the `OCM_CONFIG` environment variable. If running `ocm login` was
 successfull in both cases, the `ocm whoami` commands will return different
 results:
 
 ....
-$ OCM_CONFIG=$HOME/.ocm.json.prod ocm login --url=production --token=...
+$ OCM_CONFIG=$HOME/ocm.json.prod ocm login --url=production --token=...
 (…)
-$ OCM_CONFIG=$HOME/.ocm.json.stg ocm login --url=staging --token=...
+$ OCM_CONFIG=$HOME/ocm.json.stg ocm login --url=staging --token=...
 (…)
-$ OCM_CONFIG=$HOME/.ocm.json.prod ocm whoami
+$ OCM_CONFIG=$HOME/ocm.json.prod ocm whoami
 (…)
-$ OCM_CONFIG=$HOME/.ocm.json.stg ocm whoami
+$ OCM_CONFIG=$HOME/ocm.json.stg ocm whoami
 (…)
 ....
 
@@ -162,9 +174,9 @@ To log out run the `logout` command:
 $ ocm logout
 ....
 
-That will remove the `.ocm.json` file, so next time you want to use the tool you
-will need to log-in again. You can also remove that file manually; the effect is
-exactly the same.
+That will remove the `~/.config/ocm/ocm.json` file, so next time you want to
+use the tool you will need to log-in again. You can also remove that file
+manually; the effect is exactly the same.
 
 == Retrieving Objects
 
@@ -369,8 +381,9 @@ the `get` command till it returns a `404 Not Found` response.
 
 == Config
 
-The configuration variables can be read and set via the `get` and `set` commands.
-These settings will be persisted in the `.ocm.json` file in your home directory.
+The configuration variables can be read and set via the `get` and `set`
+commands. These settings will be persisted in the `~/.config/ocm/ocm.json`
+file in your home directory.
 
 ....
 $ ocm config get url
