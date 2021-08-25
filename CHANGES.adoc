@@ -3,6 +3,30 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.56 Aug 25 2021
+
+- Use standard XDG configuration path for `ocm.json`.
++
+If the legacy `~/.ocm.json` file already exists it continues using that,
+otherwise it prefers the standard XDG configuration directory. That usually
+means `~/.config/ocm/ocm.json`.
++
+We recommend removing the old file and running the `login` command again:
++
+....
+$ rm ~/.ocm.json
+$ ocm login ...
+....
++
+Or move the existing file to the new location:
++
+....
+$ mkdir -p ~/.config/ocm
+$ mv ~/.ocm.json ~/.config/ocm/ocm.json
+....
+
+- User friendly message when offline token is no longer valid.
+
 == 0.1.55 Jul 30 2021
 
 - Add CLI tests
