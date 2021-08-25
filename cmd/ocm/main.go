@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	_ "github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -53,12 +54,14 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/whoami"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	plugin "github.com/openshift-online/ocm-cli/pkg/plugin"
+	"github.com/openshift-online/ocm-cli/pkg/urls"
 )
 
 var root = &cobra.Command{
-	Use:          "ocm",
-	Long:         "Command line tool for api.openshift.com.",
-	SilenceUsage: true,
+	Use:           "ocm",
+	Long:          "Command line tool for api.openshift.com.",
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
 func init() {
@@ -136,9 +139,29 @@ func main() {
 			}
 		}
 	}
-	// Execute the root command:
+
+	// Execute the root command and exit inmediately if there was no error:
 	root.SetArgs(os.Args[1:])
-	if err = root.Execute(); err != nil {
-		os.Exit(1)
+	err = root.Execute()
+	if err == nil {
+		os.Exit(0)
 	}
+
+	// Replace well known errors with user friendly messages:
+	message := err.Error()
+	switch {
+	case strings.Contains(message, "Offline user session not found"):
+		message = fmt.Sprintf(
+			"Offline access token is no longer valid. Go to %s to get a new one and "+
+				"then use the 'ocm login --token=...' command to log in with "+
+				"that new token.",
+			urls.OfflineTokenPage,
+		)
+	default:
+		message = fmt.Sprintf("Error: %s", message)
+	}
+	fmt.Fprintf(os.Stderr, "%s\n", message)
+
+	// Exit signaling an error:
+	os.Exit(1)
 }

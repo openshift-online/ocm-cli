@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/urls"
 )
 
 const (
@@ -46,9 +47,6 @@ var urlAliases = map[string]string{
 	"int":         integrationURL,
 }
 
-// #nosec G101
-const uiTokenPage = "https://console.redhat.com/openshift/token"
-
 var args struct {
 	tokenURL     string
 	clientID     string
@@ -66,7 +64,8 @@ var Cmd = &cobra.Command{
 	Use:   "login",
 	Short: "Log in",
 	Long: "Log in, saving the credentials to the configuration file.\n" +
-		"The recommend way is using '--token', which you can obtain at: " + uiTokenPage,
+		"The recommend way is using '--token', which you can obtain at: " +
+		urls.OfflineTokenPage,
 	Args: cobra.NoArgs,
 	RunE: run,
 }
@@ -167,7 +166,7 @@ func run(cmd *cobra.Command, argv []string) error {
 				"'--password', or '--client-id' and '--client-secret'.\n"+
 				"You can obtain a token at: %s .\n"+
 				"See 'ocm login --help' for full help.\n",
-			uiTokenPage,
+			urls.OfflineTokenPage,
 		)
 		os.Exit(1)
 	}
@@ -177,9 +176,9 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Fprintf(
 			os.Stderr,
 			"Authenticating with a user name and password is deprecated. To avoid "+
-				"this warning go to 'https://console.redhat.com/openshift/token' "+
-				"to obtain your offline access token and then login using the "+
-				"'--token' option.\n",
+				"this warning go to '%s' to obtain your offline access token "+
+				"and then login using the '--token' option.\n",
+			urls.OfflineTokenPage,
 		)
 	}
 
