@@ -27,16 +27,8 @@ container_runner:=podman
 .PHONY: all
 all: cmds
 
-.PHONY: tools
-tools:
-	which go-bindata || go get github.com/go-bindata/go-bindata/go-bindata
-
-.PHONY: generate
-generate: tools
-	go generate -x ./cmd/... ./pkg/...
-
 .PHONY: cmds
-cmds: generate
+cmds:
 	for cmd in $$(ls cmd); do \
 		go build -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
 	done
