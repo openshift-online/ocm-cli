@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -43,7 +44,11 @@ var binary string
 
 var _ = BeforeSuite(func() {
 	// Check that the binary exists:
-	binary = filepath.Join("..", "ocm")
+	name := "ocm"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	binary = filepath.Join("..", name)
 	_, err := os.Stat(binary)
 	Expect(err).ToNot(
 		HaveOccurred(),

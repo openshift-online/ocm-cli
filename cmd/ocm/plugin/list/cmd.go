@@ -176,6 +176,9 @@ func listPlugins(dir string) (result []Plugin, err error) {
 		if !exec {
 			fmt.Printf("Warning: %s identified as an ocm plugin, but it is not executable.\n", path)
 		}
+		if runtime.GOOS == "windows" {
+			name = strings.TrimSuffix(name, ".exe")
+		}
 		plugin := Plugin{
 			Name: name,
 			Path: dir,
