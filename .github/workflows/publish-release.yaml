@@ -1,0 +1,109 @@
+#
+# Copyright (c) 2021 Red Hat, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Publish release
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the source
+      uses: actions/checkout@v2
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16
+
+    - name: Build binaries
+      run: |
+        # Create the directory for the assets that will be part of the release:
+        mkdir assets
+
+        # This function builds for the operating system and architecture passed
+        # as parameters.
+        function build {
+          # Get the parameters:
+          local os="$1"
+          local arch="$2"
+
+           # Set the environment variables that tell the Go compiler which
+           # operating system and architecture to build for:
+           export GOOS="${os}"
+           export GOARCH="${arch}"
+
+           # Build the binary:
+           echo "Building binary for OS '${os}' and architecture '${arch}'"
+           make cmds
+
+           # Copy the generated binary to the assets directory and calculate
+           # the digest:
+           cp "ocm" "assets/ocm-${os}-${arch}"
+           sha256sum "ocm" > "assets/ocm-${os}-${arch}.sha256"
+        }
+
+        # Build for the supported operating systems and architectures:
+        build darwin amd64
+        build linux amd64
+        build windows amd64
+
+    - name: Create release
+      run: |
+        # Get the version number:
+        version=$(echo -n ${{ github.ref }} | sed -E 's|^refs/tags/v(.*)$|\1|')
+
+        # Send the request to create the release:
+        cat > request.json <<.
+        {
+          "tag_name": "v${version}",
+          "name": "Release ${version}",
+          "body": "See the [CHANGES](CHANGES.adoc) file for details."
+        }
+        .
+        curl \
+        --silent \
+        --request "POST" \
+        --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+        --header "Content-Type: application/json" \
+        --header "Accept: application/json" \
+        --url "https://api.github.com/repos/${{ github.repository }}/releases" \
+        --data @request.json \
+        --output response.json \
+        --fail
+
+        # Get the release identifier:
+        id=$(cat response.json | jq -r ".id")
+
+        # Upload the assets:
+        for file in $(ls assets); do
+          curl \
+          --silent \
+          --request "POST" \
+          --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          --header "Content-Type: application/octect-stream" \
+          --header "Accept: application/json" \
+          --url "https://uploads.github.com/repos/${{ github.repository }}/releases/${id}/assets?name=${file}" \
+          --data "@assets/${file}" \
+          --output response.json \
+          --fail
+        done
