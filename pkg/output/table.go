@@ -16,20 +16,23 @@ limitations under the License.
 
 // This file contains the code that writes generates tabular output.
 
-//go:generate go-bindata -pkg output tables
-
 package output
 
 import (
 	"bytes"
 	"context"
+	"embed"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 
 	"github.com/openshift-online/ocm-cli/pkg/data"
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed tables
+var assetFS embed.FS
 
 // TableBuilder contains the data and logic needed to create a new output table.
 type TableBuilder struct {
@@ -214,10 +217,15 @@ func (b *TableBuilder) loadTable(columnNames []string) (result *Table, err error
 
 	// Check if there is an asset corresponding to the table. If there is no asset then return
 	// the empty table description:
-	assetFile := fmt.Sprintf("tables/%s.yaml", b.name)
-	assetData, err := Asset(assetFile)
+	assetPath := fmt.Sprintf("tables/%s.yaml", b.name)
+	assetFile, err := assetFS.Open(assetPath)
 	if err != nil {
 		result = table
+		return
+	}
+	defer assetFile.Close()
+	assetData, err := io.ReadAll(assetFile)
+	if err != nil {
 		return
 	}
 
