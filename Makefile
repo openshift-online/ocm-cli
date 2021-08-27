@@ -30,7 +30,7 @@ all: cmds
 .PHONY: cmds
 cmds:
 	for cmd in $$(ls cmd); do \
-		go build -o "$${cmd}" "./cmd/$${cmd}" || exit 1; \
+		go build "./cmd/$${cmd}" || exit 1; \
 	done
 
 .PHONY: install

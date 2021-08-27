@@ -21,6 +21,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
+	"runtime"
 
 	. "github.com/onsi/ginkgo" // nolint
 	. "github.com/onsi/gomega" // nolint
@@ -47,6 +49,9 @@ var _ = Describe("Plugin list", func() {
 		}
 		for _, name := range names {
 			path := filepath.Join(tmp, "ocm-"+name)
+			if runtime.GOOS == "windows" {
+				path += ".exe"
+			}
 			file, err := os.OpenFile(path, os.O_CREATE, 0700)
 			Expect(err).ToNot(HaveOccurred())
 			err = file.Close()
@@ -76,10 +81,10 @@ var _ = Describe("Plugin list", func() {
 			`^\s*NAME\s+PATH\s*$`,
 		))
 		Expect(lines[1]).To(MatchRegexp(
-			`^\s*ocm-my-plugin\s+%s\s*$`, tmp,
+			`^\s*ocm-my-plugin\s+%s\s*$`, regexp.QuoteMeta(tmp),
 		))
 		Expect(lines[2]).To(MatchRegexp(
-			`^\s*ocm-your-plugin\s+%s\s*$`, tmp,
+			`^\s*ocm-your-plugin\s+%s\s*$`, regexp.QuoteMeta(tmp),
 		))
 	})
 
