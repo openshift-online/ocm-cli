@@ -18,18 +18,17 @@ limitations under the License.
 package dump
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
-	"os"
-	"os/exec"
 
+	"github.com/nwidger/jsoncolor"
+	"github.com/openshift-online/ocm-cli/pkg/output"
 	"gitlab.com/c0b/go-ordered-json"
 )
 
 // Pretty dumps the given data to the given stream so that it looks pretty. If the data is a valid
-// JSON document then it will be indented before printing it. If the `jq` tools is available in the
-// path then it will be used for syntax highlighting.
+// JSON document then it will be indented before printing it. If the stream is a terminal then the
+// output will also use colors.
 func Pretty(stream io.Writer, body []byte) error {
 	if len(body) == 0 {
 		return nil
@@ -39,16 +38,27 @@ func Pretty(stream io.Writer, body []byte) error {
 	if err != nil {
 		return dumpBytes(stream, body)
 	}
-	if haveJQ() {
-		return dumpJQ(stream, body)
+	if output.IsTerminal(stream) {
+		return dumpColor(stream, data)
 	}
-	return dumpJSON(stream, data)
+	return dumpMonochrome(stream, data)
 }
 
-// Simple functions exactly the same as Pretty except it uses jq's -c option to condense the
-// output to a single line, intended to be used with other resources that require single line
-// output.
-func Simple(stream io.Writer, body []byte) error {
+func dumpColor(stream io.Writer, data interface{}) error {
+	encoder := jsoncolor.NewEncoder(stream)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
+}
+
+func dumpMonochrome(stream io.Writer, data interface{}) error {
+	encoder := json.NewEncoder(stream)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
+}
+
+// Single functions exactly the same as Pretty except it generates a single line without indentation
+// or any other white space.
+func Single(stream io.Writer, body []byte) error {
 	if len(body) == 0 {
 		return nil
 	}
@@ -57,10 +67,25 @@ func Simple(stream io.Writer, body []byte) error {
 	if err != nil {
 		return dumpBytes(stream, body)
 	}
-	if haveJQ() {
-		return dumpCondensedJQ(stream, body)
+	if output.IsTerminal(stream) {
+		return dumpColorSingleLine(stream, data)
 	}
-	return dumpJSON(stream, data)
+	return dumpMonochromeSingleLine(stream, data)
+}
+
+func dumpColorSingleLine(stream io.Writer, data interface{}) error {
+	encoder := jsoncolor.NewEncoder(stream)
+	err := encoder.Encode(data)
+	if err != nil {
+		return err
+	}
+	_, err = stream.Write([]byte("\n"))
+	return err
+}
+
+func dumpMonochromeSingleLine(stream io.Writer, data interface{}) error {
+	encoder := json.NewEncoder(stream)
+	return encoder.Encode(data)
 }
 
 func dumpBytes(stream io.Writer, data []byte) error {
@@ -70,33 +95,4 @@ func dumpBytes(stream io.Writer, data []byte) error {
 	}
 	_, err = stream.Write([]byte("\n"))
 	return err
-}
-
-func dumpJQ(stream io.Writer, data []byte) error {
-	// #nosec 204
-	jq := exec.Command("jq", ".")
-	jq.Stdin = bytes.NewReader(data)
-	jq.Stdout = stream
-	jq.Stderr = os.Stderr
-	return jq.Run()
-}
-
-func dumpCondensedJQ(stream io.Writer, data []byte) error {
-	// #nosec 204
-	jq := exec.Command("jq", "-c", ".")
-	jq.Stdin = bytes.NewReader(data)
-	jq.Stdout = stream
-	jq.Stderr = os.Stderr
-	return jq.Run()
-}
-
-func dumpJSON(stream io.Writer, data *ordered.OrderedMap) error {
-	encoder := json.NewEncoder(stream)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(data)
-}
-
-func haveJQ() bool {
-	_, err := exec.LookPath("jq")
-	return err == nil
 }

@@ -159,5 +159,91 @@ var _ = Describe("Get", func() {
 			Expect(result.ExitCode()).To(BeZero())
 			Expect(result.ErrString()).To(BeEmpty())
 		})
+
+		It("Indents by default", func() {
+			// Prepare the server:
+			apiServer.AppendHandlers(
+				CombineHandlers(
+					RespondWithJSON(http.StatusOK, `{
+						"my_field": "my_value",
+						"your_field": "your_value"
+					}`),
+				),
+			)
+
+			// Run the command:
+			result := NewCommand().
+				ConfigString(config).
+				Args(
+					"get",
+					"/api/my_service/v1/my_object",
+				).
+				Run(ctx)
+			Expect(result.ExitCode()).To(BeZero())
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.OutString()).To(Equal(RemoveLeadingTabs(
+				`{
+				  "my_field": "my_value",
+				  "your_field": "your_value"
+				}
+				`,
+			)))
+		})
+
+		It("Honours the --single flag", func() {
+			// Prepare the server:
+			apiServer.AppendHandlers(
+				CombineHandlers(
+					RespondWithJSON(http.StatusOK, `{
+						"my_field": "my_value",
+						"your_field": "your_value"
+					}`),
+				),
+			)
+
+			// Run the command:
+			result := NewCommand().
+				ConfigString(config).
+				Args(
+					"get",
+					"--single",
+					"/api/my_service/v1/my_object",
+				).
+				Run(ctx)
+			Expect(result.ExitCode()).To(BeZero())
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.OutString()).To(Equal(RemoveLeadingTabs(
+				`{"my_field":"my_value","your_field":"your_value"}
+				`,
+			)))
+		})
+
+		It("Preserves long integers", func() {
+			// Prepare the server:
+			apiServer.AppendHandlers(
+				CombineHandlers(
+					RespondWithJSON(http.StatusOK, `{
+						"my_field": 340282366920938463463374607431768211455
+					}`),
+				),
+			)
+
+			// Run the command:
+			result := NewCommand().
+				ConfigString(config).
+				Args(
+					"get",
+					"/api/my_service/v1/my_object",
+				).
+				Run(ctx)
+			Expect(result.ExitCode()).To(BeZero())
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.OutString()).To(Equal(RemoveLeadingTabs(
+				`{
+				  "my_field": 340282366920938463463374607431768211455
+				}
+				`,
+			)))
+		})
 	})
 })

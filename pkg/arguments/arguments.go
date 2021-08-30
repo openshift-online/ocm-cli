@@ -26,12 +26,12 @@ import (
 	"reflect"
 	"strings"
 
-	isatty "github.com/mattn/go-isatty"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/pflag"
 
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/debug"
+	"github.com/openshift-online/ocm-cli/pkg/output"
 )
 
 type FilePath string
@@ -269,7 +269,7 @@ func ApplyBodyFlag(request *sdk.Request, value string) error {
 		// #nosec G304
 		body, err = ioutil.ReadFile(value)
 	} else {
-		if isatty.IsTerminal(os.Stdin.Fd()) && isatty.IsTerminal(os.Stderr.Fd()) {
+		if output.IsTerminal(os.Stdin) && output.IsTerminal(os.Stderr) {
 			fmt.Fprintln(os.Stderr, "No --body file specified, reading request body from stdin:")
 		}
 		body, err = ioutil.ReadAll(os.Stdin)
