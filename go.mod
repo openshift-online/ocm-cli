@@ -10,9 +10,9 @@ require (
 	github.com/hashicorp/go-version v1.2.1
 	github.com/m1/go-generate-password v0.0.0-20191114193340-84682ecbc3fd
 	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/mattn/go-isatty v0.0.12
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/nwidger/jsoncolor v0.3.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/openshift-online/ocm-sdk-go v0.1.204

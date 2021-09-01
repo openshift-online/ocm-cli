@@ -103,13 +103,13 @@ func run(cmd *cobra.Command, argv []string) error {
 	body := response.Bytes()
 	if status < 400 {
 		if args.single {
-			err = dump.Simple(os.Stdout, body)
+			err = dump.Single(os.Stdout, body)
 		} else {
 			err = dump.Pretty(os.Stdout, body)
 		}
 	} else {
 		if args.single {
-			err = dump.Simple(os.Stderr, body)
+			err = dump.Single(os.Stderr, body)
 		} else {
 			err = dump.Pretty(os.Stderr, body)
 		}
