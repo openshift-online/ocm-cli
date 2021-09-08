@@ -135,8 +135,19 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"ID:            %s\n"+
 		"External ID:   %s\n"+
 		"Name:          %s\n"+
-		"State:         %s\n"+
-		"API URL:       %s\n"+
+		"State:         %s\n",
+		cluster.ID(),
+		cluster.ExternalID(),
+		cluster.Name(),
+		cluster.State(),
+	)
+	if cluster.Status().State() == cmv1.ClusterStateError {
+		fmt.Printf("Details:       %s - %s\n",
+			cluster.Status().ProvisionErrorCode(),
+			cluster.Status().ProvisionErrorMessage(),
+		)
+	}
+	fmt.Printf("API URL:       %s\n"+
 		"API Listening: %s\n"+
 		"Console URL:   %s\n"+
 		"Masters:       %d\n"+
@@ -156,10 +167,6 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Email:         %s\n"+
 		"Created:       %v\n"+
 		"Expiration:    %v\n",
-		cluster.ID(),
-		cluster.ExternalID(),
-		cluster.Name(),
-		cluster.State(),
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
