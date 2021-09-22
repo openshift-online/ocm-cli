@@ -427,19 +427,25 @@ fi
 version="${ref:1}"
 
 # Generate the .spec file:
-cat > ocm-cli.spec <<.
+cat > ocm-cli.spec.in <<"."
 %global debug_package %{nil}
 
 Name: ocm-cli
-Version: ${version}
+Version: @version@
 Release: 1%{?dist}
 Summary: CLI for the Red Hat OpenShift Cluster Manager
 License: ASL 2.0
 URL: https://github.com/openshift-online/ocm-cli
-Source: https://github.com/openshift-online/ocm-cli/archive/v${version}.tar.gz
+Source: https://github.com/openshift-online/ocm-cli/archive/v@version@.tar.gz
 
+# We need to download Go explicitly because in most of the platforms that we
+# use the version available is too old.
+%define go_tar https://golang.org/dl/go1.16.8.linux-amd64.tar.gz
+%define go_sum f32501aeb8b7b723bc7215f6c373abb6981bbc7e1c7b44e9f07317e1a300dce2
+
+BuildRequires: curl
 BuildRequires: git
-BuildRequires: golang-bin
+BuildRequires: make
 
 %description
 CLI for the Red Hat OpenShift Cluster Manager
@@ -448,7 +454,19 @@ CLI for the Red Hat OpenShift Cluster Manager
 %setup
 
 %build
-PATH="${PATH}:${HOME}/go/bin"
+
+# Create the Go directories:
+export GOROOT="${PWD}/.goroot"
+export GOPATH="${PWD}/.gopath"
+mkdir "${GOROOT}" "${GOPATH}"
+PATH="${GOROOT}/bin:${PATH}"
+
+# Download and install Go:
+curl --location --output go.tar.gz %{go_tar}
+echo %{go_sum} go.tar.gz | sha256sum --check
+tar --directory "${GOROOT}" --extract --strip-components 1 --file go.tar.gz
+
+# Build the binary:
 make
 
 %install
@@ -460,6 +478,10 @@ install -m 0755 ocm %{buildroot}%{_bindir}
 %doc README.adoc
 %{_bindir}/*
 .
+sed \
+  -e "s/@version@/${version}/g" \
+  < ocm-cli.spec.in \
+  > ocm-cli.spec
 
 # Bye:
 exit 0
