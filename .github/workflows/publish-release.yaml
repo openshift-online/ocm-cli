@@ -87,7 +87,7 @@ jobs:
         --header "Content-Type: application/json" \
         --header "Accept: application/json" \
         --url "https://api.github.com/repos/${{ github.repository }}/releases" \
-        --data @request.json \
+        --data-binary @request.json \
         --output response.json \
         --fail
 
@@ -103,7 +103,7 @@ jobs:
           --header "Content-Type: application/octect-stream" \
           --header "Accept: application/json" \
           --url "https://uploads.github.com/repos/${{ github.repository }}/releases/${id}/assets?name=${file}" \
-          --data "@assets/${file}" \
+          --data-binary "@assets/${file}" \
           --output response.json \
           --fail
         done
