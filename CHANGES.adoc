@@ -3,6 +3,13 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.58 Sep 23 2021
+
+The only change in this relase is that the _GitHub_ action that publishes
+releases has been fixed so that it publishes correct binaries. There are no
+changes in functionality. See https://github.com/openshift-online/ocm-cli/issues/319[#319]
+for details.
+
 == 0.1.57 Sep 22 2021
 
 - Replace `go-bindata` with Go 1.16 `embed.FS`. This has no practical
