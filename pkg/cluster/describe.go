@@ -103,6 +103,20 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		shard = shardPath.Body().HiveConfig().Server()
 	}
 
+	// Get details of service logs for this cluster
+	serviceLogsSRE, _ := connection.ServiceLogs().V1().Clusters().
+		Cluster(cluster.ExternalID()).
+		ClusterLogs().
+		List().
+		Search("service_name = 'SREManualAction'").
+		Send()
+	serviceLogsSRELastWeek, _ := connection.ServiceLogs().V1().Clusters().
+		Cluster(cluster.ExternalID()).
+		ClusterLogs().
+		List().
+		Search("service_name = 'SREManualAction' and created_at >= '" + time.Now().AddDate(0, 0, -7).Format("2006-01-02") + "'").
+		Send()
+
 	var computesStr string
 	if cluster.Nodes().AutoscaleCompute() != nil {
 		computesStr = fmt.Sprintf("%d-%d (Autoscaled)",
@@ -132,10 +146,10 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 
 	// Print short cluster description:
 	fmt.Printf("\n"+
-		"ID:            %s\n"+
-		"External ID:   %s\n"+
-		"Name:          %s\n"+
-		"State:         %s\n",
+		"ID:                   %s\n"+
+		"External ID:          %s\n"+
+		"Name:                 %s\n"+
+		"State:                %s\n",
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
@@ -147,26 +161,26 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 			cluster.Status().ProvisionErrorMessage(),
 		)
 	}
-	fmt.Printf("API URL:       %s\n"+
-		"API Listening: %s\n"+
-		"Console URL:   %s\n"+
-		"Masters:       %d\n"+
-		"Infra:         %d\n"+
-		"Computes:      %s\n"+
-		"Product:       %s\n"+
-		"Provider:      %s\n"+
-		"Version:       %s\n"+
-		"Region:        %s\n"+
-		"Multi-az:      %t\n"+
-		"CCS:           %t\n"+
-		"PrivateLink:   %t\n"+
-		"Channel Group: %v\n"+
-		"Cluster Admin: %t\n"+
-		"Organization:  %s\n"+
-		"Creator:       %s\n"+
-		"Email:         %s\n"+
-		"Created:       %v\n"+
-		"Expiration:    %v\n",
+	fmt.Printf("API URL:              %s\n"+
+		"API Listening:        %s\n"+
+		"Console URL:          %s\n"+
+		"Masters:              %d\n"+
+		"Infra:                %d\n"+
+		"Computes:             %s\n"+
+		"Product:              %s\n"+
+		"Provider:             %s\n"+
+		"Version:              %s\n"+
+		"Region:               %s\n"+
+		"Multi-az:             %t\n"+
+		"CCS:                  %t\n"+
+		"PrivateLink:          %t\n"+
+		"Channel Group:        %v\n"+
+		"Cluster Admin:        %t\n"+
+		"Organization:         %s\n"+
+		"Creator:              %s\n"+
+		"Email:                %s\n"+
+		"Created:              %v\n"+
+		"Expiration:           %v\n",
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
@@ -189,7 +203,10 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
 	if shard != "" {
-		fmt.Printf("Shard:         %v\n", shard)
+		fmt.Printf("Shard:                %v\n", shard)
+	}
+	if serviceLogsSRE, ok := serviceLogsSRE.GetTotal(); ok {
+		fmt.Printf("Service Log Count:    %v (%v in last week)\n", serviceLogsSRE, serviceLogsSRELastWeek.Total())
 	}
 	fmt.Println()
 
