@@ -149,7 +149,7 @@ var _ = Describe("Describe clusters", func() {
 							  },
 							"status": "Active",
 							"cluster_id": "111"
-						  }
+						 }
 						]
 					  }`,
 				),
@@ -210,7 +210,7 @@ var _ = Describe("Describe clusters", func() {
 						"aws": {
 						  "private_link": false
 						},
-						
+
 						"multi_az": false,
 						"managed": true,
 						"ccs": {
@@ -296,6 +296,41 @@ var _ = Describe("Describe clusters", func() {
 						"aws_base_domain": "s1.test.org",
 						"gcp_base_domain": "s2.test.org",
 						"status": "active"
+					  }`,
+				),
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"kind": "ClusterLogList",
+						"page": 1,
+						"size": 1,
+						"total": 1,
+						"items": [
+						  {
+							"id": "111",
+							"kind": "ClusterLog",
+							"href": "/api/service_logs/v1/cluster_logs/111",
+							"cluster_uuid": "111",
+							"created_at": "2021-09-27T15:55:34.315Z",
+							"description": "string",
+							"event_stream_id": "string",
+							"internal_only": false,
+							"service_name": "string",
+							"severity": "Debug",
+							"summary": "string",
+							"timestamp": "2021-09-27T15:55:34.315Z"
+						 }
+						]
+					  }`,
+				),
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"kind": "ClusterLogList",
+						"page": 1,
+						"size": 0,
+						"total": 0,
+						"items": []
 					  }`,
 				),
 			)
