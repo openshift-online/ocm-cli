@@ -59,7 +59,9 @@ jobs:
            # Copy the generated binary to the assets directory and calculate
            # the digest:
            cp "ocm" "assets/ocm-${os}-${arch}"
-           sha256sum "ocm" > "assets/ocm-${os}-${arch}.sha256"
+           pushd assets
+             sha256sum "ocm-${os}-${arch}" > "ocm-${os}-${arch}.sha256"
+           popd
         }
 
         # Build for the supported operating systems and architectures:
