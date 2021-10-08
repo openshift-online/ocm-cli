@@ -67,6 +67,9 @@ jobs:
         # Build for the supported operating systems and architectures:
         build darwin amd64
         build linux amd64
+        build linux arm64
+        build linux ppc64le
+        build linux s390x
         build windows amd64
 
     - name: Create release
