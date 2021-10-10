@@ -57,6 +57,9 @@ clean:
 		$$(ls cmd) \
 		*-darwin-amd64 \
 		*-linux-amd64 \
+		*-linux-arm64 \
+		*-linux-ppc64le \
+		*-linux-s390x \
 		*-windows-amd64 \
 		*.sha256 \
 		$(NULL)
