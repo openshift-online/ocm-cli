@@ -19,7 +19,6 @@ package quota
 import (
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
@@ -83,7 +82,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Can't retrieve organization information: %v", err)
 	}
 
-	quotaClient := orgCollection.QuotaSummary()
+	quotaClient := orgCollection.QuotaCost()
 
 	if !args.json {
 		quotasListResponse, err := quotaClient.List().
@@ -95,11 +94,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintf(
 			writer,
-			"RESERVED/ALLOWED\t\tRESOURCE NAME\t\tRESOURCE TYPE\t\tAVAILABILITY ZONE\t\tCCS\n")
+			"CONSUMED\t\tALLOWED\t\tQUOTA ID\n")
 
-		quotasListResponse.Items().Each(func(quota *amv1.QuotaSummary) bool {
-			fmt.Fprintf(writer, "%d/%d\t\t%s\t\t%s\t\t%s\t\t%t\n", quota.Reserved(), quota.Allowed(), quota.ResourceName(),
-				quota.ResourceType(), strings.ToUpper(quota.AvailabilityZoneType()), quota.BYOC())
+		quotasListResponse.Items().Each(func(quota *amv1.QuotaCost) bool {
+			fmt.Fprintf(writer, "%d\t\t%d\t\t%s\n", quota.Consumed(), quota.Allowed(), quota.QuotaID())
 			return true
 		})
 
