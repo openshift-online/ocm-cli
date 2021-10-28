@@ -3,6 +3,13 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+== 0.1.59 Oct 28 2021
+
+- Fix binary names inside `.sha256` files
+- Build for all RHEL architectures
+- Replace quota_summary by quota_cost
+- Add alias `-p` to `--parameter`
+
 == 0.1.58 Sep 23 2021
 
 The only change in this relase is that the _GitHub_ action that publishes
