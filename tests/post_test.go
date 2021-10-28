@@ -126,6 +126,28 @@ var _ = Describe("Post", func() {
 			Expect(result.ErrString()).To(BeEmpty())
 		})
 
+		It("Honours the -p flag as alias to --parameter", func() {
+			// Prepare the server:
+			apiServer.AppendHandlers(
+				CombineHandlers(
+					VerifyFormKV("my_param", "my_value"),
+					RespondWithJSON(http.StatusOK, `{}`),
+				),
+			)
+
+			// Run the command:
+			result := NewCommand().
+				ConfigString(config).
+				Args(
+					"post",
+					"-p", "my_param=my_value",
+					"/api/my_service/v1/my_object",
+				).
+				Run(ctx)
+			Expect(result.ExitCode()).To(BeZero())
+			Expect(result.ErrString()).To(BeEmpty())
+		})
+
 		It("Honours the --header flag", func() {
 			// Prepare the server:
 			apiServer.AppendHandlers(
