@@ -60,9 +60,10 @@ func AddDebugFlag(fs *pflag.FlagSet) {
 
 // AddParameterFlag adds the '--parameter' flag to the given set of command line flags.
 func AddParameterFlag(fs *pflag.FlagSet, values *[]string) {
-	fs.StringArrayVar(
+	fs.StringArrayVarP(
 		values,
 		"parameter",
+		"p",
 		nil,
 		"Query parameters to add to the request. The value must be the name of the "+
 			"parameter, followed by an optional equals sign and then the value "+
