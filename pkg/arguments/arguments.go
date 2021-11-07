@@ -92,7 +92,7 @@ func AddBodyFlag(fs *pflag.FlagSet, value *string) {
 		value,
 		"body",
 		"",
-		"Name fo the file containing the request body. If this isn't given then "+
+		"Name of the file containing the request body. If this isn't given then "+
 			"the body will be taken from the standard input.",
 	)
 }
