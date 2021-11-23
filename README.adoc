@@ -107,7 +107,7 @@ names, do not use it in production environments.
 == Multiple Concurrent Logins with OCM_CONFIG
 
 An `~/config/ocm/ocm.json` file stores login credentials for a single API
-server. Using multiple serers therefore requires having to log in and out a lot
+server. Using multiple servers therefore requires having to log in and out a lot
 or the ability to utilize multiple config files. The latter functionality is
 provided with the `OCM_CONFIG` environment variable. If running `ocm login` was
 successfull in both cases, the `ocm whoami` commands will return different
@@ -210,7 +210,7 @@ To find the AWS regions in the US:
 
 ....
 $ ocm get /api/clusters_mgmt/v1/cloud_providers/aws/regions \
---parameter search="name like 'US %'"
+--parameter search="display_name like 'US %'"
 ....
 
 To find the clusters created after March 1st 2019:
