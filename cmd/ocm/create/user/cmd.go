@@ -107,6 +107,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Group '%s' in cluster '%s' doesn't exist", args.group, clusterKey)
 	}
 
+	failedToAddUser := false
+	var usersFailed []string
 	for _, username := range strings.Split(users, ",") {
 		user, err := cmv1.NewUser().ID(username).Build()
 		if err != nil {
@@ -121,10 +123,16 @@ func run(cmd *cobra.Command, argv []string) error {
 			Send()
 		if err != nil {
 			fmt.Printf("Failed to add '%s' user '%s' to cluster '%s': %v\n", args.group, username, clusterKey, err)
+			failedToAddUser = true
+			usersFailed = append(usersFailed, username)
 			continue
 		}
 		fmt.Printf("Added '%s' user '%s' to cluster '%s'\n", args.group, username, clusterKey)
 	}
 
-	return nil
+	if failedToAddUser{
+		return fmt.Errorf("Failed to create the following users in group '%s': %s", args.group, strings.Join(usersFailed, ", "))
+	} else {
+		return nil
+	}
 }
