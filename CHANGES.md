@@ -3,6 +3,25 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.60 Dec 3 2021
+
+This version doesn't contain changes to the functionality, only to the
+development and build workflows:
+
+- Rename `master` branch to `main`.
+
+  To adapt your local repository to the new branch name run the following
+  commands:
+
+  ```shell
+  git branch -m master main
+  git fetch origin
+  git branch -u origin/main main
+  git remote set-head origin -a
+  ```
+
+- Automatically add changes from `CHANGES.md` to release descriptions.
+
 ## 0.1.59 Oct 28 2021
 
 - Fix binary names inside `.sha256` files
