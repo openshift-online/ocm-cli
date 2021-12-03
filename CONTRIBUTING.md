@@ -20,7 +20,7 @@ Finally, create and submit a new tag with the new version following the below
 example:
 
 ```
-git checkout master
+git checkout main
 git pull
 git tag -a -m 'Release 0.1.38' v0.1.38
 git push origin v0.1.38
