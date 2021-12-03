@@ -78,8 +78,11 @@ jobs:
             subprocess.run(check=True, env=env, args=args)
 
             # Copy the generated binary to the assets directory:
-            binary = os.path.join(assets, f"ocm-{goos}-{goarch}")
-            os.rename("ocm", binary)
+            binary = "ocm"
+            if goos == "windows":
+                binary += ".exe"
+            asset = os.path.join(assets, f"ocm-{goos}-{goarch}")
+            os.rename(binary, asset)
 
         # Build for the supported operating systems and architectures:
         build("darwin", "amd64")
