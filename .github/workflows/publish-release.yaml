@@ -30,85 +30,121 @@ jobs:
     - name: Checkout the source
       uses: actions/checkout@v2
 
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install Python modules
+      run: pip install -r .github/workflows/requirements.txt
+
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16
-
-    - name: Build binaries
-      run: |
-        # Create the directory for the assets that will be part of the release:
-        mkdir assets
-
-        # This function builds for the operating system and architecture passed
-        # as parameters.
-        function build {
-          # Get the parameters:
-          local os="$1"
-          local arch="$2"
-
-           # Set the environment variables that tell the Go compiler which
-           # operating system and architecture to build for:
-           export GOOS="${os}"
-           export GOARCH="${arch}"
-
-           # Build the binary:
-           echo "Building binary for OS '${os}' and architecture '${arch}'"
-           make cmds
-
-           # Copy the generated binary to the assets directory and calculate
-           # the digest:
-           cp "ocm" "assets/ocm-${os}-${arch}"
-           pushd assets
-             sha256sum "ocm-${os}-${arch}" > "ocm-${os}-${arch}.sha256"
-           popd
-        }
-
-        # Build for the supported operating systems and architectures:
-        build darwin amd64
-        build linux amd64
-        build linux arm64
-        build linux ppc64le
-        build linux s390x
-        build windows amd64
+        go-version: '1.16'
 
     - name: Create release
+      shell: python
       run: |
-        # Get the version number:
-        version=$(echo -n ${{ github.ref }} | sed -E 's|^refs/tags/v(.*)$|\1|')
+        import os
+        import re
+        import requests
+        import shutil
+        import subprocess
+
+        # Get the context and secret data that we will need:
+        repository = "${{ github.repository }}"
+        reference = "${{ github.ref }}"
+        token = "${{ secrets.GITHUB_TOKEN }}"
+
+        # Calculate the version number:
+        version = re.sub(r"^refs/tags/v(.*)$", r"\1", reference)
+
+        # Make sure that the assets directory exists and is empty:
+        assets = "assets"
+        shutil.rmtree(assets, ignore_errors=True)
+        os.mkdir(assets)
+
+        def build(goos: str, goarch: str):
+            # Set the environment variables that tell the Go compiler which
+            # operating system and architecture to build for:
+            env = dict(os.environ)
+            env["GOOS"] = goos
+            env["GOARCH"] = goarch
+
+            # Build the binary:
+            args = ["make", "cmds"]
+            subprocess.run(check=True, env=env, args=args)
+
+            # Copy the generated binary to the assets directory:
+            binary = os.path.join(assets, f"ocm-{goos}-{goarch}")
+            os.rename("ocm", binary)
+
+        # Build for the supported operating systems and architectures:
+        build("darwin", "amd64")
+        build("linux", "amd64")
+        build("linux", "arm64")
+        build("linux", "ppc64le")
+        build("linux", "s390x")
+        build("windows", "amd64")
+
+        # Calculate the SHA256 digests:
+        for asset in os.listdir(assets):
+            digest = os.path.join(assets, f"{asset}.sha256")
+            with open(digest, "wb") as stream:
+                args = ["sha256sum", asset]
+                subprocess.run(check=True, cwd=assets, stdout=stream, args=args)
+
+        # Get the list of changes:
+        body = ""
+        with open("CHANGES.md", "r") as stream:
+            while True:
+                line = stream.readline()
+                if line == "" or line.startswith("## " + version):
+                    break
+            while True:
+                line = stream.readline()
+                if line == "" or line.startswith("## "):
+                    break
+                body += line
 
         # Send the request to create the release:
-        cat > request.json <<.
-        {
-          "tag_name": "v${version}",
-          "name": "Release ${version}",
-          "body": "See the [CHANGES](CHANGES.md) file for details."
-        }
-        .
-        curl \
-        --silent \
-        --request "POST" \
-        --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-        --header "Content-Type: application/json" \
-        --header "Accept: application/json" \
-        --url "https://api.github.com/repos/${{ github.repository }}/releases" \
-        --data-binary @request.json \
-        --output response.json \
-        --fail
+        response = requests.post(
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json={
+                "tag_name": f"v{version}",
+                "name": f"Release {version}",
+                "body": body,
+            },
+            url=(
+                "https://api.github.com"
+                f"/repos/{repository}/releases"
+            ),
+        )
+        response.raise_for_status()
 
         # Get the release identifier:
-        id=$(cat response.json | jq -r ".id")
+        release = response.json()["id"]
 
         # Upload the assets:
-        for file in $(ls assets); do
-          curl \
-          --silent \
-          --request "POST" \
-          --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-          --header "Content-Type: application/octect-stream" \
-          --header "Accept: application/json" \
-          --url "https://uploads.github.com/repos/${{ github.repository }}/releases/${id}/assets?name=${file}" \
-          --data-binary "@assets/${file}" \
-          --output response.json \
-          --fail
-        done
+        for asset in os.listdir(assets):
+            file = os.path.join(assets, asset)
+            with open(file, "rb") as stream:
+                response = requests.post(
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/octet-stream",
+                        "Accept": "application/json",
+                    },
+                    data=stream,
+                    url=(
+                        "https://uploads.github.com"
+                        f"/repos/{repository}/releases/{release}/assets?name={asset}"
+                    ),
+                )
+                response.raise_for_status()
