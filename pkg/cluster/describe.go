@@ -126,8 +126,12 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	}
 
 	privateLinkEnabled := false
+	stsEnabled := false
 	if cluster.CloudProvider().ID() == ProviderAWS && cluster.AWS() != nil {
 		privateLinkEnabled = cluster.AWS().PrivateLink()
+		if cluster.AWS().STS().RoleARN() != "" {
+			stsEnabled = true
+		}
 	}
 
 	// Print short cluster description:
@@ -160,6 +164,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Multi-az:      %t\n"+
 		"CCS:           %t\n"+
 		"PrivateLink:   %t\n"+
+		"STS:           %t\n"+
 		"Channel Group: %v\n"+
 		"Cluster Admin: %t\n"+
 		"Organization:  %s\n"+
@@ -180,6 +185,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.MultiAZ(),
 		cluster.CCS().Enabled(),
 		privateLinkEnabled,
+		stsEnabled,
 		cluster.Version().ChannelGroup(),
 		clusterAdminEnabled,
 		organization,
