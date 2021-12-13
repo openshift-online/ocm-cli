@@ -127,10 +127,18 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 
 	privateLinkEnabled := false
 	stsEnabled := false
+	// Setting isBYOVPC to unsupported to avoid confusion
+	// when looking at clusters on other providers than AWS
+	isBYOVPC := "unsupported"
 	if cluster.CloudProvider().ID() == ProviderAWS && cluster.AWS() != nil {
 		privateLinkEnabled = cluster.AWS().PrivateLink()
 		if cluster.AWS().STS().RoleARN() != "" {
 			stsEnabled = true
+		}
+
+		isBYOVPC = "false"
+		if cluster.AWS().SubnetIDs() != nil && len(cluster.AWS().SubnetIDs()) > 0 {
+			isBYOVPC = "true"
 		}
 	}
 
@@ -165,6 +173,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"CCS:           %t\n"+
 		"PrivateLink:   %t\n"+
 		"STS:           %t\n"+
+		"BYO-VPC:       %s\n"+
 		"Channel Group: %v\n"+
 		"Cluster Admin: %t\n"+
 		"Organization:  %s\n"+
@@ -186,6 +195,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.CCS().Enabled(),
 		privateLinkEnabled,
 		stsEnabled,
+		isBYOVPC,
 		cluster.Version().ChannelGroup(),
 		clusterAdminEnabled,
 		organization,
