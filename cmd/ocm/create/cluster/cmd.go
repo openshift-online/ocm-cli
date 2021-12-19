@@ -22,18 +22,20 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	sdk "github.com/openshift-online/ocm-sdk-go"
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-
+	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/provider"
+	sdk "github.com/openshift-online/ocm-sdk-go"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/openshift/rosa/pkg/interactive"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var args struct {
@@ -61,6 +63,7 @@ var args struct {
 	computeMachineType string
 	computeNodes       int
 	autoscaling        c.Autoscaling
+	byovpc             c.BYOVPC
 
 	// Networking options
 	hostPrefix  int
@@ -70,6 +73,18 @@ var args struct {
 }
 
 const clusterNameHelp = "will be used when generating a sub-domain for your cluster on openshiftapps.com."
+
+const subnetTemplate = "%s (%s)"
+
+// Creates a subnet options using a predefined template.
+func setSubnetOption(subnet, zone string) string {
+	return fmt.Sprintf(subnetTemplate, subnet, zone)
+}
+
+// Parses the subnet from the option chosen by the user.
+func parseSubnet(subnetOption string) string {
+	return strings.Split(subnetOption, " ")[0]
+}
 
 // Cmd Constant:
 var Cmd = &cobra.Command{
@@ -95,6 +110,8 @@ func init() {
 	arguments.AddProviderFlag(fs, &args.provider)
 	Cmd.RegisterFlagCompletionFunc("provider", arguments.MakeCompleteFunc(osdProviderOptions))
 	arguments.AddCCSFlags(fs, &args.ccs)
+
+	arguments.AddBYOVPCFlags(fs, &args.byovpc)
 
 	fs.Var(
 		&args.gcpServiceAccountFile,
@@ -408,6 +425,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	err = promptBYOVPC(fs, connection, cmd)
+	if err != nil {
+		return err
+	}
+
 	err = arguments.CheckAutoscalingFlags(args.autoscaling, args.computeNodes)
 	if err != nil {
 		return err
@@ -428,7 +450,6 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -453,6 +474,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Region:             args.region,
 		Provider:           args.provider,
 		CCS:                args.ccs,
+		BYOVPC:             args.byovpc,
 		Flavour:            args.flavour,
 		MultiAZ:            args.multiAZ,
 		Version:            clusterVersion,
@@ -489,6 +511,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	return nil
 }
 
+func shouldPromptForBYOVPC(areSubnetsProvided bool) bool {
+	return !args.byovpc.Enabled && args.ccs.Enabled && !areSubnetsProvided && args.interactive
+}
+
 // promptName checks and/or reads the cluster name
 func promptName(argv []string) error {
 	if len(argv) == 1 && argv[0] != "" {
@@ -505,6 +531,96 @@ func promptName(argv []string) error {
 	}
 
 	return fmt.Errorf("A cluster name must be specified")
+}
+
+func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
+	providedSubnetIDs := strings.Split(args.byovpc.SubnetIDs, ",")
+	areSubnetsProvided := len(args.byovpc.SubnetIDs) > 0
+	if shouldPromptForBYOVPC(areSubnetsProvided) {
+		err := arguments.PromptBool(fs, "byo-vpc")
+		if err != nil {
+			return err
+		}
+	}
+
+	var availabilityZones []string
+	if args.byovpc.Enabled || areSubnetsProvided {
+		subnetworks, err := provider.GetSubnetworks(connection.ClustersMgmt().V1(), args.provider,
+			args.ccs, args.region)
+		if err != nil {
+			return err
+		}
+		var subnetIDs []string
+		for _, subnetwork := range subnetworks {
+			subnetIDs = append(subnetIDs, subnetwork.SubnetID())
+		}
+
+		mapSubnetToAZ := make(map[string]string)
+		mapAZCreated := make(map[string]bool)
+		options := make([]string, len(subnetIDs))
+		defaultOptions := make([]string, len(providedSubnetIDs))
+		// Verify subnets provided exist.
+		if areSubnetsProvided {
+			for _, providedSubnetID := range providedSubnetIDs {
+				verifiedSubnet := false
+				for _, subnetID := range subnetIDs {
+					if awssdk.StringValue(&subnetID) == providedSubnetID {
+						verifiedSubnet = true
+					}
+				}
+				if !verifiedSubnet {
+					return fmt.Errorf("Could not find the following subnet provided: %s", providedSubnetID)
+				}
+			}
+		}
+
+		for i, subnetwork := range subnetworks {
+			subnetID := subnetwork.SubnetID()
+			availabilityZone := subnetwork.AvailabilityZone()
+
+			// Create the options to prompt the user.
+			options[i] = setSubnetOption(subnetID, availabilityZone)
+			if areSubnetsProvided {
+				for _, subnetArg := range providedSubnetIDs {
+					defaultOptions = append(defaultOptions, setSubnetOption(subnetArg, availabilityZone))
+				}
+			}
+			mapSubnetToAZ[subnetID] = availabilityZone
+			mapAZCreated[availabilityZone] = false
+		}
+		if (!areSubnetsProvided || args.interactive) &&
+			len(options) > 0 && (!args.multiAZ || len(mapAZCreated) >= 3) {
+			subnetIDs, err = interactive.GetMultipleOptions(interactive.Input{
+				Question: "Subnet IDs",
+				Required: false,
+				Options:  options,
+				Default:  defaultOptions,
+			})
+			if err != nil {
+				return err
+			}
+			//remove the az
+			for i, subnet := range subnetIDs {
+				subnetIDs[i] = parseSubnet(subnet)
+			}
+		}
+
+		for _, subnet := range subnetIDs {
+			az := mapSubnetToAZ[subnet]
+			if !mapAZCreated[az] {
+				availabilityZones = append(availabilityZones, az)
+				mapAZCreated[az] = true
+			}
+		}
+
+		if len(subnetIDs) > 0 {
+			fs.Set("byo-vpc", "true")
+			fs.Set("subnet-ids", strings.Join(subnetIDs, ","))
+			fs.Set("availability-zones", strings.Join(availabilityZones, ","))
+		}
+		return nil
+	}
+	return nil
 }
 
 func promptCCS(fs *pflag.FlagSet) error {
