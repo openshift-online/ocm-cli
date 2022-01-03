@@ -157,6 +157,31 @@ func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
 	return nil
 }
 
+func AddBYOVPCFlags(fs *pflag.FlagSet, value *cluster.BYOVPC) {
+	fs.BoolVar(
+		&value.Enabled,
+		"byo-vpc",
+		false,
+		"Bring your own Virtual Private Network settings.",
+	)
+	SetQuestion(fs, "byo-vpc", "Enable BYO-VPC:")
+
+	fs.StringVar(
+		&value.SubnetIDs,
+		"subnet-ids",
+		"",
+		"AWS subnet IDs",
+	)
+	SetQuestion(fs, "subnet-ids", "AWS subnet IDs:")
+
+	fs.StringArrayVar(
+		&value.AvailabilityZones,
+		"availability-zones",
+		nil,
+		"AWS availability zones",
+	)
+}
+
 // AddAutoscalingFlags adds the --enable-autoscaling --min-replicas and --max-replicas flags
 func AddAutoscalingFlags(fs *pflag.FlagSet, value *cluster.Autoscaling) {
 	fs.BoolVar(

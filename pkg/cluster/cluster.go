@@ -42,6 +42,7 @@ type Spec struct {
 	Region         string
 	Provider       string
 	CCS            CCS
+	BYOVPC         BYOVPC
 	Flavour        string
 	MultiAZ        bool
 	Version        string
@@ -63,6 +64,12 @@ type Spec struct {
 
 	// Properties
 	CustomProperties map[string]string
+}
+
+type BYOVPC struct {
+	Enabled           bool
+	SubnetIDs         string
+	AvailabilityZones []string
 }
 
 type Autoscaling struct {
@@ -286,13 +293,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	if config.CCS.Enabled {
 		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
+		subnets := strings.Split(config.BYOVPC.SubnetIDs, ",")
 		switch config.Provider {
 		case ProviderAWS:
 			clusterBuilder = clusterBuilder.AWS(
 				cmv1.NewAWS().
 					AccountID(config.CCS.AWS.AccountID).
 					AccessKeyID(config.CCS.AWS.AccessKeyID).
-					SecretAccessKey(config.CCS.AWS.SecretAccessKey),
+					SecretAccessKey(config.CCS.AWS.SecretAccessKey).
+					SubnetIDs(subnets...),
 			)
 		case ProviderGCP:
 			clusterBuilder =
@@ -311,6 +320,9 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 				)
 		default:
 			return nil, fmt.Errorf("Unexpected CCS provider %q", config.Provider)
+		}
+		if config.BYOVPC.Enabled && len(config.BYOVPC.SubnetIDs) > 0 {
+			clusterBuilder = clusterBuilder.Nodes(cmv1.NewClusterNodes().AvailabilityZones(config.BYOVPC.AvailabilityZones...))
 		}
 	}
 
