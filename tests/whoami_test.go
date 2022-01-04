@@ -20,9 +20,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 
-	. "github.com/onsi/ginkgo"                         // nolint
+	. "github.com/onsi/ginkgo/v2"                      // nolint
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint

@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"time"
 
-	jwt "github.com/golang-jwt/jwt"
+	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/golang/glog"
 	homedir "github.com/mitchellh/go-homedir"
 	sdk "github.com/openshift-online/ocm-sdk-go"

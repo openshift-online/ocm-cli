@@ -130,7 +130,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Printf("Added '%s' user '%s' to cluster '%s'\n", args.group, username, clusterKey)
 	}
 
-	if failedToAddUser{
+	if failedToAddUser {
 		return fmt.Errorf("Failed to create the following users in group '%s': %s", args.group, strings.Join(usersFailed, ", "))
 	} else {
 		return nil
