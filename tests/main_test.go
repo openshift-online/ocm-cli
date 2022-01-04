@@ -30,8 +30,8 @@ import (
 
 	sdktesting "github.com/openshift-online/ocm-sdk-go/testing"
 
-	. "github.com/onsi/ginkgo" // nolint
-	. "github.com/onsi/gomega" // nolint
+	. "github.com/onsi/ginkgo/v2" // nolint
+	. "github.com/onsi/gomega"    // nolint
 )
 
 func TestCLI(t *testing.T) {
