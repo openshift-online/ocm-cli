@@ -241,18 +241,6 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		cmv1.NewVersion().
 			ID(config.Version).ChannelGroup(config.ChannelGroup))
 
-	if config.ComputeMachineType != "" || config.ComputeNodes > 0 ||
-		config.Autoscaling.Enabled {
-		clusterNodesBuilder := cmv1.NewClusterNodes()
-		if config.ComputeMachineType != "" {
-			clusterNodesBuilder = clusterNodesBuilder.ComputeMachineType(
-				cmv1.NewMachineType().ID(config.ComputeMachineType),
-			)
-		}
-		clusterNodesBuilder = buildCompute(config, clusterNodesBuilder)
-		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
-	}
-
 	if !config.Expiration.IsZero() {
 		clusterBuilder = clusterBuilder.ExpirationTimestamp(config.Expiration)
 	}
@@ -321,9 +309,23 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		default:
 			return nil, fmt.Errorf("Unexpected CCS provider %q", config.Provider)
 		}
-		if config.BYOVPC.Enabled && len(config.BYOVPC.SubnetIDs) > 0 {
-			clusterBuilder = clusterBuilder.Nodes(cmv1.NewClusterNodes().AvailabilityZones(config.BYOVPC.AvailabilityZones...))
+	}
+
+	if config.ComputeMachineType != "" || config.ComputeNodes > 0 || len(config.BYOVPC.AvailabilityZones) > 0 ||
+		config.Autoscaling.Enabled {
+		clusterNodesBuilder := cmv1.NewClusterNodes()
+		if config.ComputeMachineType != "" {
+			clusterNodesBuilder = clusterNodesBuilder.ComputeMachineType(
+				cmv1.NewMachineType().ID(config.ComputeMachineType),
+			)
 		}
+		clusterNodesBuilder = buildCompute(config, clusterNodesBuilder)
+
+		if len(config.BYOVPC.AvailabilityZones) > 0 {
+			availabilityZones := strings.Join(config.BYOVPC.AvailabilityZones, ",")
+			clusterNodesBuilder = clusterNodesBuilder.AvailabilityZones(strings.Split(availabilityZones, ",")...)
+		}
+		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
 	}
 
 	clusterSpec, err := clusterBuilder.Build()
