@@ -614,15 +614,9 @@ func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Comm
 		}
 
 		if len(subnetIDs) > 0 {
-			flag := fs.Lookup("byo-vpc")
-			if !flag.Changed {
-				fs.Set("byo-vpc", "true")
-			}
-			flag = fs.Lookup("subnet-ids")
-			if !flag.Changed {
-				fs.Set("subnet-ids", strings.Join(subnetIDs, ","))
-			}
-			flag = fs.Lookup("availability-zones")
+			fs.Set("byo-vpc", "true")
+			fs.Set("subnet-ids", strings.Join(subnetIDs, ","))
+			flag := fs.Lookup("availability-zones")
 			if !flag.Changed {
 				fs.Set("availability-zones", strings.Join(availabilityZones, ","))
 			}
