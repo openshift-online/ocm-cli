@@ -164,7 +164,7 @@ func AddBYOVPCFlags(fs *pflag.FlagSet, value *cluster.BYOVPC) {
 		false,
 		"Bring your own Virtual Private Network settings.",
 	)
-	SetQuestion(fs, "byo-vpc", "Enable BYO-VPC:")
+	SetQuestion(fs, "byo-vpc", "Install into an existing VPC:")
 
 	fs.StringVar(
 		&value.SubnetIDs,

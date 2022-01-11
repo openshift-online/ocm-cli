@@ -534,6 +534,7 @@ func promptName(argv []string) error {
 }
 
 func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
+	//subnets provided in the command
 	providedSubnetIDs := strings.Split(args.byovpc.SubnetIDs, ",")
 	areSubnetsProvided := len(args.byovpc.SubnetIDs) > 0
 	if shouldPromptForBYOVPC(areSubnetsProvided) {
@@ -545,6 +546,7 @@ func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Comm
 
 	var availabilityZones []string
 	if args.byovpc.Enabled || areSubnetsProvided {
+		//get subnetworks from the provider
 		subnetworks, err := provider.GetSubnetworks(connection.ClustersMgmt().V1(), args.provider,
 			args.ccs, args.region)
 		if err != nil {
@@ -555,11 +557,7 @@ func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Comm
 			subnetIDs = append(subnetIDs, subnetwork.SubnetID())
 		}
 
-		mapSubnetToAZ := make(map[string]string)
-		mapAZCreated := make(map[string]bool)
-		options := make([]string, len(subnetIDs))
-		defaultOptions := make([]string, len(providedSubnetIDs))
-		// Verify subnets provided exist.
+		// Verify subnets provided in the command exist.
 		if areSubnetsProvided {
 			for _, providedSubnetID := range providedSubnetIDs {
 				verifiedSubnet := false
@@ -574,23 +572,38 @@ func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Comm
 			}
 		}
 
-		for i, subnetwork := range subnetworks {
-			subnetID := subnetwork.SubnetID()
-			availabilityZone := subnetwork.AvailabilityZone()
-
+		mapSubnetToAZ := make(map[string]string)
+		mapAZCreated := make(map[string]bool)
+		//a map for all provider subnets to be shown in the user prompt
+		options := make([]string, len(subnetIDs))
+		//a map for all user's provided subnets to be shown in the user prompt
+		var defaultOptions []string
+		//slice of subnets to send out in the request
+		var result []string
+		providedSubnetIDMap := make(map[string]bool)
+		for _, sub := range providedSubnetIDs {
+			providedSubnetIDMap[sub] = true
+		}
+		for i, subnet := range subnetworks {
+			subnetID := subnet.SubnetID()
+			availabilityZone := subnet.AvailabilityZone()
 			// Create the options to prompt the user.
 			options[i] = setSubnetOption(subnetID, availabilityZone)
 			if areSubnetsProvided {
-				for _, subnetArg := range providedSubnetIDs {
-					defaultOptions = append(defaultOptions, setSubnetOption(subnetArg, availabilityZone))
+				if providedSubnetIDMap[subnetID] {
+					//subnetIDs that were provided by the user, so they could be checked while
+					//showing up in the prompt. i.s '[X] subnet-xxxxx (us-east-1)'
+					defaultOptions = append(defaultOptions, setSubnetOption(subnetID, availabilityZone))
+					result = append(result, subnetID)
 				}
 			}
 			mapSubnetToAZ[subnetID] = availabilityZone
 			mapAZCreated[availabilityZone] = false
 		}
+
 		if (!areSubnetsProvided || args.interactive) &&
 			len(options) > 0 && (!args.multiAZ || len(mapAZCreated) >= 3) {
-			subnetIDs, err = interactive.GetMultipleOptions(interactive.Input{
+			result, err = interactive.GetMultipleOptions(interactive.Input{
 				Question: "Subnet IDs",
 				Required: false,
 				Options:  options,
@@ -599,25 +612,26 @@ func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Comm
 			if err != nil {
 				return err
 			}
-			//remove the az
-			for i, subnet := range subnetIDs {
-				subnetIDs[i] = parseSubnet(subnet)
+			//remove the az as want to send only the subnet itself.
+			//i.e 'subnet-xxxxx' instead 'subnet-xxxxx (us-east-1)'
+			for i, subnet := range result {
+				result[i] = parseSubnet(subnet)
 			}
 		}
 
-		for _, subnet := range subnetIDs {
+		//create slice of availability zones to be sent int the request
+		for _, subnet := range result {
 			az := mapSubnetToAZ[subnet]
-			if !mapAZCreated[az] {
+			if !mapAZCreated[az] && az != "" {
 				availabilityZones = append(availabilityZones, az)
 				mapAZCreated[az] = true
 			}
 		}
-
-		if len(subnetIDs) > 0 {
+		if len(result) > 0 {
 			fs.Set("byo-vpc", "true")
-			fs.Set("subnet-ids", strings.Join(subnetIDs, ","))
+			fs.Set("subnet-ids", strings.Join(result, ","))
 			flag := fs.Lookup("availability-zones")
-			if !flag.Changed {
+			if !flag.Changed && len(availabilityZones) > 0 {
 				fs.Set("availability-zones", strings.Join(availabilityZones, ","))
 			}
 		}
