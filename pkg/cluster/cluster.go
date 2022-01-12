@@ -281,7 +281,10 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	if config.CCS.Enabled {
 		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
-		subnets := strings.Split(config.BYOVPC.SubnetIDs, ",")
+		var subnets []string
+		if config.BYOVPC.SubnetIDs != "" {
+			subnets = strings.Split(config.BYOVPC.SubnetIDs, ",")
+		}
 		switch config.Provider {
 		case ProviderAWS:
 			clusterBuilder = clusterBuilder.AWS(
