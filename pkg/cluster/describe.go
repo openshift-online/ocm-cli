@@ -127,61 +127,61 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 
 	privateLinkEnabled := false
 	stsEnabled := false
-	// Setting isBYOVPC to unsupported to avoid confusion
+	// Setting isExistingVPC to unsupported to avoid confusion
 	// when looking at clusters on other providers than AWS
-	isBYOVPC := "unsupported"
+	isExistingVPC := "unsupported"
 	if cluster.CloudProvider().ID() == ProviderAWS && cluster.AWS() != nil {
 		privateLinkEnabled = cluster.AWS().PrivateLink()
 		if cluster.AWS().STS().RoleARN() != "" {
 			stsEnabled = true
 		}
 
-		isBYOVPC = "false"
+		isExistingVPC = "false"
 		if cluster.AWS().SubnetIDs() != nil && len(cluster.AWS().SubnetIDs()) > 0 {
-			isBYOVPC = "true"
+			isExistingVPC = "true"
 		}
 	}
 
 	// Print short cluster description:
 	fmt.Printf("\n"+
-		"ID:            %s\n"+
-		"External ID:   %s\n"+
-		"Name:          %s\n"+
-		"State:         %s\n",
+		"ID:			%s\n"+
+		"External ID:		%s\n"+
+		"Name:			%s\n"+
+		"State:			%s\n",
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
 		cluster.State(),
 	)
 	if cluster.Status().State() == cmv1.ClusterStateError {
-		fmt.Printf("Details:       %s - %s\n",
+		fmt.Printf("Details:		%s - %s\n",
 			cluster.Status().ProvisionErrorCode(),
 			cluster.Status().ProvisionErrorMessage(),
 		)
 	}
-	fmt.Printf("API URL:       %s\n"+
-		"API Listening: %s\n"+
-		"Console URL:   %s\n"+
-		"Masters:       %d\n"+
-		"Infra:         %d\n"+
-		"Computes:      %s\n"+
-		"Product:       %s\n"+
-		"Provider:      %s\n"+
-		"Version:       %s\n"+
-		"Region:        %s\n"+
-		"Multi-az:      %t\n"+
-		"CCS:           %t\n"+
-		"Subnet IDs:    %s\n"+
-		"PrivateLink:   %t\n"+
-		"STS:           %t\n"+
-		"BYO-VPC:       %s\n"+
-		"Channel Group: %v\n"+
-		"Cluster Admin: %t\n"+
-		"Organization:  %s\n"+
-		"Creator:       %s\n"+
-		"Email:         %s\n"+
-		"Created:       %v\n"+
-		"Expiration:    %v\n",
+	fmt.Printf("API URL:		%s\n"+
+		"API Listening:		%s\n"+
+		"Console URL:		%s\n"+
+		"Masters:		%d\n"+
+		"Infra:			%d\n"+
+		"Computes:		%s\n"+
+		"Product:		%s\n"+
+		"Provider:		%s\n"+
+		"Version:		%s\n"+
+		"Region:			%s\n"+
+		"Multi-az:		%t\n"+
+		"CCS:			%t\n"+
+		"Subnet IDs:		%s\n"+
+		"PrivateLink:		%t\n"+
+		"STS:			%t\n"+
+		"Existing VPC:		%s\n"+
+		"Channel Group:		%v\n"+
+		"Cluster Admin:		%t\n"+
+		"Organization:		%s\n"+
+		"Creator:		%s\n"+
+		"Email:			%s\n"+
+		"Created:		%v\n"+
+		"Expiration:		%v\n",
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
@@ -197,7 +197,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.AWS().SubnetIDs(),
 		privateLinkEnabled,
 		stsEnabled,
-		isBYOVPC,
+		isExistingVPC,
 		cluster.Version().ChannelGroup(),
 		clusterAdminEnabled,
 		organization,
@@ -207,7 +207,16 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
 	if shard != "" {
-		fmt.Printf("Shard:         %v\n", shard)
+		fmt.Printf("Shard:			%v\n", shard)
+	}
+	if cluster.Proxy().HTTPProxy() != "" {
+		fmt.Printf("HTTPProxy:	        %s\n", cluster.Proxy().HTTPProxy())
+	}
+	if cluster.Proxy().HTTPSProxy() != "" {
+		fmt.Printf("HTTPSProxy:	        %s\n", cluster.Proxy().HTTPSProxy())
+	}
+	if cluster.AdditionalTrustBundle() != "" {
+		fmt.Printf("AdditionalTrustBundle:  %s\n", cluster.AdditionalTrustBundle())
 	}
 	fmt.Println()
 
