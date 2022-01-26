@@ -67,6 +67,7 @@ var args struct {
 	autoscaling        c.Autoscaling
 
 	// Networking options
+	networkType string
 	hostPrefix  int
 	machineCIDR net.IPNet
 	serviceCIDR net.IPNet
@@ -216,6 +217,16 @@ func init() {
 	)
 	arguments.AddAutoscalingFlags(fs, &args.autoscaling)
 
+	fs.StringVar(
+		&args.networkType,
+		"network-type",
+		c.NetworkTypeSDN,
+		fmt.Sprintf("The main controller responsible for rendering the core networking components. "+
+			"Allowed values are %s and %s", c.NetworkTypeSDN, c.NetworkTypeOVN),
+	)
+	fs.MarkHidden("network-type")
+	Cmd.RegisterFlagCompletionFunc("network-type", networkTypeCompletion)
+
 	fs.IPNetVar(
 		&args.machineCIDR,
 		"machine-cidr",
@@ -324,6 +335,10 @@ func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, erro
 	return provider.GetMachineTypeOptions(
 		connection.ClustersMgmt().V1(),
 		args.provider, args.ccs.Enabled)
+}
+
+func networkTypeCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return []string{c.NetworkTypeSDN, c.NetworkTypeOVN}, cobra.ShellCompDirectiveDefault
 }
 
 func minComputeNodes(ccs bool, multiAZ bool) (min int) {
@@ -509,6 +524,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		ComputeMachineType: args.computeMachineType,
 		ComputeNodes:       args.computeNodes,
 		Autoscaling:        args.autoscaling,
+		NetworkType:        args.networkType,
 		MachineCIDR:        args.machineCIDR,
 		ServiceCIDR:        args.serviceCIDR,
 		PodCIDR:            args.podCIDR,
