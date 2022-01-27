@@ -15,12 +15,14 @@ package cluster
 
 import (
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/utils"
 )
 
 var args struct {
@@ -34,6 +36,8 @@ var args struct {
 	private bool
 
 	channelGroup string
+
+	clusterWideProxy c.ClusterWideProxy
 }
 
 var Cmd = &cobra.Command{
@@ -78,7 +82,7 @@ func init() {
 	//nolint:gosec
 	flags.MarkHidden("expiration")
 
-	// Networking options
+	//Networking options
 	flags.BoolVar(
 		&args.private,
 		"private",
@@ -92,6 +96,30 @@ func init() {
 		"",
 		"The channel group which the cluster version belongs to.",
 	)
+
+	args.clusterWideProxy.HTTPProxy = new(string)
+	flags.StringVar(
+		args.clusterWideProxy.HTTPProxy,
+		"http-proxy",
+		"",
+		"A proxy URL to use for creating HTTP connections outside the cluster.",
+	)
+
+	args.clusterWideProxy.HTTPSProxy = new(string)
+	flags.StringVar(
+		args.clusterWideProxy.HTTPSProxy,
+		"https-proxy",
+		"",
+		"A proxy URL to use for creating HTTPS connections outside the cluster.",
+	)
+
+	args.clusterWideProxy.AdditionalTrustBundleFile = new(string)
+	flags.StringVar(
+		args.clusterWideProxy.AdditionalTrustBundleFile,
+		"additional-trust-bundle-file",
+		"",
+		"A file contains a PEM-encoded X.509 certificate bundle that will be "+
+			"added to the nodes' trusted certificate store.")
 
 }
 
@@ -139,11 +167,78 @@ func run(cmd *cobra.Command, argv []string) error {
 		channelGroup = args.channelGroup
 	}
 
+	var httpProxy *string
+	var httpProxyValue string
+	if cmd.Flags().Changed("http-proxy") {
+		httpProxyValue = *args.clusterWideProxy.HTTPProxy
+		if httpProxyValue != "" {
+			err := utils.ValidateHTTPProxy(httpProxyValue)
+			if err != nil {
+				return err
+			}
+		}
+		httpProxy = &httpProxyValue
+	}
+
+	var httpsProxy *string
+	var httpsProxyValue string
+	if cmd.Flags().Changed("https-proxy") {
+		httpsProxyValue = *args.clusterWideProxy.HTTPSProxy
+		if httpsProxyValue != "" {
+			err := utils.IsURL(httpsProxyValue)
+			if err != nil {
+				return err
+			}
+		}
+		httpsProxy = &httpsProxyValue
+	}
+
+	var additionalTrustBundleFile *string
+	var additionalTrustBundleFileValue string
+	if cmd.Flags().Changed("additional-trust-bundle-file") {
+		additionalTrustBundleFileValue = *args.clusterWideProxy.AdditionalTrustBundleFile
+		if additionalTrustBundleFileValue != "" {
+			err := utils.ValidateAdditionalTrustBundle(additionalTrustBundleFileValue)
+			if err != nil {
+				return err
+			}
+		}
+		additionalTrustBundleFile = &additionalTrustBundleFileValue
+	}
+
+	if len(cluster.AWS().SubnetIDs()) == 0 &&
+		((httpProxy != nil && *httpProxy != "") || (httpsProxy != nil && *httpsProxy != "") ||
+			(additionalTrustBundleFile != nil && *additionalTrustBundleFile != "")) {
+		return fmt.Errorf("Cluster-wide proxy is not supported on clusters using the default VPC")
+
+	}
+
 	clusterConfig := c.Spec{
 		Expiration:   expiration,
 		Private:      private,
 		ChannelGroup: channelGroup,
 	}
+
+	clusterWideProxy := c.ClusterWideProxy{
+		HTTPProxy:                 httpProxy,
+		HTTPSProxy:                httpsProxy,
+		AdditionalTrustBundleFile: additionalTrustBundleFile,
+	}
+	if clusterWideProxy.AdditionalTrustBundleFile != nil {
+		if len(*additionalTrustBundleFile) > 0 {
+			cert, err := ioutil.ReadFile(*additionalTrustBundleFile)
+			if err != nil {
+				return fmt.Errorf("Failed to read additional trust bundle file: %s", err)
+			}
+			clusterWideProxy.AdditionalTrustBundle = new(string)
+			*clusterWideProxy.AdditionalTrustBundle = string(cert)
+		} else {
+			clusterWideProxy.AdditionalTrustBundle = new(string)
+			*clusterWideProxy.AdditionalTrustBundle = ""
+		}
+	}
+	clusterConfig.ClusterWideProxy = clusterWideProxy
+
 	err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
 	if err != nil {
 		return fmt.Errorf("Failed to update cluster: %v", err)

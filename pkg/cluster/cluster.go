@@ -38,17 +38,18 @@ const (
 // Spec is the configuration for a cluster spec.
 type Spec struct {
 	// Basic configs
-	Name           string
-	Region         string
-	Provider       string
-	CCS            CCS
-	BYOVPC         BYOVPC
-	Flavour        string
-	MultiAZ        bool
-	Version        string
-	ChannelGroup   string
-	Expiration     time.Time
-	EtcdEncryption bool
+	Name             string
+	Region           string
+	Provider         string
+	CCS              CCS
+	ExistingVPC      ExistingVPC
+	ClusterWideProxy ClusterWideProxy
+	Flavour          string
+	MultiAZ          bool
+	Version          string
+	ChannelGroup     string
+	Expiration       time.Time
+	EtcdEncryption   bool
 
 	// Scaling config
 	ComputeMachineType string
@@ -66,12 +67,6 @@ type Spec struct {
 	CustomProperties map[string]string
 }
 
-type BYOVPC struct {
-	Enabled           bool
-	SubnetIDs         string
-	AvailabilityZones []string
-}
-
 type Autoscaling struct {
 	Enabled     bool
 	MinReplicas int
@@ -83,6 +78,21 @@ type CCS struct {
 	AWS     AWSCredentials
 	GCP     GCPCredentials
 }
+
+type ExistingVPC struct {
+	Enabled           bool
+	SubnetIDs         string
+	AvailabilityZones []string
+}
+
+type ClusterWideProxy struct {
+	Enabled                   bool
+	HTTPProxy                 *string
+	HTTPSProxy                *string
+	AdditionalTrustBundleFile *string
+	AdditionalTrustBundle     *string
+}
+
 type AWSCredentials struct {
 	AccountID       string
 	AccessKeyID     string
@@ -282,8 +292,8 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 	if config.CCS.Enabled {
 		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
 		var subnets []string
-		if config.BYOVPC.SubnetIDs != "" {
-			subnets = strings.Split(config.BYOVPC.SubnetIDs, ",")
+		if config.ExistingVPC.SubnetIDs != "" {
+			subnets = strings.Split(config.ExistingVPC.SubnetIDs, ",")
 		}
 		switch config.Provider {
 		case ProviderAWS:
@@ -312,9 +322,25 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		default:
 			return nil, fmt.Errorf("Unexpected CCS provider %q", config.Provider)
 		}
+
+		//cluster-wide proxy
+		if config.ClusterWideProxy.HTTPProxy != nil || config.ClusterWideProxy.HTTPSProxy != nil {
+			proxyBuilder := cmv1.NewProxy()
+			if config.ClusterWideProxy.HTTPProxy != nil {
+				proxyBuilder.HTTPProxy(*config.ClusterWideProxy.HTTPProxy)
+			}
+			if config.ClusterWideProxy.HTTPSProxy != nil {
+				proxyBuilder.HTTPSProxy(*config.ClusterWideProxy.HTTPSProxy)
+			}
+			clusterBuilder = clusterBuilder.Proxy(proxyBuilder)
+		}
+
+		if config.ClusterWideProxy.AdditionalTrustBundle != nil {
+			clusterBuilder = clusterBuilder.AdditionalTrustBundle(*config.ClusterWideProxy.AdditionalTrustBundle)
+		}
 	}
 
-	if config.ComputeMachineType != "" || config.ComputeNodes > 0 || len(config.BYOVPC.AvailabilityZones) > 0 ||
+	if config.ComputeMachineType != "" || config.ComputeNodes > 0 || len(config.ExistingVPC.AvailabilityZones) > 0 ||
 		config.Autoscaling.Enabled {
 		clusterNodesBuilder := cmv1.NewClusterNodes()
 		if config.ComputeMachineType != "" {
@@ -324,8 +350,8 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		}
 		clusterNodesBuilder = buildCompute(config, clusterNodesBuilder)
 
-		if len(config.BYOVPC.AvailabilityZones) > 0 {
-			availabilityZones := strings.Join(config.BYOVPC.AvailabilityZones, ",")
+		if len(config.ExistingVPC.AvailabilityZones) > 0 {
+			availabilityZones := strings.Join(config.ExistingVPC.AvailabilityZones, ",")
 			clusterNodesBuilder = clusterNodesBuilder.AvailabilityZones(strings.Split(availabilityZones, ",")...)
 		}
 		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
@@ -387,6 +413,21 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 
 	if config.ChannelGroup != "" {
 		clusterBuilder = clusterBuilder.Version(cmv1.NewVersion().ChannelGroup(config.ChannelGroup))
+	}
+
+	if config.ClusterWideProxy.HTTPProxy != nil || config.ClusterWideProxy.HTTPSProxy != nil {
+		clusterProxyBuilder := cmv1.NewProxy()
+		if config.ClusterWideProxy.HTTPProxy != nil {
+			clusterProxyBuilder = clusterProxyBuilder.HTTPProxy(*config.ClusterWideProxy.HTTPProxy)
+		}
+		if config.ClusterWideProxy.HTTPSProxy != nil {
+			clusterProxyBuilder = clusterProxyBuilder.HTTPSProxy(*config.ClusterWideProxy.HTTPSProxy)
+		}
+		clusterBuilder = clusterBuilder.Proxy(clusterProxyBuilder)
+	}
+
+	if config.ClusterWideProxy.AdditionalTrustBundle != nil {
+		clusterBuilder = clusterBuilder.AdditionalTrustBundle(*config.ClusterWideProxy.AdditionalTrustBundle)
 	}
 
 	clusterSpec, err := clusterBuilder.Build()

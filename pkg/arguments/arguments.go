@@ -157,14 +157,14 @@ func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
 	return nil
 }
 
-func AddBYOVPCFlags(fs *pflag.FlagSet, value *cluster.BYOVPC) {
+func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 	fs.BoolVar(
 		&value.Enabled,
-		"byo-vpc",
+		"use-existing-vpc",
 		false,
 		"Bring your own Virtual Private Network settings.",
 	)
-	SetQuestion(fs, "byo-vpc", "Install into an existing VPC:")
+	SetQuestion(fs, "use-existing-vpc", "Install into an existing VPC:")
 
 	fs.StringVar(
 		&value.SubnetIDs,
@@ -180,6 +180,52 @@ func AddBYOVPCFlags(fs *pflag.FlagSet, value *cluster.BYOVPC) {
 		nil,
 		"AWS availability zones",
 	)
+}
+
+func AddClusterWideProxyFlags(fs *pflag.FlagSet, value *cluster.ClusterWideProxy) {
+	fs.BoolVar(
+		&value.Enabled,
+		"cluster-wide-proxy",
+		false,
+		"The cluster-wide proxy definition for your cluster.",
+	)
+	SetQuestion(fs, "cluster-wide-proxy", "Use cluster-wide proxy:")
+
+	value.HTTPProxy = new(string)
+	fs.StringVar(
+		value.HTTPProxy,
+		"http-proxy",
+		"",
+		"A proxy URL to use for creating HTTP connections outside the cluster. The URL scheme must be http.",
+	)
+	SetQuestion(fs, "http-proxy", "http-proxy:")
+
+	value.HTTPSProxy = new(string)
+	fs.StringVar(
+		value.HTTPSProxy,
+		"https-proxy",
+		"",
+		"A proxy URL to use for creating HTTPS connections outside the cluster.",
+	)
+	SetQuestion(fs, "https-proxy", "https-proxy:")
+
+	value.AdditionalTrustBundleFile = new(string)
+	fs.StringVar(
+		value.AdditionalTrustBundleFile,
+		"additional-trust-bundle-file",
+		"",
+		"A file name contains a PEM-encoded X.509 certificate bundle that will be "+
+			"added to the nodes' trusted certificate store.")
+
+	SetQuestion(fs, "additional-trust-bundle-file", "additional-trust-bundle-file:")
+
+	value.AdditionalTrustBundle = new(string)
+	fs.StringVar(
+		value.AdditionalTrustBundle,
+		"additional-trust-bundle",
+		"",
+		"A PEM-encoded X.509 certificate bundle that will be "+
+			"added to the nodes' trusted certificate store.")
 }
 
 // AddAutoscalingFlags adds the --enable-autoscaling --min-replicas and --max-replicas flags

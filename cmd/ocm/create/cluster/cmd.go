@@ -31,6 +31,7 @@ import (
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/provider"
+	"github.com/openshift-online/ocm-cli/pkg/utils"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/interactive"
@@ -56,6 +57,8 @@ var args struct {
 	private               bool
 	multiAZ               bool
 	ccs                   c.CCS
+	existingVPC           c.ExistingVPC
+	clusterWideProxy      c.ClusterWideProxy
 	gcpServiceAccountFile arguments.FilePath
 	etcdEncryption        bool
 
@@ -63,7 +66,6 @@ var args struct {
 	computeMachineType string
 	computeNodes       int
 	autoscaling        c.Autoscaling
-	byovpc             c.BYOVPC
 
 	// Networking options
 	hostPrefix  int
@@ -109,9 +111,10 @@ func init() {
 
 	arguments.AddProviderFlag(fs, &args.provider)
 	Cmd.RegisterFlagCompletionFunc("provider", arguments.MakeCompleteFunc(osdProviderOptions))
-	arguments.AddCCSFlags(fs, &args.ccs)
 
-	arguments.AddBYOVPCFlags(fs, &args.byovpc)
+	arguments.AddCCSFlags(fs, &args.ccs)
+	arguments.AddExistingVPCFlags(fs, &args.existingVPC)
+	arguments.AddClusterWideProxyFlags(fs, &args.clusterWideProxy)
 
 	fs.Var(
 		&args.gcpServiceAccountFile,
@@ -425,11 +428,6 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	err = promptBYOVPC(fs, connection, cmd)
-	if err != nil {
-		return err
-	}
-
 	err = arguments.CheckAutoscalingFlags(args.autoscaling, args.computeNodes)
 	if err != nil {
 		return err
@@ -444,6 +442,21 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if wasClusterWideProxyReceived() {
+		args.existingVPC.Enabled = true
+		args.clusterWideProxy.Enabled = true
+	}
+
+	err = promptExistingVPC(fs, connection, cmd)
+	if err != nil {
+		return err
+	}
+
+	err = promptClusterWideProxy(fs, connection, cmd)
+	if err != nil {
+		return err
 	}
 
 	err = promptNetwork(fs)
@@ -474,7 +487,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		Region:             args.region,
 		Provider:           args.provider,
 		CCS:                args.ccs,
-		BYOVPC:             args.byovpc,
+		ExistingVPC:        args.existingVPC,
+		ClusterWideProxy:   args.clusterWideProxy,
 		Flavour:            args.flavour,
 		MultiAZ:            args.multiAZ,
 		Version:            clusterVersion,
@@ -511,8 +525,19 @@ func run(cmd *cobra.Command, argv []string) error {
 	return nil
 }
 
-func shouldPromptForBYOVPC(areSubnetsProvided bool) bool {
-	return !args.byovpc.Enabled && args.ccs.Enabled && !areSubnetsProvided && args.interactive
+func shouldPromptForExistingVPC(areSubnetsProvided bool) bool {
+	return !args.existingVPC.Enabled && args.ccs.Enabled && !areSubnetsProvided && args.interactive
+}
+
+func wasClusterWideProxyReceived() bool {
+	return (args.clusterWideProxy.HTTPProxy != nil && *args.clusterWideProxy.HTTPProxy != "") ||
+		(args.clusterWideProxy.HTTPSProxy != nil && *args.clusterWideProxy.HTTPSProxy != "") ||
+		(args.clusterWideProxy.AdditionalTrustBundle != nil && *args.clusterWideProxy.AdditionalTrustBundle != "")
+}
+
+func isProxyEmpty() bool {
+	return *args.clusterWideProxy.HTTPProxy == "" && *args.clusterWideProxy.HTTPSProxy == "" &&
+		*args.clusterWideProxy.AdditionalTrustBundleFile == ""
 }
 
 // promptName checks and/or reads the cluster name
@@ -533,19 +558,115 @@ func promptName(argv []string) error {
 	return fmt.Errorf("A cluster name must be specified")
 }
 
-func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
+func shouldPromptForClusterWideProxy(proxy c.ClusterWideProxy, ccs c.CCS, interactive bool) bool {
+	return !proxy.Enabled && ccs.Enabled && interactive &&
+		isProxyEmpty() && args.existingVPC.Enabled
+}
+
+func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
+	if shouldPromptForClusterWideProxy(args.clusterWideProxy, args.ccs, args.interactive) {
+		err := arguments.PromptBool(fs, "cluster-wide-proxy")
+		if err != nil {
+			return err
+		}
+	}
+
+	//http-proxy
+	if args.clusterWideProxy.Enabled && args.interactive {
+		err := arguments.PromptString(fs, "http-proxy")
+		if err != nil {
+			return err
+		}
+	}
+	if args.clusterWideProxy.HTTPProxy != nil {
+		if len(*args.clusterWideProxy.HTTPProxy) == 0 {
+			args.clusterWideProxy.HTTPProxy = nil
+		} else {
+			err := utils.ValidateHTTPProxy(*args.clusterWideProxy.HTTPProxy)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	//https-proxy
+	if args.clusterWideProxy.Enabled && args.interactive {
+		err := arguments.PromptString(fs, "https-proxy")
+		if err != nil {
+			return err
+		}
+	}
+	if args.clusterWideProxy.HTTPSProxy != nil {
+		if len(*args.clusterWideProxy.HTTPSProxy) == 0 {
+			args.clusterWideProxy.HTTPSProxy = nil
+		} else {
+			err := utils.IsURL(*args.clusterWideProxy.HTTPSProxy)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	//additional-trust-bundle
+	if args.clusterWideProxy.Enabled && args.interactive {
+		err := arguments.PromptString(fs, "additional-trust-bundle-file")
+		if err != nil {
+			return err
+		}
+	}
+	if args.clusterWideProxy.AdditionalTrustBundleFile != nil {
+		if len(*args.clusterWideProxy.AdditionalTrustBundleFile) == 0 {
+			args.clusterWideProxy.AdditionalTrustBundleFile = nil
+		} else {
+			err := utils.ValidateAdditionalTrustBundle(*args.clusterWideProxy.AdditionalTrustBundleFile)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	// Get certificate contents
+	if args.clusterWideProxy.AdditionalTrustBundleFile != nil &&
+		*args.clusterWideProxy.AdditionalTrustBundleFile != "" {
+		cert, err := ioutil.ReadFile(*args.clusterWideProxy.AdditionalTrustBundleFile)
+		if err != nil {
+			return err
+		}
+		fs.Set("additional-trust-bundle", string(cert))
+	}
+	if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
+		args.clusterWideProxy.AdditionalTrustBundle = nil
+	}
+
+	if args.existingVPC.Enabled && args.clusterWideProxy.Enabled && !isAtLeastOneProxyValueSet() {
+		return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle")
+	}
+
+	return nil
+}
+
+func isAtLeastOneProxyValueSet() bool {
+	return (args.clusterWideProxy.HTTPProxy != nil && *args.clusterWideProxy.HTTPProxy != "") ||
+		(args.clusterWideProxy.HTTPSProxy != nil && *args.clusterWideProxy.HTTPSProxy != "") ||
+		(args.clusterWideProxy.AdditionalTrustBundleFile != nil && *args.clusterWideProxy.AdditionalTrustBundleFile != "")
+}
+
+func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
 	//subnets provided in the command
-	providedSubnetIDs := strings.Split(args.byovpc.SubnetIDs, ",")
-	areSubnetsProvided := len(args.byovpc.SubnetIDs) > 0
-	if shouldPromptForBYOVPC(areSubnetsProvided) {
-		err := arguments.PromptBool(fs, "byo-vpc")
+	providedSubnetIDs := strings.Split(args.existingVPC.SubnetIDs, ",")
+	areSubnetsProvided := len(args.existingVPC.SubnetIDs) > 0
+	if shouldPromptForExistingVPC(areSubnetsProvided) {
+		err := arguments.PromptBool(fs, "use-existing-vpc")
 		if err != nil {
 			return err
 		}
 	}
 
 	var availabilityZones []string
-	if args.byovpc.Enabled || areSubnetsProvided {
+	if args.existingVPC.Enabled || areSubnetsProvided {
 		//get subnetworks from the provider
 		subnetworks, err := provider.GetSubnetworks(connection.ClustersMgmt().V1(), args.provider,
 			args.ccs, args.region)
@@ -601,7 +722,9 @@ func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Comm
 			mapAZCreated[availabilityZone] = false
 		}
 
-		if (!areSubnetsProvided || args.interactive) &&
+		flag := fs.Lookup("subnet-ids")
+
+		if (!areSubnetsProvided || args.interactive) && !flag.Changed &&
 			len(options) > 0 && (!args.multiAZ || len(mapAZCreated) >= 3) {
 			result, err = interactive.GetMultipleOptions(interactive.Input{
 				Question: "Subnet IDs",
@@ -628,7 +751,7 @@ func promptBYOVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Comm
 			}
 		}
 		if len(result) > 0 {
-			fs.Set("byo-vpc", "true")
+			fs.Set("use-existing-vpc", "true")
 			fs.Set("subnet-ids", strings.Join(result, ","))
 			flag := fs.Lookup("availability-zones")
 			if !flag.Changed && len(availabilityZones) > 0 {
