@@ -532,7 +532,7 @@ func shouldPromptForExistingVPC(areSubnetsProvided bool) bool {
 func wasClusterWideProxyReceived() bool {
 	return (args.clusterWideProxy.HTTPProxy != nil && *args.clusterWideProxy.HTTPProxy != "") ||
 		(args.clusterWideProxy.HTTPSProxy != nil && *args.clusterWideProxy.HTTPSProxy != "") ||
-		(args.clusterWideProxy.AdditionalTrustBundle != nil && *args.clusterWideProxy.AdditionalTrustBundle != "")
+		(args.clusterWideProxy.AdditionalTrustBundleFile != nil && *args.clusterWideProxy.AdditionalTrustBundleFile != "")
 }
 
 func isProxyEmpty() bool {
@@ -635,7 +635,8 @@ func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *
 		if err != nil {
 			return err
 		}
-		fs.Set("additional-trust-bundle", string(cert))
+		args.clusterWideProxy.AdditionalTrustBundle = new(string)
+		*args.clusterWideProxy.AdditionalTrustBundle = string(cert)
 	}
 	if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
 		args.clusterWideProxy.AdditionalTrustBundle = nil
