@@ -218,14 +218,6 @@ func AddClusterWideProxyFlags(fs *pflag.FlagSet, value *cluster.ClusterWideProxy
 			"added to the nodes' trusted certificate store.")
 
 	SetQuestion(fs, "additional-trust-bundle-file", "additional-trust-bundle-file:")
-
-	value.AdditionalTrustBundle = new(string)
-	fs.StringVar(
-		value.AdditionalTrustBundle,
-		"additional-trust-bundle",
-		"",
-		"A PEM-encoded X.509 certificate bundle that will be "+
-			"added to the nodes' trusted certificate store.")
 }
 
 // AddAutoscalingFlags adds the --enable-autoscaling --min-replicas and --max-replicas flags
