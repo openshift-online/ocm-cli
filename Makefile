@@ -39,7 +39,7 @@ install:
 
 .PHONY: test tests
 test tests: cmds
-	ginkgo -r cmd pkg tests
+	ginkgo run -r
 
 .PHONY: fmt
 fmt:
