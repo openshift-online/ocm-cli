@@ -25,7 +25,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/openshift-online/ocm-cli/pkg/data"
+	"github.com/openshift-online/ocm-sdk-go/data"
 	"golang.org/x/term"
 )
 
