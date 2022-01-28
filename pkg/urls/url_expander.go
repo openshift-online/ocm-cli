@@ -40,22 +40,23 @@ var listResourceURLs = map[string]string{
 
 // Resources that apply to a specific item and require an appended argument
 var individualResourceURLs = map[string]string{
-	"account":      "/api/accounts_mgmt/v1/accounts/",
-	"acct":         "/api/accounts_mgmt/v1/accounts/",
-	"subscription": "/api/accounts_mgmt/v1/subscriptions/",
-	"sub":          "/api/accounts_mgmt/v1/subscriptions/",
-	"organization": "/api/accounts_mgmt/v1/organizations/",
-	"org":          "/api/accounts_mgmt/v1/organizations/",
-	"role_binding": "/api/accounts_mgmt/v1/role_bindings/",
-	"role":         "/api/accounts_mgmt/v1/roles/",
-	"sku":          "/api/accounts_mgmt/v1/skus/",
-	"sku_rule":     "/api/accounts_mgmt/v1/sku_rules",
-	"cluster":      "/api/clusters_mgmt/v1/clusters/",
-	"addon":        "/api/clusters_mgmt/v1/addons/",
-	"version":      "/api/clusters_mgmt/v1/versions/",
-	"idp":          "idp",
-	"ingress":      "ingress",
-	"user":         "user",
+	"account":      "/api/accounts_mgmt/v1/accounts/%s",
+	"acct":         "/api/accounts_mgmt/v1/accounts/%s",
+	"subscription": "/api/accounts_mgmt/v1/subscriptions/%s",
+	"sub":          "/api/accounts_mgmt/v1/subscriptions/%s",
+	"organization": "/api/accounts_mgmt/v1/organizations/%s",
+	"org":          "/api/accounts_mgmt/v1/organizations/%s",
+	"quota_cost":   "/api/accounts_mgmt/v1/organizations/%s/quota_cost",
+	"role_binding": "/api/accounts_mgmt/v1/role_bindings/%s",
+	"role":         "/api/accounts_mgmt/v1/roles/%s",
+	"sku":          "/api/accounts_mgmt/v1/skus/%s",
+	"sku_rule":     "/api/accounts_mgmt/v1/sku_rules/%s",
+	"cluster":      "/api/clusters_mgmt/v1/clusters/%s",
+	"addon":        "/api/clusters_mgmt/v1/addons/%s",
+	"version":      "/api/clusters_mgmt/v1/versions/%s",
+	"idp":          "idp/%s",
+	"ingress":      "ingress/%s",
+	"user":         "user/%s",
 }
 
 // Expand returns full URI to UHC resources based on an alias. An alias
@@ -102,5 +103,5 @@ func expandResourceWithID(path string, argv []string) (string, error) {
 	if len(argv) != 2 {
 		return "", fmt.Errorf("Resource requires an ID, but got none")
 	}
-	return path + argv[1], nil
+	return fmt.Sprintf(path, argv[1]), nil
 }

@@ -96,14 +96,14 @@ var _ = Describe("Expand", func() {
 			"Valid resource parameters - acct",
 			urlExpanderTest{
 				params:   []string{"acct", "foo"},
-				contains: "accounts_mgmt/v1/accounts",
+				contains: "accounts_mgmt/v1/accounts/foo",
 			},
 		),
 		Entry(
 			"Valid resource parameters - account",
 			urlExpanderTest{
 				params:   []string{"account", "foo"},
-				contains: "accounts_mgmt/v1/accounts",
+				contains: "accounts_mgmt/v1/accounts/foo",
 			},
 		),
 		Entry(
@@ -143,14 +143,14 @@ var _ = Describe("Expand", func() {
 			"Valid resource parameters - sub",
 			urlExpanderTest{
 				params:   []string{"sub", "foo"},
-				contains: "accounts_mgmt/v1/subscriptions",
+				contains: "accounts_mgmt/v1/subscriptions/foo",
 			},
 		),
 		Entry(
 			"Valid resource parameters - subscription",
 			urlExpanderTest{
 				params:   []string{"subscription", "foo"},
-				contains: "accounts_mgmt/v1/subscriptions",
+				contains: "accounts_mgmt/v1/subscriptions/foo",
 			},
 		),
 		Entry(
@@ -197,7 +197,7 @@ var _ = Describe("Expand", func() {
 			"Valid resource parameters - organization",
 			urlExpanderTest{
 				params:   []string{"organization", "foo"},
-				contains: "accounts_mgmt/v1/organizations",
+				contains: "accounts_mgmt/v1/organizations/foo",
 			},
 		),
 		Entry(
@@ -242,7 +242,7 @@ var _ = Describe("Expand", func() {
 			"Valid resource parameters - cluster",
 			urlExpanderTest{
 				params:   []string{"cluster", "foo"},
-				contains: "clusters_mgmt/v1/clusters",
+				contains: "clusters_mgmt/v1/clusters/foo",
 			},
 		),
 		Entry(
@@ -268,7 +268,7 @@ var _ = Describe("Expand", func() {
 			"Valid resource parameters - role_binding",
 			urlExpanderTest{
 				params:   []string{"role_binding", "foo"},
-				contains: "accounts_mgmt/v1/role_bindings",
+				contains: "accounts_mgmt/v1/role_bindings/foo",
 			},
 		),
 		Entry(
@@ -313,7 +313,7 @@ var _ = Describe("Expand", func() {
 			"Valid resource parameters - sku",
 			urlExpanderTest{
 				params:   []string{"sku", "foo"},
-				contains: "accounts_mgmt/v1/skus",
+				contains: "accounts_mgmt/v1/skus/foo",
 			},
 		),
 		Entry(
@@ -339,7 +339,7 @@ var _ = Describe("Expand", func() {
 			"Valid resource parameters - role",
 			urlExpanderTest{
 				params:   []string{"role", "foo"},
-				contains: "accounts_mgmt/v1/roles",
+				contains: "accounts_mgmt/v1/roles/foo",
 			},
 		),
 		Entry(
@@ -374,6 +374,7 @@ var _ = Describe("Resources", func() {
 				contains: []string{"organizations", "orgs", "organization", "org"},
 			},
 		),
+
 		Entry(
 			"Valid resource - clusters",
 			resourceTest{
@@ -402,6 +403,25 @@ var _ = Describe("Resources", func() {
 			"Valid resource - skus",
 			resourceTest{
 				contains: []string{"skus", "sku"},
+			},
+		),
+	)
+
+	DescribeTable(
+		"QuotaCost",
+		urlExpanderTestVerify,
+		Entry(
+			"Valid list parameters - quota_cost",
+			urlExpanderTest{
+				params:   []string{"quota_cost", "foo"},
+				contains: "accounts_mgmt/v1/organizations/foo/quota_cost",
+			},
+		),
+		Entry(
+			"Invalid resource parameters - quota_cost, missing OrgID",
+			urlExpanderTest{
+				params:      []string{"quota_cost"},
+				expectError: true,
 			},
 		),
 	)
