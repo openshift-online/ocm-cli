@@ -603,7 +603,7 @@ func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *
 		} else {
 			err := utils.IsURL(*args.clusterWideProxy.HTTPSProxy)
 			if err != nil {
-				return err
+				return fmt.Errorf("Invalid https-proxy value '%s'", *args.clusterWideProxy.HTTPSProxy)
 			}
 		}
 
