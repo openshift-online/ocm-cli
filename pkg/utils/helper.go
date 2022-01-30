@@ -50,11 +50,11 @@ func ValidateAdditionalTrustBundle(val interface{}) error {
 		}
 		additionalTrustBundle := string(cert)
 		if additionalTrustBundle == "" {
-			return fmt.Errorf("%s", "Trust bundle file is empty")
+			return fmt.Errorf("%s", "Additional trust bundle file is empty")
 		}
 		additionalTrustBundleBytes := []byte(additionalTrustBundle)
 		if !x509.NewCertPool().AppendCertsFromPEM(additionalTrustBundleBytes) {
-			return fmt.Errorf("%s", "Failed to parse trust bundle")
+			return fmt.Errorf("%s", "Failed to parse additional trust bundle")
 		}
 		return nil
 	}
