@@ -3,6 +3,17 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.61 Feb 1 2022
+
+- Add STS to `describe cluster` output.
+- Add BYOPC flag to `describe cluster` command.
+- Support BYO-VPC cluster creation flags.
+- Support cluster-wide proxy during cluster creation and update.
+- Don't allow additional trust bundle as parameter.
+- Add more URLs to expander.
+- Readable error message when creating a CCS cluster with invalid
+  `--htts-proxy` value.
+
 ## 0.1.60 Dec 3 2021
 
 This version doesn't contain changes to the functionality, only to the
