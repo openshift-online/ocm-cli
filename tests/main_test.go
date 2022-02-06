@@ -171,7 +171,7 @@ func (r *CommandRunner) Run(ctx context.Context) *CommandResult {
 	errBuf := &bytes.Buffer{}
 
 	// Create the command:
-	cmd := exec.Command(binary, r.args...)
+	cmd := exec.Command(binary, r.args...) //nolint:gosec
 	cmd.Env = envList
 	cmd.Stdin = inBuf
 	cmd.Stdout = outBuf

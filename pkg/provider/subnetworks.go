@@ -40,11 +40,6 @@ func GetSubnetworks(client *cmv1.Client, provider string, ccs cluster.CCS,
 			return nil, err
 		}
 
-		var vpcsSlice []cmv1.CloudVPC
-		for _, vpc := range cloudVPCs {
-			vpcsSlice = append(vpcsSlice, *vpc)
-		}
-
 		for _, vpc := range cloudVPCs {
 			subnetworkList = append(subnetworkList, vpc.AWSSubnets()...)
 		}

@@ -21,3 +21,6 @@ linters:
     - staticcheck
     - unconvert
     - varcheck
+linters-settings:
+  goconst:
+    min-len: 4 # ignore "gcp" and "aws"
