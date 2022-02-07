@@ -261,6 +261,12 @@ func getRegionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 	}
 	options := []arguments.Option{}
 	for _, region := range regions {
+		if !args.ccs.Enabled && region.CCSOnly() {
+			continue
+		}
+		if args.multiAZ && !region.SupportsMultiAZ() {
+			continue
+		}
 		// `enabled` flag only affects Red Hat infra. All regions enabled on CCS.
 		if args.ccs.Enabled || region.Enabled() {
 			options = append(options, arguments.Option{
