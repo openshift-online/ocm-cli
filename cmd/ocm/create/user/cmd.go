@@ -131,8 +131,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	if failedToAddUser {
-		return fmt.Errorf("Failed to create the following users in group '%s': %s", args.group, strings.Join(usersFailed, ", "))
-	} else {
-		return nil
+		return fmt.Errorf("Failed to create the following users in group '%s': %s",
+			args.group, strings.Join(usersFailed, ", "))
 	}
+	return nil
 }

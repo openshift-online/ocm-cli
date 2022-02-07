@@ -2,20 +2,27 @@ run:
   deadline: 15m
   issues-exit-code: 1
   modules-download-mode: readonly
+issues:
+  max-same-issues: 0
+
 linters:
   disable-all: true
   enable:
     - deadcode
     - gas
     - goconst
-    - gocyclo
     - gofmt
-    - golint
+    - govet
     - ineffassign
-    - interfacer
     - lll
     - megacheck
     - misspell
     - structcheck
+    - staticcheck
     - unconvert
     - varcheck
+linters-settings:
+  staticcheck:
+    go: "1.17"
+  goconst:
+    min-len: 4 # ignore "gcp" and "aws"

@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.2.15
-	github.com/aws/aws-sdk-go v1.42.27
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/golang/glog v1.0.0
 	github.com/hashicorp/go-version v1.4.0

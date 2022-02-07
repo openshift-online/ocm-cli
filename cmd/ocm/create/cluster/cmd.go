@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -690,7 +689,7 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra
 			for _, providedSubnetID := range providedSubnetIDs {
 				verifiedSubnet := false
 				for _, subnetID := range subnetIDs {
-					if awssdk.StringValue(&subnetID) == providedSubnetID {
+					if subnetID == providedSubnetID {
 						verifiedSubnet = true
 					}
 				}
