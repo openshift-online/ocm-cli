@@ -22,5 +22,7 @@ linters:
     - unconvert
     - varcheck
 linters-settings:
+  staticcheck:
+    go: "1.17"
   goconst:
     min-len: 4 # ignore "gcp" and "aws"
