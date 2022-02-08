@@ -451,10 +451,9 @@ func preRun(cmd *cobra.Command, argv []string) error {
 
 	if wasClusterWideProxyReceived() {
 		args.existingVPC.Enabled = true
-		args.clusterWideProxy.Enabled = true
 	}
 
-	err = promptExistingVPC(fs, connection, cmd)
+	err = promptExistingVPC(fs, connection)
 	if err != nil {
 		return err
 	}
@@ -530,19 +529,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	return nil
 }
 
-func shouldPromptForExistingVPC(areSubnetsProvided bool) bool {
-	return !args.existingVPC.Enabled && args.ccs.Enabled && !areSubnetsProvided && args.interactive
-}
-
 func wasClusterWideProxyReceived() bool {
 	return (args.clusterWideProxy.HTTPProxy != nil && *args.clusterWideProxy.HTTPProxy != "") ||
 		(args.clusterWideProxy.HTTPSProxy != nil && *args.clusterWideProxy.HTTPSProxy != "") ||
 		(args.clusterWideProxy.AdditionalTrustBundleFile != nil && *args.clusterWideProxy.AdditionalTrustBundleFile != "")
-}
-
-func isProxyEmpty() bool {
-	return *args.clusterWideProxy.HTTPProxy == "" && *args.clusterWideProxy.HTTPSProxy == "" &&
-		*args.clusterWideProxy.AdditionalTrustBundleFile == ""
 }
 
 // promptName checks and/or reads the cluster name
@@ -563,94 +553,111 @@ func promptName(argv []string) error {
 	return fmt.Errorf("A cluster name must be specified")
 }
 
-func shouldPromptForClusterWideProxy(proxy c.ClusterWideProxy, ccs c.CCS, interactive bool) bool {
-	return !proxy.Enabled && ccs.Enabled && interactive &&
-		isProxyEmpty() && args.existingVPC.Enabled
-}
-
 func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
-	if shouldPromptForClusterWideProxy(args.clusterWideProxy, args.ccs, args.interactive) {
-		err := arguments.PromptBool(fs, "cluster-wide-proxy")
-		if err != nil {
-			return err
-		}
+	var err error
+	err = arguments.PromptBool(fs, "cluster-wide-proxy")
+	if err != nil {
+		return err
 	}
 
-	//http-proxy
-	if args.clusterWideProxy.Enabled && args.interactive {
-		err := arguments.PromptString(fs, "http-proxy")
-		if err != nil {
-			return err
+	if args.clusterWideProxy.Enabled {
+		if !args.existingVPC.Enabled {
+			return fmt.Errorf("--cluster-wide-proxy flag is meaningless without --use-exisiting-vpc")
 		}
-	}
-	if args.clusterWideProxy.HTTPProxy != nil {
-		if len(*args.clusterWideProxy.HTTPProxy) == 0 {
-			args.clusterWideProxy.HTTPProxy = nil
-		} else {
-			err := utils.ValidateHTTPProxy(*args.clusterWideProxy.HTTPProxy)
+
+		flag := fs.Lookup("http-proxy")
+		if !flag.Changed {
+			//http-proxy
+			if args.clusterWideProxy.HTTPProxy == nil {
+				args.clusterWideProxy.HTTPProxy = new(string)
+			}
+			*args.clusterWideProxy.HTTPProxy, err = interactive.GetString(interactive.Input{
+				Question: "http-proxy",
+				Required: false,
+				Default:  *args.clusterWideProxy.HTTPProxy,
+			})
 			if err != nil {
 				return err
 			}
-		}
-
-	}
-
-	//https-proxy
-	if args.clusterWideProxy.Enabled && args.interactive {
-		err := arguments.PromptString(fs, "https-proxy")
-		if err != nil {
-			return err
-		}
-	}
-	if args.clusterWideProxy.HTTPSProxy != nil {
-		if len(*args.clusterWideProxy.HTTPSProxy) == 0 {
-			args.clusterWideProxy.HTTPSProxy = nil
-		} else {
-			err := utils.IsURL(*args.clusterWideProxy.HTTPSProxy)
-			if err != nil {
-				return fmt.Errorf("Invalid https-proxy value '%s'", *args.clusterWideProxy.HTTPSProxy)
+			if len(*args.clusterWideProxy.HTTPProxy) == 0 {
+				args.clusterWideProxy.HTTPProxy = nil
+			} else {
+				err := utils.ValidateHTTPProxy(*args.clusterWideProxy.HTTPProxy)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
-	}
-
-	//additional-trust-bundle
-	if args.clusterWideProxy.Enabled && args.interactive {
-		err := arguments.PromptString(fs, "additional-trust-bundle-file")
-		if err != nil {
-			return err
-		}
-	}
-	if args.clusterWideProxy.AdditionalTrustBundleFile != nil {
-		if len(*args.clusterWideProxy.AdditionalTrustBundleFile) == 0 {
-			args.clusterWideProxy.AdditionalTrustBundleFile = nil
-		} else {
-			err := utils.ValidateAdditionalTrustBundle(*args.clusterWideProxy.AdditionalTrustBundleFile)
+		flag = fs.Lookup("https-proxy")
+		if !flag.Changed {
+			//https-proxy
+			if args.clusterWideProxy.HTTPSProxy == nil {
+				args.clusterWideProxy.HTTPSProxy = new(string)
+			}
+			*args.clusterWideProxy.HTTPSProxy, err = interactive.GetString(interactive.Input{
+				Question: "https-proxy",
+				Required: false,
+				Default:  *args.clusterWideProxy.HTTPSProxy,
+			})
 			if err != nil {
 				return err
 			}
+			if len(*args.clusterWideProxy.HTTPSProxy) == 0 {
+				args.clusterWideProxy.HTTPSProxy = nil
+			} else {
+				err := utils.IsURL(*args.clusterWideProxy.HTTPSProxy)
+				if err != nil {
+					return fmt.Errorf("Invalid https-proxy value '%s'", *args.clusterWideProxy.HTTPSProxy)
+				}
+			}
 		}
 
-	}
-
-	// Get certificate contents
-	if args.clusterWideProxy.AdditionalTrustBundleFile != nil &&
-		*args.clusterWideProxy.AdditionalTrustBundleFile != "" {
-		cert, err := ioutil.ReadFile(*args.clusterWideProxy.AdditionalTrustBundleFile)
-		if err != nil {
-			return err
+		//additional-trust-bundle-file
+		flag = fs.Lookup("additional-trust-bundle-file")
+		if !flag.Changed {
+			if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
+				args.clusterWideProxy.AdditionalTrustBundleFile = new(string)
+			}
+			*args.clusterWideProxy.AdditionalTrustBundleFile, err = interactive.GetString(interactive.Input{
+				Question: "additional-trust-bundle",
+				Required: false,
+				Default:  *args.clusterWideProxy.AdditionalTrustBundleFile,
+			})
+			if err != nil {
+				return err
+			}
+			if len(*args.clusterWideProxy.AdditionalTrustBundleFile) == 0 {
+				args.clusterWideProxy.AdditionalTrustBundleFile = nil
+			} else {
+				err := utils.ValidateAdditionalTrustBundle(*args.clusterWideProxy.AdditionalTrustBundleFile)
+				if err != nil {
+					return err
+				}
+			}
 		}
-		args.clusterWideProxy.AdditionalTrustBundle = new(string)
-		*args.clusterWideProxy.AdditionalTrustBundle = string(cert)
-	}
-	if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
-		args.clusterWideProxy.AdditionalTrustBundle = nil
-	}
+		// Get certificate contents
+		if args.clusterWideProxy.AdditionalTrustBundleFile != nil &&
+			*args.clusterWideProxy.AdditionalTrustBundleFile != "" {
+			cert, err := ioutil.ReadFile(*args.clusterWideProxy.AdditionalTrustBundleFile)
+			if err != nil {
+				return err
+			}
+			args.clusterWideProxy.AdditionalTrustBundle = new(string)
+			*args.clusterWideProxy.AdditionalTrustBundle = string(cert)
+		}
+		if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
+			args.clusterWideProxy.AdditionalTrustBundle = nil
+		}
 
-	if args.existingVPC.Enabled && args.clusterWideProxy.Enabled && !isAtLeastOneProxyValueSet() {
-		return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle")
+		if args.existingVPC.Enabled && args.clusterWideProxy.Enabled && !isAtLeastOneProxyValueSet() {
+			return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle-file")
+		}
 	}
-
+	err = arguments.CheckIgnoredClusterWideProxyFlags(args.clusterWideProxy)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -660,111 +667,115 @@ func isAtLeastOneProxyValueSet() bool {
 		(args.clusterWideProxy.AdditionalTrustBundleFile != nil && *args.clusterWideProxy.AdditionalTrustBundleFile != "")
 }
 
-func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
-	//subnets provided in the command
-	providedSubnetIDs := strings.Split(args.existingVPC.SubnetIDs, ",")
-	areSubnetsProvided := len(args.existingVPC.SubnetIDs) > 0
-	if shouldPromptForExistingVPC(areSubnetsProvided) {
-		err := arguments.PromptBool(fs, "use-existing-vpc")
-		if err != nil {
-			return err
-		}
+func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	err := arguments.PromptBool(fs, "use-existing-vpc")
+	if err != nil {
+		return err
 	}
+	if args.existingVPC.Enabled {
+		//subnets provided in the command
+		providedSubnetIDs := strings.Split(args.existingVPC.SubnetIDs, ",")
+		areSubnetsProvided := len(args.existingVPC.SubnetIDs) > 0
 
-	var availabilityZones []string
-	if args.existingVPC.Enabled || areSubnetsProvided {
-		//get subnetworks from the provider
-		subnetworks, err := provider.GetSubnetworks(connection.ClustersMgmt().V1(), args.provider,
-			args.ccs, args.region)
-		if err != nil {
-			return err
-		}
-		var subnetIDs []string
-		for _, subnetwork := range subnetworks {
-			subnetIDs = append(subnetIDs, subnetwork.SubnetID())
-		}
-
-		// Verify subnets provided in the command exist.
-		if areSubnetsProvided {
-			for _, providedSubnetID := range providedSubnetIDs {
-				verifiedSubnet := false
-				for _, subnetID := range subnetIDs {
-					if subnetID == providedSubnetID {
-						verifiedSubnet = true
-					}
-				}
-				if !verifiedSubnet {
-					return fmt.Errorf("Could not find the following subnet provided: %s", providedSubnetID)
-				}
-			}
-		}
-
-		mapSubnetToAZ := make(map[string]string)
-		mapAZCreated := make(map[string]bool)
-		//a map for all provider subnets to be shown in the user prompt
-		options := make([]string, len(subnetIDs))
-		//a map for all user's provided subnets to be shown in the user prompt
-		var defaultOptions []string
-		//slice of subnets to send out in the request
-		var result []string
-		providedSubnetIDMap := make(map[string]bool)
-		for _, sub := range providedSubnetIDs {
-			providedSubnetIDMap[sub] = true
-		}
-		for i, subnet := range subnetworks {
-			subnetID := subnet.SubnetID()
-			availabilityZone := subnet.AvailabilityZone()
-			// Create the options to prompt the user.
-			options[i] = setSubnetOption(subnetID, availabilityZone)
-			if areSubnetsProvided {
-				if providedSubnetIDMap[subnetID] {
-					//subnetIDs that were provided by the user, so they could be checked while
-					//showing up in the prompt. i.s '[X] subnet-xxxxx (us-east-1)'
-					defaultOptions = append(defaultOptions, setSubnetOption(subnetID, availabilityZone))
-					result = append(result, subnetID)
-				}
-			}
-			mapSubnetToAZ[subnetID] = availabilityZone
-			mapAZCreated[availabilityZone] = false
-		}
-
-		flag := fs.Lookup("subnet-ids")
-
-		if (!areSubnetsProvided || args.interactive) && !flag.Changed &&
-			len(options) > 0 && (!args.multiAZ || len(mapAZCreated) >= 3) {
-			result, err = interactive.GetMultipleOptions(interactive.Input{
-				Question: "Subnet IDs",
-				Required: false,
-				Options:  options,
-				Default:  defaultOptions,
-			})
+		var availabilityZones []string
+		if args.existingVPC.Enabled || areSubnetsProvided {
+			//get subnetworks from the provider
+			subnetworks, err := provider.GetSubnetworks(connection.ClustersMgmt().V1(), args.provider,
+				args.ccs, args.region)
 			if err != nil {
 				return err
 			}
-			//remove the az as want to send only the subnet itself.
-			//i.e 'subnet-xxxxx' instead 'subnet-xxxxx (us-east-1)'
-			for i, subnet := range result {
-				result[i] = parseSubnet(subnet)
+			var subnetIDs []string
+			for _, subnetwork := range subnetworks {
+				subnetIDs = append(subnetIDs, subnetwork.SubnetID())
 			}
-		}
 
-		//create slice of availability zones to be sent int the request
-		for _, subnet := range result {
-			az := mapSubnetToAZ[subnet]
-			if !mapAZCreated[az] && az != "" {
-				availabilityZones = append(availabilityZones, az)
-				mapAZCreated[az] = true
+			// Verify subnets provided in the command exist.
+			if areSubnetsProvided {
+				for _, providedSubnetID := range providedSubnetIDs {
+					verifiedSubnet := false
+					for _, subnetID := range subnetIDs {
+						if subnetID == providedSubnetID {
+							verifiedSubnet = true
+						}
+					}
+					if !verifiedSubnet {
+						return fmt.Errorf("Could not find the following subnet provided: %s", providedSubnetID)
+					}
+				}
 			}
-		}
-		if len(result) > 0 {
-			fs.Set("use-existing-vpc", "true")
-			fs.Set("subnet-ids", strings.Join(result, ","))
-			flag := fs.Lookup("availability-zones")
-			if !flag.Changed && len(availabilityZones) > 0 {
-				fs.Set("availability-zones", strings.Join(availabilityZones, ","))
+
+			mapSubnetToAZ := make(map[string]string)
+			mapAZCreated := make(map[string]bool)
+			//a map for all provider subnets to be shown in the user prompt
+			options := make([]string, len(subnetIDs))
+			//a map for all user's provided subnets to be shown in the user prompt
+			var defaultOptions []string
+			//slice of subnets to send out in the request
+			var result []string
+			providedSubnetIDMap := make(map[string]bool)
+			for _, sub := range providedSubnetIDs {
+				providedSubnetIDMap[sub] = true
+			}
+			for i, subnet := range subnetworks {
+				subnetID := subnet.SubnetID()
+				availabilityZone := subnet.AvailabilityZone()
+				// Create the options to prompt the user.
+				options[i] = setSubnetOption(subnetID, availabilityZone)
+				if areSubnetsProvided {
+					if providedSubnetIDMap[subnetID] {
+						//subnetIDs that were provided by the user, so they could be checked while
+						//showing up in the prompt. i.s '[X] subnet-xxxxx (us-east-1)'
+						defaultOptions = append(defaultOptions, setSubnetOption(subnetID, availabilityZone))
+						result = append(result, subnetID)
+					}
+				}
+				mapSubnetToAZ[subnetID] = availabilityZone
+				mapAZCreated[availabilityZone] = false
+			}
+
+			flag := fs.Lookup("subnet-ids")
+
+			if (!areSubnetsProvided || args.interactive) && !flag.Changed &&
+				len(options) > 0 && (!args.multiAZ || len(mapAZCreated) >= 3) {
+				result, err = interactive.GetMultipleOptions(interactive.Input{
+					Question: "Subnet IDs",
+					Required: false,
+					Options:  options,
+					Default:  defaultOptions,
+				})
+				if err != nil {
+					return err
+				}
+				//remove the az as want to send only the subnet itself.
+				//i.e 'subnet-xxxxx' instead 'subnet-xxxxx (us-east-1)'
+				for i, subnet := range result {
+					result[i] = parseSubnet(subnet)
+				}
+			}
+
+			//create slice of availability zones to be sent int the request
+			for _, subnet := range result {
+				az := mapSubnetToAZ[subnet]
+				if !mapAZCreated[az] && az != "" {
+					availabilityZones = append(availabilityZones, az)
+					mapAZCreated[az] = true
+				}
+			}
+			if len(result) > 0 {
+				fs.Set("use-existing-vpc", "true")
+				fs.Set("subnet-ids", strings.Join(result, ","))
+				flag := fs.Lookup("availability-zones")
+				if !flag.Changed && len(availabilityZones) > 0 {
+					fs.Set("availability-zones", strings.Join(availabilityZones, ","))
+				}
 			}
 		}
 		return nil
+	}
+	err = arguments.CheckIgnoredExistingVPCFlags(args.existingVPC)
+	if err != nil {
+		return err
 	}
 	return nil
 }
