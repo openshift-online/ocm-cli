@@ -80,9 +80,12 @@ type CCS struct {
 }
 
 type ExistingVPC struct {
-	Enabled           bool
-	SubnetIDs         string
-	AvailabilityZones []string
+	Enabled            bool
+	SubnetIDs          string
+	AvailabilityZones  []string
+	VPCName            string
+	ControlPlaneSubnet string
+	ComputeSubnet      string
 }
 
 type ClusterWideProxy struct {
@@ -291,12 +294,12 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	if config.CCS.Enabled {
 		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
-		var subnets []string
-		if config.ExistingVPC.SubnetIDs != "" {
-			subnets = strings.Split(config.ExistingVPC.SubnetIDs, ",")
-		}
 		switch config.Provider {
 		case ProviderAWS:
+			var subnets []string
+			if config.ExistingVPC.SubnetIDs != "" {
+				subnets = strings.Split(config.ExistingVPC.SubnetIDs, ",")
+			}
 			clusterBuilder = clusterBuilder.AWS(
 				cmv1.NewAWS().
 					AccountID(config.CCS.AWS.AccountID).
@@ -319,9 +322,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 						AuthProviderX509CertURL(config.CCS.GCP.AuthProviderX509CertURL).
 						ClientX509CertURL(config.CCS.GCP.ClientX509CertURL),
 				)
+			if isGCPNetworkExists(config.ExistingVPC) {
+				clusterBuilder =
+					clusterBuilder.GCPNetwork(cmv1.NewGCPNetwork().VPCName(config.ExistingVPC.VPCName).
+						ControlPlaneSubnet(config.ExistingVPC.ControlPlaneSubnet).ComputeSubnet(config.ExistingVPC.ComputeSubnet))
+			}
 		default:
 			return nil, fmt.Errorf("Unexpected CCS provider %q", config.Provider)
 		}
+
 		//cluster-wide proxy
 		if config.ClusterWideProxy.Enabled {
 			proxyBuilder := cmv1.NewProxy()
@@ -379,6 +388,10 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		return nil, nil
 	}
 	return response.Body(), nil
+}
+
+func isGCPNetworkExists(existingVPC ExistingVPC) bool {
+	return existingVPC.VPCName != "" && existingVPC.ControlPlaneSubnet != "" && existingVPC.ComputeSubnet != ""
 }
 
 func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) error {
