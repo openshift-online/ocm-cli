@@ -449,7 +449,14 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
+	args.existingVPC.Enabled = false
+	args.clusterWideProxy.Enabled = false
 	if wasClusterWideProxyReceived() {
+		args.existingVPC.Enabled = true
+		args.clusterWideProxy.Enabled = true
+	}
+
+	if args.existingVPC.SubnetIDs != "" {
 		args.existingVPC.Enabled = true
 	}
 
@@ -555,24 +562,25 @@ func promptName(argv []string) error {
 
 func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
 	var err error
-	err = arguments.PromptBool(fs, "cluster-wide-proxy")
-	if err != nil {
-		return err
+	if args.existingVPC.Enabled && !wasClusterWideProxyReceived() && args.interactive {
+		args.clusterWideProxy.Enabled, err = interactive.GetBool(interactive.Input{
+			Question: "Use cluster-wide proxy",
+			Help: "To install cluster-wide proxy, you need to set one of the following attributes: 'http-proxy', " +
+				"'https-proxy', additional-trust-bundle",
+			Default: args.clusterWideProxy.Enabled,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
-	if args.clusterWideProxy.Enabled {
-		if !args.existingVPC.Enabled {
-			return fmt.Errorf("--cluster-wide-proxy flag is meaningless without --use-exisiting-vpc")
-		}
-
-		flag := fs.Lookup("http-proxy")
-		if !flag.Changed {
-			//http-proxy
+	if args.interactive {
+		if args.clusterWideProxy.Enabled {
 			if args.clusterWideProxy.HTTPProxy == nil {
 				args.clusterWideProxy.HTTPProxy = new(string)
 			}
 			*args.clusterWideProxy.HTTPProxy, err = interactive.GetString(interactive.Input{
-				Question: "http-proxy",
+				Question: "HTTP Proxy",
 				Required: false,
 				Default:  *args.clusterWideProxy.HTTPProxy,
 			})
@@ -586,17 +594,16 @@ func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *
 				if err != nil {
 					return err
 				}
+				args.existingVPC.Enabled = true
 			}
 		}
 
-		flag = fs.Lookup("https-proxy")
-		if !flag.Changed {
-			//https-proxy
+		if args.clusterWideProxy.Enabled {
 			if args.clusterWideProxy.HTTPSProxy == nil {
 				args.clusterWideProxy.HTTPSProxy = new(string)
 			}
 			*args.clusterWideProxy.HTTPSProxy, err = interactive.GetString(interactive.Input{
-				Question: "https-proxy",
+				Question: "HTTPS Proxy",
 				Required: false,
 				Default:  *args.clusterWideProxy.HTTPSProxy,
 			})
@@ -610,17 +617,16 @@ func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *
 				if err != nil {
 					return fmt.Errorf("Invalid https-proxy value '%s'", *args.clusterWideProxy.HTTPSProxy)
 				}
+				args.existingVPC.Enabled = true
 			}
 		}
 
-		//additional-trust-bundle-file
-		flag = fs.Lookup("additional-trust-bundle-file")
-		if !flag.Changed {
+		if args.clusterWideProxy.Enabled {
 			if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
 				args.clusterWideProxy.AdditionalTrustBundleFile = new(string)
 			}
 			*args.clusterWideProxy.AdditionalTrustBundleFile, err = interactive.GetString(interactive.Input{
-				Question: "additional-trust-bundle",
+				Question: "Additional trust bundle file path",
 				Required: false,
 				Default:  *args.clusterWideProxy.AdditionalTrustBundleFile,
 			})
@@ -634,30 +640,29 @@ func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *
 				if err != nil {
 					return err
 				}
+				args.existingVPC.Enabled = true
 			}
 		}
-		// Get certificate contents
-		if args.clusterWideProxy.AdditionalTrustBundleFile != nil &&
-			*args.clusterWideProxy.AdditionalTrustBundleFile != "" {
-			cert, err := ioutil.ReadFile(*args.clusterWideProxy.AdditionalTrustBundleFile)
-			if err != nil {
-				return err
-			}
-			args.clusterWideProxy.AdditionalTrustBundle = new(string)
-			*args.clusterWideProxy.AdditionalTrustBundle = string(cert)
+	}
+	// Get certificate contents
+	if args.clusterWideProxy.AdditionalTrustBundleFile != nil &&
+		*args.clusterWideProxy.AdditionalTrustBundleFile != "" {
+		cert, err := ioutil.ReadFile(*args.clusterWideProxy.AdditionalTrustBundleFile)
+		if err != nil {
+			return err
 		}
-		if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
-			args.clusterWideProxy.AdditionalTrustBundle = nil
-		}
+		args.clusterWideProxy.AdditionalTrustBundle = new(string)
+		*args.clusterWideProxy.AdditionalTrustBundle = string(cert)
+	}
+	if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
+		args.clusterWideProxy.AdditionalTrustBundle = nil
+	}
 
-		if args.existingVPC.Enabled && args.clusterWideProxy.Enabled && !isAtLeastOneProxyValueSet() {
-			return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle-file")
-		}
+	if args.existingVPC.Enabled && args.clusterWideProxy.Enabled && !isAtLeastOneProxyValueSet() {
+		return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy, " +
+			"additional-trust-bundle-file")
 	}
-	err = arguments.CheckIgnoredClusterWideProxyFlags(args.clusterWideProxy)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -668,11 +673,20 @@ func isAtLeastOneProxyValueSet() bool {
 }
 
 func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
-	err := arguments.PromptBool(fs, "use-existing-vpc")
-	if err != nil {
-		return err
+	var err error
+	if !args.existingVPC.Enabled && args.existingVPC.SubnetIDs == "" && args.interactive {
+		args.existingVPC.Enabled, err = interactive.GetBool(interactive.Input{
+			Question: "Install into an existing VPC",
+			Help: "To install into an existing VPC you need to ensure that your VPC is configured " +
+				"with two subnets for each availability zone that you want the cluster installed into. ",
+			Default: args.existingVPC.Enabled,
+		})
+		if err != nil {
+			return err
+		}
 	}
-	if args.existingVPC.Enabled {
+
+	if args.existingVPC.Enabled || args.existingVPC.SubnetIDs != "" {
 		//subnets provided in the command
 		providedSubnetIDs := strings.Split(args.existingVPC.SubnetIDs, ",")
 		areSubnetsProvided := len(args.existingVPC.SubnetIDs) > 0
@@ -735,8 +749,7 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			}
 
 			flag := fs.Lookup("subnet-ids")
-
-			if (!areSubnetsProvided || args.interactive) && !flag.Changed &&
+			if (!areSubnetsProvided && args.interactive) && !flag.Changed &&
 				len(options) > 0 && (!args.multiAZ || len(mapAZCreated) >= 3) {
 				result, err = interactive.GetMultipleOptions(interactive.Input{
 					Question: "Subnet IDs",
@@ -772,10 +785,6 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			}
 		}
 		return nil
-	}
-	err = arguments.CheckIgnoredExistingVPCFlags(args.existingVPC)
-	if err != nil {
-		return err
 	}
 	return nil
 }
