@@ -157,22 +157,7 @@ func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
 	return nil
 }
 
-// CheckIgnoredExistingVPCFlags errors if --subnet-ids flag is used without --use-existing-vpc.
-func CheckIgnoredExistingVPCFlags(existingVPC cluster.ExistingVPC) error {
-	if !existingVPC.Enabled && existingVPC.SubnetIDs != "" {
-		return fmt.Errorf("subnet-ids flag is meaningless without --use-existing-vpc")
-	}
-	return nil
-}
-
 func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
-	fs.BoolVar(
-		&value.Enabled,
-		"use-existing-vpc",
-		false,
-		"Bring your own Virtual Private Network settings.",
-	)
-	SetQuestion(fs, "use-existing-vpc", "Install into an existing VPC:")
 
 	fs.StringVar(
 		&value.SubnetIDs,
@@ -190,39 +175,7 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 	)
 }
 
-// CheckIgnoredClusterWideProxyFlags errors if --http-proxy, --https-proxy or additional-trust-bundle
-// attributes were used without --cluster-wide-proxy
-func CheckIgnoredClusterWideProxyFlags(proxy cluster.ClusterWideProxy) error {
-	if !proxy.Enabled {
-		bad := []string{}
-		if proxy.HTTPProxy != nil && *proxy.HTTPProxy != "" {
-			bad = append(bad, "--http-proxy")
-		}
-		if proxy.HTTPSProxy != nil && *proxy.HTTPSProxy != "" {
-			bad = append(bad, "--https-proxy")
-		}
-		if proxy.AdditionalTrustBundleFile != nil && *proxy.AdditionalTrustBundleFile != "" {
-			bad = append(bad, "--additional-trust-bundle-file")
-		}
-		if len(bad) == 1 {
-			return fmt.Errorf("%s flag is meaningless without --cluster-wide-proxy", bad[0])
-		} else if len(bad) > 1 {
-			return fmt.Errorf("%s flags are meaningless without --cluster-wide-proxy",
-				strings.Join(bad, ", "))
-		}
-	}
-	return nil
-}
-
 func AddClusterWideProxyFlags(fs *pflag.FlagSet, value *cluster.ClusterWideProxy) {
-	fs.BoolVar(
-		&value.Enabled,
-		"cluster-wide-proxy",
-		false,
-		"The cluster-wide proxy definition for your cluster.",
-	)
-	SetQuestion(fs, "cluster-wide-proxy", "Use cluster-wide proxy:")
-
 	value.HTTPProxy = new(string)
 	fs.StringVar(
 		value.HTTPProxy,

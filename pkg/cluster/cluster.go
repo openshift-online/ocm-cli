@@ -322,22 +322,21 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		default:
 			return nil, fmt.Errorf("Unexpected CCS provider %q", config.Provider)
 		}
-	}
-
-	//cluster-wide proxy
-	if config.ClusterWideProxy.HTTPProxy != nil || config.ClusterWideProxy.HTTPSProxy != nil {
-		proxyBuilder := cmv1.NewProxy()
-		if config.ClusterWideProxy.HTTPProxy != nil {
-			proxyBuilder.HTTPProxy(*config.ClusterWideProxy.HTTPProxy)
+		//cluster-wide proxy
+		if config.ClusterWideProxy.Enabled {
+			proxyBuilder := cmv1.NewProxy()
+			if config.ClusterWideProxy.HTTPProxy != nil && len(*config.ClusterWideProxy.HTTPProxy) != 0 {
+				proxyBuilder.HTTPProxy(*config.ClusterWideProxy.HTTPProxy)
+			}
+			if config.ClusterWideProxy.HTTPSProxy != nil && len(*config.ClusterWideProxy.HTTPSProxy) != 0 {
+				proxyBuilder.HTTPSProxy(*config.ClusterWideProxy.HTTPSProxy)
+			}
+			clusterBuilder = clusterBuilder.Proxy(proxyBuilder)
 		}
-		if config.ClusterWideProxy.HTTPSProxy != nil {
-			proxyBuilder.HTTPSProxy(*config.ClusterWideProxy.HTTPSProxy)
-		}
-		clusterBuilder = clusterBuilder.Proxy(proxyBuilder)
-	}
 
-	if config.ClusterWideProxy.AdditionalTrustBundle != nil {
-		clusterBuilder = clusterBuilder.AdditionalTrustBundle(*config.ClusterWideProxy.AdditionalTrustBundle)
+		if config.ClusterWideProxy.AdditionalTrustBundle != nil {
+			clusterBuilder = clusterBuilder.AdditionalTrustBundle(*config.ClusterWideProxy.AdditionalTrustBundle)
+		}
 	}
 
 	if config.ComputeMachineType != "" || config.ComputeNodes > 0 || len(config.ExistingVPC.AvailabilityZones) > 0 ||
