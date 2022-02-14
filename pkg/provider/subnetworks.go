@@ -27,7 +27,6 @@ func getAWSVPCs(client *cmv1.Client, ccs cluster.CCS,
 		return nil, err
 	}
 	return response.Items().Slice(), err
-	//return cloudVPCList, nil
 }
 
 func GetGCPVPCs(client *cmv1.Client, ccs cluster.CCS,
@@ -58,7 +57,6 @@ func GetGCPVPCs(client *cmv1.Client, ccs cluster.CCS,
 		return nil, err
 	}
 	return response.Items().Slice(), err
-	//return cloudVPCList, nil
 }
 
 func GetAWSSubnetworks(client *cmv1.Client, ccs cluster.CCS,

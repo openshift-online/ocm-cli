@@ -187,7 +187,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		if httpsProxyValue != "" {
 			err := utils.IsURL(httpsProxyValue)
 			if err != nil {
-				return err
+				return fmt.Errorf("Invalid 'proxy.https_proxy' attribute '%s'", httpsProxyValue)
 			}
 		}
 		httpsProxy = &httpsProxyValue

@@ -465,7 +465,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	err = promptClusterWideProxy(fs, connection, cmd)
+	err = promptClusterWideProxy()
 	if err != nil {
 		return err
 	}
@@ -560,7 +560,7 @@ func promptName(argv []string) error {
 	return fmt.Errorf("A cluster name must be specified")
 }
 
-func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
+func promptClusterWideProxy() error {
 	var err error
 	if args.existingVPC.Enabled && !wasClusterWideProxyReceived() && args.interactive {
 		args.clusterWideProxy.Enabled, err = interactive.GetBool(interactive.Input{
@@ -789,10 +789,14 @@ func promptExistingAWSVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	return nil
 }
 
+func wasGCPNetworkReceived() bool {
+	return args.existingVPC.VPCName != "" && args.existingVPC.ControlPlaneSubnet != "" &&
+		args.existingVPC.ComputeSubnet != ""
+}
+
 func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	var err error
-	if !args.existingVPC.Enabled && args.existingVPC.VPCName == "" && args.existingVPC.ControlPlaneSubnet == "" &&
-		args.existingVPC.ComputeSubnet == "" && args.interactive {
+	if !args.existingVPC.Enabled && !wasGCPNetworkReceived() && args.interactive {
 		args.existingVPC.Enabled, err = interactive.GetBool(interactive.Input{
 			Question: "Install into an existing VPC",
 			Help: "To install into an existing VPC you need to ensure that your VPC is configured " +
@@ -804,9 +808,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		}
 	}
 
-	if args.existingVPC.Enabled || (args.existingVPC.VPCName != "" && args.existingVPC.ControlPlaneSubnet != "" &&
-		args.existingVPC.ComputeSubnet != "") {
-
+	if args.existingVPC.Enabled || wasGCPNetworkReceived() {
 		err = arguments.PromptString(fs, "vpc-name")
 		if err != nil {
 			return err

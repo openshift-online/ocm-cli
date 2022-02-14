@@ -14,7 +14,7 @@ func ValidateHTTPProxy(val interface{}) error {
 		}
 		url, err := url.ParseRequestURI(httpProxy)
 		if err != nil {
-			return fmt.Errorf("Invalid http-proxy value '%s'", httpProxy)
+			return fmt.Errorf("Invalid 'proxy.http_proxy' attribute '%s'", httpProxy)
 		}
 		if url.Scheme != "http" {
 			return fmt.Errorf("%s", "Expected http-proxy to have an http:// scheme")
