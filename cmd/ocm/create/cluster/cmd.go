@@ -452,6 +452,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	args.existingVPC.Enabled = false
 	args.clusterWideProxy.Enabled = false
 	if wasClusterWideProxyReceived() {
+		args.ccs.Enabled = true
 		args.existingVPC.Enabled = true
 		args.clusterWideProxy.Enabled = true
 	}
