@@ -173,6 +173,29 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 		nil,
 		"AWS availability zones",
 	)
+	fs.StringVar(
+		&value.VPCName,
+		"vpc-name",
+		"",
+		"GCP vpc name",
+	)
+	SetQuestion(fs, "vpc-name", "vpc name:")
+
+	fs.StringVar(
+		&value.ControlPlaneSubnet,
+		"control-plane-subnet",
+		"",
+		"GCP vpc name",
+	)
+	SetQuestion(fs, "control-plane-subnet", "control plane subnet:")
+
+	fs.StringVar(
+		&value.ComputeSubnet,
+		"compute-subnet",
+		"",
+		"GCP compute subnet",
+	)
+	SetQuestion(fs, "compute-subnet", "compute subnet:")
 }
 
 func AddClusterWideProxyFlags(fs *pflag.FlagSet, value *cluster.ClusterWideProxy) {

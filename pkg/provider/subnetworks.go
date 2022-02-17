@@ -7,42 +7,82 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
-func getVPCs(client *cmv1.Client, provider string, ccs cluster.CCS,
+func getAWSVPCs(client *cmv1.Client, ccs cluster.CCS,
 	region string) (cloudVPCList []*cmv1.CloudVPC, err error) {
-	if ccs.Enabled && provider == "aws" {
 
-		cloudProviderData, err := cmv1.NewCloudProviderData().
-			AWS(cmv1.NewAWS().AccessKeyID(ccs.AWS.AccessKeyID).SecretAccessKey(ccs.AWS.SecretAccessKey)).
-			Region(cmv1.NewCloudRegion().ID(region)).
-			Build()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to build AWS cloud provider data: %v", err)
-		}
-
-		response, err := client.AWSInquiries().Vpcs().Search().
-			Page(1).
-			Size(-1).
-			Body(cloudProviderData).
-			Send()
-		if err != nil {
-			return nil, err
-		}
-		return response.Items().Slice(), err
+	cloudProviderData, err := cmv1.NewCloudProviderData().
+		AWS(cmv1.NewAWS().AccessKeyID(ccs.AWS.AccessKeyID).SecretAccessKey(ccs.AWS.SecretAccessKey)).
+		Region(cmv1.NewCloudRegion().ID(region)).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to build AWS cloud provider data: %v", err)
 	}
-	return cloudVPCList, nil
+
+	response, err := client.AWSInquiries().Vpcs().Search().
+		Page(1).
+		Size(-1).
+		Body(cloudProviderData).
+		Send()
+	if err != nil {
+		return nil, err
+	}
+	return response.Items().Slice(), err
 }
 
-func GetSubnetworks(client *cmv1.Client, provider string, ccs cluster.CCS,
+func GetGCPVPCs(client *cmv1.Client, ccs cluster.CCS,
+	region string) (cloudVPCList []*cmv1.CloudVPC, err error) {
+
+	cloudProviderData, err := cmv1.NewCloudProviderData().
+		GCP(cmv1.NewGCP().ProjectID(ccs.GCP.ProjectID).
+			ClientEmail(ccs.GCP.ClientEmail).
+			Type(ccs.GCP.Type).
+			PrivateKey(ccs.GCP.PrivateKey).
+			PrivateKeyID(ccs.GCP.PrivateKeyID).
+			AuthProviderX509CertURL(ccs.GCP.AuthProviderX509CertURL).
+			AuthURI(ccs.GCP.AuthURI).TokenURI(ccs.GCP.TokenURI).
+			ClientX509CertURL(ccs.GCP.ClientX509CertURL).
+			ClientID(ccs.GCP.ClientID).TokenURI(ccs.GCP.TokenURI)).
+		Region(cmv1.NewCloudRegion().ID(region)).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to build GCP provider data: %v", err)
+	}
+
+	response, err := client.GCPInquiries().Vpcs().Search().
+		Page(1).
+		Size(-1).
+		Body(cloudProviderData).
+		Send()
+	if err != nil {
+		return nil, err
+	}
+	return response.Items().Slice(), err
+}
+
+func GetAWSSubnetworks(client *cmv1.Client, ccs cluster.CCS,
 	region string) (subnetworkList []*cmv1.Subnetwork, err error) {
-	if ccs.Enabled && provider == "aws" {
-		cloudVPCs, err := getVPCs(client, provider, ccs, region)
+	cloudVPCs, err := getAWSVPCs(client, ccs, region)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, vpc := range cloudVPCs {
+		subnetworkList = append(subnetworkList, vpc.AWSSubnets()...)
+	}
+	return subnetworkList, nil
+}
+
+func GetGCPSubnetList(client *cmv1.Client, provider string, ccs cluster.CCS,
+	region string) (subnetList []string, err error) {
+	if ccs.Enabled && provider == "gcp" {
+		cloudVPCs, err := GetGCPVPCs(client, ccs, region)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, vpc := range cloudVPCs {
-			subnetworkList = append(subnetworkList, vpc.AWSSubnets()...)
+			subnetList = append(subnetList, vpc.Subnets()...)
 		}
 	}
-	return subnetworkList, nil
+	return
 }

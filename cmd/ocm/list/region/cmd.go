@@ -76,10 +76,7 @@ func init() {
 
 func run(cmd *cobra.Command, argv []string) error {
 	ccs := cluster.CCS{}
-	if args.ccs {
-		if args.provider == "gcp" {
-			return fmt.Errorf("--ccs flag is not yet supported for GCP clusters")
-		}
+	if args.provider == "aws" && args.ccs {
 		if args.awsAccessKeyID == "" {
 			return fmt.Errorf("--aws-access-key-id flag is mandatory for --ccs=true")
 		}

@@ -466,7 +466,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	err = promptClusterWideProxy(fs, connection, cmd)
+	err = promptClusterWideProxy()
 	if err != nil {
 		return err
 	}
@@ -561,7 +561,7 @@ func promptName(argv []string) error {
 	return fmt.Errorf("A cluster name must be specified")
 }
 
-func promptClusterWideProxy(fs *pflag.FlagSet, connection *sdk.Connection, cmd *cobra.Command) error {
+func promptClusterWideProxy() error {
 	var err error
 	if args.existingVPC.Enabled && !wasClusterWideProxyReceived() && args.interactive {
 		args.clusterWideProxy.Enabled, err = interactive.GetBool(interactive.Input{
@@ -673,7 +673,7 @@ func isAtLeastOneProxyValueSet() bool {
 		(args.clusterWideProxy.AdditionalTrustBundleFile != nil && *args.clusterWideProxy.AdditionalTrustBundleFile != "")
 }
 
-func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
+func promptExistingAWSVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	var err error
 	if !args.existingVPC.Enabled && args.existingVPC.SubnetIDs == "" && args.interactive {
 		args.existingVPC.Enabled, err = interactive.GetBool(interactive.Input{
@@ -695,7 +695,7 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		var availabilityZones []string
 		if args.existingVPC.Enabled || areSubnetsProvided {
 			//get subnetworks from the provider
-			subnetworks, err := provider.GetSubnetworks(connection.ClustersMgmt().V1(), args.provider,
+			subnetworks, err := provider.GetAWSSubnetworks(connection.ClustersMgmt().V1(),
 				args.ccs, args.region)
 			if err != nil {
 				return err
@@ -788,6 +788,120 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		return nil
 	}
 	return nil
+}
+
+func wasGCPNetworkReceived() bool {
+	return args.existingVPC.VPCName != "" && args.existingVPC.ControlPlaneSubnet != "" &&
+		args.existingVPC.ComputeSubnet != ""
+}
+
+func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	var err error
+	if !args.existingVPC.Enabled && !wasGCPNetworkReceived() && args.interactive {
+		args.existingVPC.Enabled, err = interactive.GetBool(interactive.Input{
+			Question: "Install into an existing VPC",
+			Help: "To install into an existing VPC you need to ensure that your VPC is configured " +
+				"with two subnets for each availability zone that you want the cluster installed into. ",
+			Default: args.existingVPC.Enabled,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if args.existingVPC.Enabled || wasGCPNetworkReceived() {
+		err = arguments.PromptString(fs, "vpc-name")
+		if err != nil {
+			return err
+		}
+
+		err = arguments.PromptString(fs, "control-plane-subnet")
+		if err != nil {
+			return err
+		}
+
+		err = arguments.PromptString(fs, "compute-subnet")
+		if err != nil {
+			return err
+		}
+
+		//get vpc's from the provider
+		vpcList, err := provider.GetGCPVPCs(connection.ClustersMgmt().V1(),
+			args.ccs, args.region)
+		if err != nil {
+			return err
+		}
+
+		verifiedVPCName := false
+		for _, vpc := range vpcList {
+			if vpc.Name() == args.existingVPC.VPCName {
+				verifiedVPCName = true
+				break
+			}
+		}
+		if !verifiedVPCName {
+			return fmt.Errorf("Could not find the following vpc name provided: %s", args.existingVPC.VPCName)
+		}
+
+		//get subnets from the provider
+		subnetList, err := provider.GetGCPSubnetList(connection.ClustersMgmt().V1(), args.provider,
+			args.ccs, args.region)
+		if err != nil {
+			return err
+		}
+
+		// Verify that the control-plane-subnet provided in the command, does exist.
+		verifiedControlPlaneSubnet := false
+		for _, subnetID := range subnetList {
+			if subnetID == args.existingVPC.ControlPlaneSubnet {
+				verifiedControlPlaneSubnet = true
+				break
+			}
+		}
+		if !verifiedControlPlaneSubnet {
+			return fmt.Errorf("Could not find the following control-plane-subnet provided: %s",
+				args.existingVPC.ControlPlaneSubnet)
+		}
+
+		// Verify that compute-subnet provided in the command, does exist.
+		verifiedComputeSubnet := false
+		for _, subnetID := range subnetList {
+			if subnetID == args.existingVPC.ComputeSubnet {
+				verifiedComputeSubnet = true
+				break
+			}
+		}
+		if !verifiedComputeSubnet {
+			return fmt.Errorf("Could not find the following compute-subnet provided: %s",
+				args.existingVPC.ComputeSubnet)
+		}
+
+		fs.Set("use-existing-vpc", "true")
+		flag := fs.Lookup("vpc-name")
+		if !flag.Changed {
+			fs.Set("vpc-name", args.existingVPC.VPCName)
+		}
+		flag = fs.Lookup("control-plane-subnet")
+		if !flag.Changed {
+			fs.Set("control-plabe-subnet", args.existingVPC.ControlPlaneSubnet)
+		}
+		flag = fs.Lookup("compute-subnet")
+		if !flag.Changed {
+			fs.Set("compute-subnet", args.existingVPC.ComputeSubnet)
+		}
+		return nil
+	}
+	return nil
+}
+
+func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	var err error
+	if args.provider == "aws" {
+		err = promptExistingAWSVPC(fs, connection)
+	} else if args.provider == "gcp" {
+		err = promptExistingGCPVPC(fs, connection)
+	}
+	return err
 }
 
 func promptCCS(fs *pflag.FlagSet) error {
