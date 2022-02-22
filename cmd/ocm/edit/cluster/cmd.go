@@ -23,6 +23,7 @@ import (
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/utils"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
 var args struct {
@@ -123,6 +124,16 @@ func init() {
 
 }
 
+func isGCPNetworkEmpty(network *cmv1.GCPNetwork) bool {
+	return network != nil && network.VPCName() == "" &&
+		network.ControlPlaneSubnet() == "" && network.ComputeSubnet() == ""
+}
+
+func wasClusterWideProxyReceived(httpProxy, httpsProxy, additionalTrustBundleFile *string) bool {
+	return ((httpProxy != nil && *httpProxy != "") || (httpsProxy != nil && *httpsProxy != "") ||
+		(additionalTrustBundleFile != nil && *additionalTrustBundleFile != ""))
+}
+
 func run(cmd *cobra.Command, argv []string) error {
 
 	// Check that the cluster key (name, identifier or external identifier) given by the user
@@ -206,11 +217,9 @@ func run(cmd *cobra.Command, argv []string) error {
 		additionalTrustBundleFile = &additionalTrustBundleFileValue
 	}
 
-	if len(cluster.AWS().SubnetIDs()) == 0 &&
-		((httpProxy != nil && *httpProxy != "") || (httpsProxy != nil && *httpsProxy != "") ||
-			(additionalTrustBundleFile != nil && *additionalTrustBundleFile != "")) {
+	if len(cluster.AWS().SubnetIDs()) == 0 && isGCPNetworkEmpty(cluster.GCPNetwork()) &&
+		wasClusterWideProxyReceived(httpProxy, httpsProxy, additionalTrustBundleFile) {
 		return fmt.Errorf("Cluster-wide proxy is not supported on clusters using the default VPC")
-
 	}
 
 	clusterConfig := c.Spec{
