@@ -46,6 +46,7 @@ func Pretty(stream io.Writer, body []byte) error {
 
 func dumpColor(stream io.Writer, data interface{}) error {
 	encoder := jsoncolor.NewEncoder(stream)
+	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(data)
 }
