@@ -42,6 +42,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		subResponse, err := connection.AccountsMgmt().V1().
 			Subscriptions().
 			Subscription(subID).
+			//nolint
 			Get().Parameter("fetchLabels", "true").
 			Send()
 		if err != nil {
@@ -119,6 +120,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	} else {
 		for _, label := range sub.Labels() {
 			if label.Key() == "capability.cluster.manage_cluster_admin" &&
+				//nolint
 				label.Value() == "true" {
 				clusterAdminEnabled = true
 			}
@@ -138,8 +140,16 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 
 		isExistingVPC = "false"
 		if cluster.AWS().SubnetIDs() != nil && len(cluster.AWS().SubnetIDs()) > 0 {
+			//nolint
 			isExistingVPC = "true"
 		}
+	}
+
+	if cluster.CloudProvider().ID() == ProviderGCP &&
+		cluster.GCPNetwork().VPCName() != "" && cluster.GCPNetwork().ControlPlaneSubnet() != "" &&
+		cluster.GCPNetwork().ComputeSubnet() != "" {
+		//nolint
+		isExistingVPC = "true"
 	}
 
 	// Print short cluster description:
@@ -218,6 +228,16 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	if cluster.AdditionalTrustBundle() != "" {
 		fmt.Printf("AdditionalTrustBundle:  %s\n", cluster.AdditionalTrustBundle())
 	}
+	if cluster.GCPNetwork().VPCName() != "" {
+		fmt.Printf("VPC-Name:	        %s\n", cluster.GCPNetwork().VPCName())
+	}
+	if cluster.GCPNetwork().ControlPlaneSubnet() != "" {
+		fmt.Printf("Control-Plane-Subnet:   %s\n", cluster.GCPNetwork().ControlPlaneSubnet())
+	}
+	if cluster.GCPNetwork().ComputeSubnet() != "" {
+		fmt.Printf("Compute-Subnet:	        %s\n", cluster.GCPNetwork().ComputeSubnet())
+	}
+
 	fmt.Println()
 
 	return nil
