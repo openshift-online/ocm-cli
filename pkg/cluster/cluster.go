@@ -33,6 +33,9 @@ import (
 const (
 	ProviderAWS = "aws"
 	ProviderGCP = "gcp"
+
+	NetworkTypeSDN = "OpenShiftSDN"
+	NetworkTypeOVN = "OVNKubernetes"
 )
 
 // Spec is the configuration for a cluster spec.
@@ -57,6 +60,7 @@ type Spec struct {
 	Autoscaling        Autoscaling
 
 	// Network config
+	NetworkType string
 	MachineCIDR net.IPNet
 	ServiceCIDR net.IPNet
 	PodCIDR     net.IPNet
@@ -258,11 +262,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		clusterBuilder = clusterBuilder.ExpirationTimestamp(config.Expiration)
 	}
 
-	if !cidrIsEmpty(config.MachineCIDR) ||
+	if config.NetworkType != "" ||
+		!cidrIsEmpty(config.MachineCIDR) ||
 		!cidrIsEmpty(config.ServiceCIDR) ||
 		!cidrIsEmpty(config.PodCIDR) ||
 		config.HostPrefix != 0 {
 		networkBuilder := cmv1.NewNetwork()
+		if config.NetworkType != "" {
+			networkBuilder = networkBuilder.Type(config.NetworkType)
+		}
 		if !cidrIsEmpty(config.MachineCIDR) {
 			networkBuilder = networkBuilder.MachineCIDR(config.MachineCIDR.String())
 		}
