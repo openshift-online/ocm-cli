@@ -3,6 +3,25 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.62 Feb 23 2022
+
+- Update to SDK 0.1.240
+- Only show relevant regions in interactive cluster create
+- Update linter config
+- Add linting GH action
+- Fix linting issues
+- Run go mod tidy
+- Unify PR actions
+- ocm-cli - Improve the cluster-wide-proxy use cases
+- It should fail to create a cluster with proxy atrribute but no --use-existing-vpc
+- [WIP] ocm-cli should support byovpc and cluster-wide-proxy for gcp
+- It should be failed when create a non-ccs cluster with proxy attributes
+- Support byovpc and cluster-wide-proxy features
+- GCPNetwork attributes should show in cluster describe
+- Fix HTML escaping
+- It should be successful to edit a ccs cluster with proxy attribute
+- Update SDK to v0.1.242
+
 ## 0.1.61 Feb 1 2022
 
 - Add STS to `describe cluster` output.
