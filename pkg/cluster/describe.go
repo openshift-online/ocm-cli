@@ -93,6 +93,11 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		email = notAvailable
 	}
 
+	accountNumber := account.Organization().EbsAccountID()
+	if accountNumber == "" {
+		accountNumber = notAvailable
+	}
+
 	// Find the details of the shard
 	shardPath, err := connection.ClustersMgmt().V1().Clusters().
 		Cluster(cluster.ID()).
@@ -190,6 +195,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Organization:		%s\n"+
 		"Creator:		%s\n"+
 		"Email:			%s\n"+
+		"AccountNumber:          %s\n"+
 		"Created:		%v\n"+
 		"Expiration:		%v\n",
 		apiURL,
@@ -213,6 +219,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		organization,
 		creator,
 		email,
+		accountNumber,
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
