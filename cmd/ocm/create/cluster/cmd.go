@@ -892,6 +892,10 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 				args.existingVPC.ComputeSubnet)
 		}
 
+		if wasGCPNetworkReceived() {
+			args.existingVPC.Enabled = true
+		}
+
 		fs.Set("use-existing-vpc", "true")
 		flag := fs.Lookup("vpc-name")
 		if !flag.Changed {

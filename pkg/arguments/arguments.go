@@ -163,7 +163,7 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 		&value.SubnetIDs,
 		"subnet-ids",
 		"",
-		"AWS subnet IDs",
+		"AWS subnets for each availability zone",
 	)
 	SetQuestion(fs, "subnet-ids", "AWS subnet IDs:")
 
@@ -177,7 +177,7 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 		&value.VPCName,
 		"vpc-name",
 		"",
-		"GCP vpc name",
+		"The name of an existing VPC for GCP",
 	)
 	SetQuestion(fs, "vpc-name", "vpc name:")
 
@@ -185,7 +185,7 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 		&value.ControlPlaneSubnet,
 		"control-plane-subnet",
 		"",
-		"GCP vpc name",
+		"The name of the existing subnet that you want to deploy your control plane machines to",
 	)
 	SetQuestion(fs, "control-plane-subnet", "control plane subnet:")
 
@@ -193,7 +193,7 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 		&value.ComputeSubnet,
 		"compute-subnet",
 		"",
-		"GCP compute subnet",
+		"The name of the existing subnet that you want to deploy your compute machines to",
 	)
 	SetQuestion(fs, "compute-subnet", "compute subnet:")
 }

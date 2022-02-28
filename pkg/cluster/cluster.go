@@ -399,7 +399,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 }
 
 func isGCPNetworkExists(existingVPC ExistingVPC) bool {
-	return existingVPC.VPCName != "" && existingVPC.ControlPlaneSubnet != "" && existingVPC.ComputeSubnet != ""
+	return existingVPC.VPCName != "" || existingVPC.ControlPlaneSubnet != "" || existingVPC.ComputeSubnet != ""
 }
 
 func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) error {
