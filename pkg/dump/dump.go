@@ -20,6 +20,7 @@ package dump
 import (
 	"encoding/json"
 	"io"
+	"runtime"
 
 	"github.com/nwidger/jsoncolor"
 	"github.com/openshift-online/ocm-cli/pkg/output"
@@ -38,7 +39,7 @@ func Pretty(stream io.Writer, body []byte) error {
 	if err != nil {
 		return dumpBytes(stream, body)
 	}
-	if output.IsTerminal(stream) {
+	if output.IsTerminal(stream) && !isWindows() {
 		return dumpColor(stream, data)
 	}
 	return dumpMonochrome(stream, data)
@@ -68,7 +69,7 @@ func Single(stream io.Writer, body []byte) error {
 	if err != nil {
 		return dumpBytes(stream, body)
 	}
-	if output.IsTerminal(stream) {
+	if output.IsTerminal(stream) && !isWindows() {
 		return dumpColorSingleLine(stream, data)
 	}
 	return dumpMonochromeSingleLine(stream, data)
@@ -96,4 +97,9 @@ func dumpBytes(stream io.Writer, data []byte) error {
 	}
 	_, err = stream.Write([]byte("\n"))
 	return err
+}
+
+// isWindows checks if the operating system is Windows.
+func isWindows() bool {
+	return runtime.GOOS == "windows"
 }
