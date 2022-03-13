@@ -99,9 +99,11 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		ProvisionShard().
 		Get().
 		Send()
+	var shardUrl string
 	var shard string
 	if shardPath != nil && err == nil {
-		shard = shardPath.Body().HiveConfig().Server()
+		shardUrl = shardPath.Body().HiveConfig().Server()
+		shard = shardPath.Body().ID()
 	}
 
 	var computesStr string
@@ -216,8 +218,9 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
-	if shard != "" {
-		fmt.Printf("Shard:			%v\n", shard)
+	if shardUrl != "" {
+		fmt.Printf("Shard:			%v\n", shardUrl)
+		fmt.Printf("Shard ID:		%v\n", shard)
 	}
 	if cluster.Proxy().HTTPProxy() != "" {
 		fmt.Printf("HTTPProxy:	        %s\n", cluster.Proxy().HTTPProxy())
