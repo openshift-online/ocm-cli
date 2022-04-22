@@ -29,6 +29,8 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -58,7 +60,7 @@ func getQuestion(flag *pflag.Flag) string {
 	}
 	// Capitalize first word
 	words := strings.Split(flag.Name, "-")
-	words[0] = strings.Title(words[0])
+	words[0] = cases.Title(language.Und).String(words[0])
 	return strings.Join(words, " ") + ":"
 }
 
