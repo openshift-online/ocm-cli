@@ -244,6 +244,9 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	if cluster.GCPNetwork().ComputeSubnet() != "" {
 		fmt.Printf("Compute-Subnet:	        %s\n", cluster.GCPNetwork().ComputeSubnet())
 	}
+	if cluster.Status().LimitedSupportReasonCount() > 0 {
+		fmt.Printf("Limited Support:	%t\n", cluster.Status().LimitedSupportReasonCount() > 0)
+	}
 
 	fmt.Println()
 

@@ -200,8 +200,8 @@ var _ = Describe("Table", func() {
 		// Check the generated text:
 		lines := strings.Split(buffer.String(), "\n")
 		Expect(lines).To(HaveLen(3))
-		Expect(lines[0]).To(Equal(`NAME       TYPE  `))
-		Expect(lines[1]).To(Equal(`my_github  github`))
+		Expect(lines[0]).To(Equal(`NAME       TYPE                  `))
+		Expect(lines[1]).To(Equal(`my_github  GithubIdentityProvider`))
 	})
 
 	It("Learns column widths from headers", func() {
