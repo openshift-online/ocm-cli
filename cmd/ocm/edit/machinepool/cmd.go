@@ -22,6 +22,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 var args struct {
@@ -125,6 +126,14 @@ func run(cmd *cobra.Command, argv []string) error {
 				return fmt.Errorf("Expected key=value format for label-match")
 			}
 			tokens := strings.Split(label, "=")
+			errors := validation.IsQualifiedName(tokens[0])
+			if len(errors) != 0 {
+				return fmt.Errorf("Invalid label key passed for label '%s': %s", label, strings.Join(errors, "\n"))
+			}
+			errors = validation.IsValidLabelValue(tokens[1])
+			if len(errors) != 0 {
+				return fmt.Errorf("Invalid label value passed for label '%s': %s", label, strings.Join(errors, "\n"))
+			}
 			labels[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
 		}
 	}
@@ -137,6 +146,14 @@ func run(cmd *cobra.Command, argv []string) error {
 				return fmt.Errorf("Expected key=value:scheduleType format for taints")
 			}
 			tokens := strings.FieldsFunc(taint, arguments.Split)
+			errors := validation.IsQualifiedName(tokens[0])
+			if len(errors) != 0 {
+				return fmt.Errorf("Invalid taint key passed for taint '%s': %s", taint, strings.Join(errors, "\n"))
+			}
+			errors = validation.IsValidLabelValue(tokens[1])
+			if len(errors) != 0 {
+				return fmt.Errorf("Invalid taint value passed for taint '%s': %s", taint, strings.Join(errors, "\n"))
+			}
 			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(tokens[0]).Value(tokens[1]).Effect(tokens[2]))
 		}
 	}
