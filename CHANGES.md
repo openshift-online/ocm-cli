@@ -3,6 +3,13 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.63 May 12 2022
+
+- Improve existing VPC and proxy code.
+- Disable color in Windows.
+- Added account number to "ocm describe cluster ...".
+- Show limited support flag in "ocm describe cluster ...".
+
 ## 0.1.62 Feb 23 2022
 
 - Update to SDK 0.1.240
