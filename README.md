@@ -77,7 +77,9 @@ $ ocm login --token=eyJ...
 
 This will use the provided token to request _OpenID_ access and refresh tokens
 to _sso.redhat.com_. The tokens will be saved for future use to the
-`~/.config/ocm/ocm.json` file.
+`~/.config/ocm/ocm.json` file. 
+
+Note: MacOS store the token at `~/Library/Application\ Support/ocm/ocm.json`
 
 IMPORTANT: Before version 0.1.56 the configuration file used to be
 `~/.ocm.json`. If that exists it will still be used. It is recommended to
