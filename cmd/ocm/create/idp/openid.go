@@ -32,6 +32,7 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 	email := args.openidEmail
 	name := args.openidName
 	username := args.openidUsername
+	extraScopes := args.openidExtraScopes
 
 	isInteractive := clientID == "" || clientSecret == "" || issuerURL == "" ||
 		(email == "" && name == "" && username == "")
@@ -107,6 +108,16 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 				return idpBuilder, errors.New("Expected a list of claims to use as the preferred username")
 			}
 		}
+
+		if extraScopes == "" {
+			prompt := &survey.Input{
+				Message: "Extra scopes to request:",
+			}
+			err = survey.AskOne(prompt, &extraScopes)
+			if err != nil {
+				return idpBuilder, errors.New("Expected a list of extra scopes to request")
+			}
+		}
 	}
 
 	if email == "" && name == "" && username == "" {
@@ -144,7 +155,8 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 		ClientID(clientID).
 		ClientSecret(clientSecret).
 		Issuer(issuerURL).
-		Claims(openIDClaims)
+		Claims(openIDClaims).
+		ExtraScopes(extraScopes)
 
 	// Create new IDP with OpenID provider
 	idpBuilder.

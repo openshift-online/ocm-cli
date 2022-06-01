@@ -54,10 +54,11 @@ var args struct {
 	ldapEmails       string
 
 	// OpenID
-	openidIssuerURL string
-	openidEmail     string
-	openidName      string
-	openidUsername  string
+	openidIssuerURL   string
+	openidEmail       string
+	openidName        string
+	openidUsername    string
+	openidExtraScopes string
 
 	// HTPasswd
 	htpasswdUsername string
@@ -225,6 +226,12 @@ func init() {
 		"username-claims",
 		"",
 		"OpenID: List of claims to use as the preferred username when provisioning a user.\n",
+	)
+	flags.StringVar(
+		&args.openidExtraScopes,
+		"extra-scopes",
+		"",
+		"OpenID: List of extra scopes to request when provisioning a user.\n",
 	)
 
 	// HTPasswd
