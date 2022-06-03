@@ -24,7 +24,6 @@ import (
 
 	"github.com/nwidger/jsoncolor"
 	"github.com/openshift-online/ocm-cli/pkg/output"
-	"gitlab.com/c0b/go-ordered-json"
 )
 
 // Pretty dumps the given data to the given stream so that it looks pretty. If the data is a valid
@@ -34,8 +33,8 @@ func Pretty(stream io.Writer, body []byte) error {
 	if len(body) == 0 {
 		return nil
 	}
-	data := ordered.NewOrderedMap()
-	err := json.Unmarshal(body, data)
+	var data interface{}
+	err := json.Unmarshal(body, &data)
 	if err != nil {
 		return dumpBytes(stream, body)
 	}
@@ -64,8 +63,8 @@ func Single(stream io.Writer, body []byte) error {
 	if len(body) == 0 {
 		return nil
 	}
-	data := ordered.NewOrderedMap()
-	err := json.Unmarshal(body, data)
+	var data interface{}
+	err := json.Unmarshal(body, &data)
 	if err != nil {
 		return dumpBytes(stream, body)
 	}
