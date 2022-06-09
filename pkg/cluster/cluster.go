@@ -126,12 +126,48 @@ type AddOnItem struct {
 	Available bool
 }
 
+type lmtSprReasonItem struct {
+	ID      string
+	Summary string
+	Details string
+}
+
 // Regular expression to used to make sure that the identifier or name given by the user is
 // safe and that it there is no risk of SQL injection:
 var clusterKeyRE = regexp.MustCompile(`^(\w|-)+$`)
 
 func IsValidClusterKey(clusterKey string) bool {
 	return clusterKeyRE.MatchString(clusterKey)
+}
+
+func GetClusterLimitedSupportReasons(connection *sdk.Connection, clusterID string) ([]*lmtSprReasonItem, error) {
+
+	limitedSupportReasons, err := connection.ClustersMgmt().V1().
+		Clusters().
+		Cluster(clusterID).
+		LimitedSupportReasons().
+		List().
+		Send()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get limited Support Reasons: %s", err)
+	}
+
+	lmtReason := limitedSupportReasons.Items()
+
+	var clusterLmtSprReasons []*lmtSprReasonItem
+
+	lmtReason.Each(func(lmtSprReason *cmv1.LimitedSupportReason) bool {
+		clusterLmtSprReason := lmtSprReasonItem{
+			ID:      lmtSprReason.ID(),
+			Summary: lmtSprReason.Summary(),
+			Details: lmtSprReason.Details(),
+		}
+		clusterLmtSprReasons = append(clusterLmtSprReasons, &clusterLmtSprReason)
+
+		return true
+	})
+
+	return clusterLmtSprReasons, nil
 }
 
 func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, err error) {

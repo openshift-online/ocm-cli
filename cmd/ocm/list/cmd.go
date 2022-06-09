@@ -18,6 +18,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/ingress"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/list/limitedsupportreason"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/machinepool"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/org"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/quota"
@@ -46,4 +47,5 @@ func init() {
 	Cmd.AddCommand(upgradepolicy.Cmd)
 	Cmd.AddCommand(user.Cmd)
 	Cmd.AddCommand(version.Cmd)
+	Cmd.AddCommand(limitedsupportreason.Cmd)
 }
