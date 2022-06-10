@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/golang-jwt/jwt/v4"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/cobra"
 
@@ -182,14 +181,43 @@ func run(cmd *cobra.Command, argv []string) error {
 		)
 	}
 
-	// If a token has been provided parse it:
-	var token *jwt.Token
+	// Load the configuration file:
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("Can't load config file: %v", err)
+	}
+	if cfg == nil {
+		cfg = new(config.Config)
+	}
+
 	if haveToken {
-		parser := new(jwt.Parser)
-		token, _, err = parser.ParseUnverified(args.token, jwt.MapClaims{})
-		if err != nil {
-			return fmt.Errorf("Can't parse token '%s': %v", args.token, err)
+		// Encrypted tokens are assumed to be refresh tokens:
+		if config.IsEncryptedToken(args.token) {
+			cfg.AccessToken = ""
+			cfg.RefreshToken = args.token
+		} else {
+			// If a token has been provided parse it:
+			token, err := config.ParseToken(args.token)
+			if err != nil {
+				return fmt.Errorf("Can't parse token '%s': %v", args.token, err)
+			}
+			// Put the token in the place of the configuration that corresponds to its type:
+			typ, err := config.TokenType(token)
+			if err != nil {
+				return fmt.Errorf("Can't extract type from 'typ' claim of token '%s': %v", args.token, err)
+			}
+			switch typ {
+			case "Bearer", "":
+				cfg.AccessToken = args.token
+				cfg.RefreshToken = ""
+			case "Refresh", "Offline":
+				cfg.AccessToken = ""
+				cfg.RefreshToken = args.token
+			default:
+				return fmt.Errorf("Don't know how to handle token type '%s' in token '%s'", typ, args.token)
+			}
 		}
+
 	}
 
 	// Apply the default OpenID details if not explicitly provided by the user:
@@ -209,15 +237,6 @@ func run(cmd *cobra.Command, argv []string) error {
 		gatewayURL = args.url
 	}
 
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
-	}
-	if cfg == nil {
-		cfg = new(config.Config)
-	}
-
 	// Update the configuration with the values given in the command line:
 	cfg.TokenURL = tokenURL
 	cfg.ClientID = clientID
@@ -227,26 +246,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.User = args.user
 	cfg.Password = args.password
 	cfg.Insecure = args.insecure
-	cfg.AccessToken = ""
-	cfg.RefreshToken = ""
-
-	// Put the token in the place of the configuration that corresponds to its type:
-	if haveToken {
-		typ, err := tokenType(token)
-		if err != nil {
-			return fmt.Errorf("Can't extract type from 'typ' claim of token '%s': %v", args.token, err)
-		}
-		switch typ {
-		case "Bearer":
-			cfg.AccessToken = args.token
-		case "Refresh", "Offline":
-			cfg.RefreshToken = args.token
-		case "":
-			return fmt.Errorf("Don't know how to handle empty type in token '%s'", args.token)
-		default:
-			return fmt.Errorf("Don't know how to handle token type '%s' in token '%s'", typ, args.token)
-		}
-	}
 
 	// Create a connection and get the token to verify that the crendentials are correct:
 	connection, err := cfg.Connection()
@@ -272,25 +271,4 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	return nil
-}
-
-// tokenType extracts the value of the `typ` claim. It returns the value as a string, or the empty
-// string if there is no such claim.
-func tokenType(token *jwt.Token) (typ string, err error) {
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		err = fmt.Errorf("expected map claims but got %T", claims)
-		return
-	}
-	claim, ok := claims["typ"]
-	if !ok {
-		return
-	}
-	value, ok := claim.(string)
-	if !ok {
-		err = fmt.Errorf("expected string 'typ' but got %T", claim)
-		return
-	}
-	typ = value
-	return
 }
