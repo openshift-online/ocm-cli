@@ -32,8 +32,8 @@ func buildLdapIdp(_ *cmv1.Cluster, idpName string) (idpBuilder cmv1.IdentityProv
 
 	if isInteractive {
 		fmt.Println("To use LDAP as an identity provider, you must first register the application:")
-		instructionsURL := "https://docs.openshift.com/dedicated/4/authentication/" +
-			"identity_providers/configuring-ldap-identity-provider.html"
+		instructionsURL := "https://docs.openshift.com/dedicated/osd_install_access_delete_cluster/" +
+			"config-identity-providers.html#config-ldap-idp_config-identity-providers"
 		fmt.Println("* Open the following URL:", instructionsURL)
 		fmt.Println("* Follow the instructions to register your application")
 
