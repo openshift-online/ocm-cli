@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 	"time"
 
-	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/golang/glog"
 	homedir "github.com/mitchellh/go-homedir"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -168,9 +167,15 @@ func (c *Config) Armed() (armed bool, reason string, err error) {
 	haveRefresh := c.RefreshToken != ""
 	refreshUsable := false
 	if haveRefresh {
-		refreshUsable, err = tokenUsable(c.RefreshToken, 10*time.Second)
-		if err != nil {
-			return
+		if IsEncryptedToken(c.RefreshToken) {
+			// We have no way of knowing an encrypted token expiration, so
+			// we assume it's valid and let the access token request fail.
+			refreshUsable = true
+		} else {
+			refreshUsable, err = tokenUsable(c.RefreshToken, 10*time.Second)
+			if err != nil {
+				return
+			}
 		}
 	}
 
@@ -272,60 +277,5 @@ func (c *Config) Connection() (connection *sdk.Connection, err error) {
 		return
 	}
 
-	return
-}
-
-func parseToken(textToken string) (token *jwt.Token, err error) {
-	parser := new(jwt.Parser)
-	token, _, err = parser.ParseUnverified(textToken, jwt.MapClaims{})
-	if err != nil {
-		err = fmt.Errorf("can't parse token: %v", err)
-		return
-	}
-	return token, nil
-}
-
-// tokenUsable checks if the given token is usable.
-func tokenUsable(token string, margin time.Duration) (usable bool, err error) {
-	parsed, err := parseToken(token)
-	if err != nil {
-		return
-	}
-	expires, left, err := tokenExpiration(parsed)
-	if err != nil {
-		return
-	}
-	if !expires {
-		usable = true
-		return
-	}
-	if left >= margin {
-		usable = true
-		return
-	}
-	return
-}
-
-// tokenExpiration determines if the given token expires, and the time that remains till it expires.
-func tokenExpiration(token *jwt.Token) (expires bool, left time.Duration, err error) {
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		err = fmt.Errorf("expected map claims bug got %T", claims)
-		return
-	}
-	claim, ok := claims["exp"]
-	if !ok {
-		return
-	}
-	exp, ok := claim.(float64)
-	if !ok {
-		err = fmt.Errorf("expected floating point 'exp' but got %T", claim)
-		return
-	}
-	if exp == 0 {
-		return
-	}
-	expires = true
-	left = time.Until(time.Unix(int64(exp), 0))
 	return
 }
