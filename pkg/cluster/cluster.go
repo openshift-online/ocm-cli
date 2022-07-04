@@ -316,6 +316,10 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 					SubnetIDs(subnets...),
 			)
 		case ProviderGCP:
+			if config.CCS.GCP.Type == "" || config.CCS.GCP.ClientEmail == "" ||
+				config.CCS.GCP.ProjectID == "" {
+				return nil, fmt.Errorf("Missing credentials for GCP CCS cluster")
+			}
 			clusterBuilder =
 				clusterBuilder.GCP(
 					cmv1.NewGCP().
@@ -330,6 +334,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 						AuthProviderX509CertURL(config.CCS.GCP.AuthProviderX509CertURL).
 						ClientX509CertURL(config.CCS.GCP.ClientX509CertURL),
 				)
+
 			if isGCPNetworkExists(config.ExistingVPC) {
 				clusterBuilder =
 					clusterBuilder.GCPNetwork(cmv1.NewGCPNetwork().VPCName(config.ExistingVPC.VPCName).
