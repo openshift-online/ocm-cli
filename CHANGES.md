@@ -3,6 +3,14 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.64 Jul 6 2022
+
+- Add extra scopes support for OpenID IDP
+- config: Allow using encrypted refresh tokens
+- Correct the doc URLs for IDP creation
+- added limited support reasons to the url_expander pkg
+- better error when gcp ccs creds are not provided
+
 ## 0.1.63 May 12 2022
 
 - Improve existing VPC and proxy code.
