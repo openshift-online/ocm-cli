@@ -220,7 +220,7 @@ func init() {
 	fs.StringVar(
 		&args.networkType,
 		"network-type",
-		c.NetworkTypeSDN,
+		"",
 		fmt.Sprintf("The main controller responsible for rendering the core networking components. "+
 			"Allowed values are %s and %s", c.NetworkTypeSDN, c.NetworkTypeOVN),
 	)
