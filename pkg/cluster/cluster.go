@@ -147,7 +147,7 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 
 	// Try to find a matching subscription:
 	subsSearch := fmt.Sprintf(
-		"(display_name = '%s' or cluster_id = '%s' or external_cluster_id = '%s') and "+
+		"(name = '%s' or cluster_id = '%s' or external_cluster_id = '%s') and "+
 			"status in ('Reserved', 'Active')",
 		key, key, key,
 	)
@@ -273,7 +273,6 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 	// Create the cluster:
 	clusterBuilder := cmv1.NewCluster().
 		Name(config.Name).
-		DisplayName(config.Name).
 		MultiAZ(config.MultiAZ).
 		CloudProvider(
 			cmv1.NewCloudProvider().

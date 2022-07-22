@@ -162,7 +162,6 @@ var _ = Describe("Describe clusters", func() {
 						"name": "test",
 						"external_id": "66e5d48c-6afd-475f-9236-e862071f899f",
 						"infra_id": "test-wtjvx",
-						"display_name": "test",
 						"creation_timestamp": "2021-07-05T03:27:18.264654Z",
 						"activity_timestamp": "2021-07-13T06:55:32Z",
 						"expiration_timestamp": "2021-07-18T21:34:46Z",
@@ -248,7 +247,6 @@ var _ = Describe("Describe clusters", func() {
 						"kind": "Subscription",
 						"href": "/api/accounts_mgmt/v1/subscriptions/111",
 						"support_level": "Premium",
-						"display_name": "test",
 						"creator": {
 						  "id": "111",
 						  "kind": "Account",
