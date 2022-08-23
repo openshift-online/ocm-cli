@@ -15,10 +15,11 @@ package cluster
 
 import (
 	"fmt"
-	"os"
-	"time"
 
 	"github.com/spf13/cobra"
+	"os"
+	"strings"
+	"time"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -114,6 +115,15 @@ func init() {
 		"A proxy URL to use for creating HTTPS connections outside the cluster.",
 	)
 
+	args.clusterWideProxy.NoProxy = new(string)
+	flags.StringVar(
+		args.clusterWideProxy.NoProxy,
+		"no-proxy",
+		"",
+		"A comma-separated list of destination domain names, domains, IP addresses or other network CIDRs to "+
+			"exclude proxying.",
+	)
+
 	args.clusterWideProxy.AdditionalTrustBundleFile = new(string)
 	flags.StringVar(
 		args.clusterWideProxy.AdditionalTrustBundleFile,
@@ -129,15 +139,15 @@ func isGCPNetworkEmpty(network *cmv1.GCPNetwork) bool {
 		network.ControlPlaneSubnet() == "" && network.ComputeSubnet() == ""
 }
 
-func wasClusterWideProxyReceived(httpProxy, httpsProxy, additionalTrustBundleFile *string) bool {
+func wasClusterWideProxyReceived(httpProxy, httpsProxy, noProxy, additionalTrustBundleFile *string) bool {
 	return ((httpProxy != nil && *httpProxy != "") || (httpsProxy != nil && *httpsProxy != "") ||
-		(additionalTrustBundleFile != nil && *additionalTrustBundleFile != ""))
+		(noProxy != nil && *noProxy != "") || (additionalTrustBundleFile != nil && *additionalTrustBundleFile != ""))
 }
 
 func run(cmd *cobra.Command, argv []string) error {
 
-	// Check that the cluster key (name, identifier or external identifier) given by the user
-	// is reasonably safe so that there is no risk of SQL injection:
+	//Check that the cluster key (name, identifier or external identifier) given by the user
+	//is reasonably safe so that there is no risk of SQL injection:
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
@@ -179,29 +189,42 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	var httpProxy *string
-	var httpProxyValue string
 	if cmd.Flags().Changed("http-proxy") {
-		httpProxyValue = *args.clusterWideProxy.HTTPProxy
-		if httpProxyValue != "" {
-			err := utils.ValidateHTTPProxy(httpProxyValue)
+		if *args.clusterWideProxy.HTTPProxy != "" {
+			err := utils.ValidateHTTPProxy(*args.clusterWideProxy.HTTPProxy)
 			if err != nil {
 				return err
 			}
 		}
-		httpProxy = &httpProxyValue
+		httpProxy = args.clusterWideProxy.HTTPProxy
 	}
 
 	var httpsProxy *string
-	var httpsProxyValue string
 	if cmd.Flags().Changed("https-proxy") {
-		httpsProxyValue = *args.clusterWideProxy.HTTPSProxy
-		if httpsProxyValue != "" {
-			err := utils.IsURL(httpsProxyValue)
+		if *args.clusterWideProxy.HTTPSProxy != "" {
+			err := utils.IsURL(*args.clusterWideProxy.HTTPSProxy)
 			if err != nil {
-				return fmt.Errorf("Invalid 'proxy.https_proxy' attribute '%s'", httpsProxyValue)
+				return fmt.Errorf("Invalid 'proxy.https_proxy' attribute '%s'", *args.clusterWideProxy.HTTPSProxy)
 			}
 		}
-		httpsProxy = &httpsProxyValue
+		httpsProxy = args.clusterWideProxy.HTTPSProxy
+	}
+
+	var noProxy *string
+	if cmd.Flags().Changed("no-proxy") {
+		if *args.clusterWideProxy.NoProxy != "" {
+			noProxyValues := strings.Split(*args.clusterWideProxy.NoProxy, ",")
+			err := utils.MatchNoPorxyRE(noProxyValues)
+			if err != nil {
+				return err
+			}
+
+			duplicate, found := utils.HasDuplicates(noProxyValues)
+			if found {
+				return fmt.Errorf("no-proxy values must be unique, duplicate key '%s' found", duplicate)
+			}
+		}
+		noProxy = args.clusterWideProxy.NoProxy
 	}
 
 	var additionalTrustBundleFile *string
@@ -218,7 +241,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	if len(cluster.AWS().SubnetIDs()) == 0 && isGCPNetworkEmpty(cluster.GCPNetwork()) &&
-		wasClusterWideProxyReceived(httpProxy, httpsProxy, additionalTrustBundleFile) {
+		wasClusterWideProxyReceived(httpProxy, httpsProxy, noProxy, additionalTrustBundleFile) {
 		return fmt.Errorf("Cluster-wide proxy is not supported on clusters using the default VPC")
 	}
 
@@ -231,8 +254,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterWideProxy := c.ClusterWideProxy{
 		HTTPProxy:                 httpProxy,
 		HTTPSProxy:                httpsProxy,
+		NoProxy:                   noProxy,
 		AdditionalTrustBundleFile: additionalTrustBundleFile,
 	}
+
 	if clusterWideProxy.AdditionalTrustBundleFile != nil {
 		if len(*additionalTrustBundleFile) > 0 {
 			cert, err := os.ReadFile(*additionalTrustBundleFile)
