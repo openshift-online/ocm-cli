@@ -18,7 +18,6 @@ package tests
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -39,7 +38,7 @@ var _ = Describe("Plugin list", func() {
 		ctx = context.Background()
 
 		// Create a temporary directory for the plugins:
-		tmp, err = ioutil.TempDir("", "ocm-test-*.d")
+		tmp, err = os.MkdirTemp("", "ocm-test-*.d")
 		Expect(err).ToNot(HaveOccurred())
 
 		// Create a collection of empty scripts that will be used as plugins:

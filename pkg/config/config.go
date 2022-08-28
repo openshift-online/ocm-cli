@@ -22,7 +22,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -37,7 +36,7 @@ import (
 
 // Config is the type used to store the configuration of the client.
 // There's no way to line-split or predefine tags, so...
-//nolint:lll
+// nolint:lll
 type Config struct {
 	// TODO(efried): Better docs for things like AccessToken
 	// TODO(efried): Dedup with flag docs in cmd/ocm/login/cmd.go:init where possible
@@ -72,7 +71,7 @@ func Load() (cfg *Config, err error) {
 		return
 	}
 	// #nosec G304
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		err = fmt.Errorf("can't read config file '%s': %v", file, err)
 		return
@@ -104,7 +103,7 @@ func Save(cfg *Config) error {
 	if err != nil {
 		return fmt.Errorf("can't marshal config: %v", err)
 	}
-	err = ioutil.WriteFile(file, data, 0600)
+	err = os.WriteFile(file, data, 0600)
 	if err != nil {
 		return fmt.Errorf("can't write file '%s': %v", file, err)
 	}

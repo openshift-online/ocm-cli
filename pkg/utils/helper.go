@@ -3,8 +3,8 @@ package utils
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 )
 
 func ValidateHTTPProxy(val interface{}) error {
@@ -44,7 +44,7 @@ func ValidateAdditionalTrustBundle(val interface{}) error {
 		if additionalTrustBundleFile == "" {
 			return nil
 		}
-		cert, err := ioutil.ReadFile(additionalTrustBundleFile)
+		cert, err := os.ReadFile(additionalTrustBundleFile)
 		if err != nil {
 			return err
 		}

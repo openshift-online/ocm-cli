@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -118,7 +117,7 @@ func (r *CommandRunner) Run(ctx context.Context) *CommandResult {
 
 	// Create a temporary directory for the configuration file, so that we don't interfere with
 	// the configuration that may already exist for the user running the tests.
-	tmpDir, err := ioutil.TempDir("", "ocm-test-*.d")
+	tmpDir, err := os.MkdirTemp("", "ocm-test-*.d")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	defer func() {
 		err = os.RemoveAll(tmpDir)
@@ -128,7 +127,7 @@ func (r *CommandRunner) Run(ctx context.Context) *CommandResult {
 	// Create the configuration file:
 	configFile := filepath.Join(tmpDir, ".ocm.json")
 	if r.config != "" {
-		err = ioutil.WriteFile(configFile, []byte(r.config), 0600)
+		err = os.WriteFile(configFile, []byte(r.config), 0600)
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	}
 
@@ -196,7 +195,7 @@ func (r *CommandRunner) Run(ctx context.Context) *CommandResult {
 	}
 	var configData []byte
 	if configFile != "" {
-		configData, err = ioutil.ReadFile(configFile)
+		configData, err = os.ReadFile(configFile)
 		Expect(err).ToNot(HaveOccurred())
 	}
 

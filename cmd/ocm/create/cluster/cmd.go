@@ -19,7 +19,7 @@ package cluster
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -664,7 +664,7 @@ func promptClusterWideProxy() error {
 	// Get certificate contents
 	if args.clusterWideProxy.AdditionalTrustBundleFile != nil &&
 		*args.clusterWideProxy.AdditionalTrustBundleFile != "" {
-		cert, err := ioutil.ReadFile(*args.clusterWideProxy.AdditionalTrustBundleFile)
+		cert, err := os.ReadFile(*args.clusterWideProxy.AdditionalTrustBundleFile)
 		if err != nil {
 			return err
 		}
@@ -1050,7 +1050,7 @@ func constructGCPCredentials(filePath arguments.FilePath, value *c.CCS) error {
 		return err
 	}
 	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	byteValue, _ := io.ReadAll(jsonFile)
 	err = json.Unmarshal(byteValue, &value.GCP)
 	if err != nil {
 		return err
