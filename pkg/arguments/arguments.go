@@ -217,6 +217,16 @@ func AddClusterWideProxyFlags(fs *pflag.FlagSet, value *cluster.ClusterWideProxy
 	)
 	SetQuestion(fs, "https-proxy", "https-proxy:")
 
+	value.NoProxy = new(string)
+	fs.StringVar(
+		value.NoProxy,
+		"no-proxy",
+		"",
+		"A comma-separated list of destination domain names, domains, IP addresses or other network CIDRs to "+
+			"exclude proxying.",
+	)
+	SetQuestion(fs, "no-proxy", "no-proxy:")
+
 	value.AdditionalTrustBundleFile = new(string)
 	fs.StringVar(
 		value.AdditionalTrustBundleFile,

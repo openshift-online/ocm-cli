@@ -232,6 +232,10 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	if cluster.Proxy().HTTPSProxy() != "" {
 		fmt.Printf("HTTPSProxy:	        %s\n", cluster.Proxy().HTTPSProxy())
 	}
+
+	if cluster.Proxy().NoProxy() != "" {
+		fmt.Printf("NoProxy:	        %s\n", cluster.Proxy().NoProxy())
+	}
 	if cluster.AdditionalTrustBundle() != "" {
 		fmt.Printf("AdditionalTrustBundle:  %s\n", cluster.AdditionalTrustBundle())
 	}

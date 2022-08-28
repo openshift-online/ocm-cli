@@ -96,6 +96,7 @@ type ClusterWideProxy struct {
 	Enabled                   bool
 	HTTPProxy                 *string
 	HTTPSProxy                *string
+	NoProxy                   *string
 	AdditionalTrustBundleFile *string
 	AdditionalTrustBundle     *string
 }
@@ -388,6 +389,9 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 			if config.ClusterWideProxy.HTTPSProxy != nil && len(*config.ClusterWideProxy.HTTPSProxy) != 0 {
 				proxyBuilder.HTTPSProxy(*config.ClusterWideProxy.HTTPSProxy)
 			}
+			if config.ClusterWideProxy.NoProxy != nil && len(*config.ClusterWideProxy.NoProxy) != 0 {
+				proxyBuilder.NoProxy(*config.ClusterWideProxy.NoProxy)
+			}
 			clusterBuilder = clusterBuilder.Proxy(proxyBuilder)
 		}
 
@@ -443,7 +447,6 @@ func isGCPNetworkExists(existingVPC ExistingVPC) bool {
 }
 
 func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) error {
-
 	clusterBuilder := cmv1.NewCluster()
 
 	// Update expiration timestamp
@@ -475,14 +478,18 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 		clusterBuilder = clusterBuilder.Version(cmv1.NewVersion().ChannelGroup(config.ChannelGroup))
 	}
 
+	clusterProxyBuilder := cmv1.NewProxy()
 	if config.ClusterWideProxy.HTTPProxy != nil || config.ClusterWideProxy.HTTPSProxy != nil {
-		clusterProxyBuilder := cmv1.NewProxy()
 		if config.ClusterWideProxy.HTTPProxy != nil {
 			clusterProxyBuilder = clusterProxyBuilder.HTTPProxy(*config.ClusterWideProxy.HTTPProxy)
 		}
 		if config.ClusterWideProxy.HTTPSProxy != nil {
 			clusterProxyBuilder = clusterProxyBuilder.HTTPSProxy(*config.ClusterWideProxy.HTTPSProxy)
 		}
+		clusterBuilder = clusterBuilder.Proxy(clusterProxyBuilder)
+	}
+	if config.ClusterWideProxy.NoProxy != nil {
+		clusterProxyBuilder = clusterProxyBuilder.NoProxy(*config.ClusterWideProxy.NoProxy)
 		clusterBuilder = clusterBuilder.Proxy(clusterProxyBuilder)
 	}
 

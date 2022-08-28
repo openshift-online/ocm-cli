@@ -383,6 +383,12 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	if wasClusterWideProxyReceived() {
+		args.ccs.Enabled = true
+		args.existingVPC.Enabled = true
+		args.clusterWideProxy.Enabled = true
+	}
+
 	err = promptCCS(fs)
 	if err != nil {
 		return err
@@ -462,14 +468,6 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	args.existingVPC.Enabled = false
-	args.clusterWideProxy.Enabled = false
-	if wasClusterWideProxyReceived() {
-		args.ccs.Enabled = true
-		args.existingVPC.Enabled = true
-		args.clusterWideProxy.Enabled = true
 	}
 
 	if args.existingVPC.SubnetIDs != "" {
@@ -613,9 +611,7 @@ func promptClusterWideProxy() error {
 				}
 				args.existingVPC.Enabled = true
 			}
-		}
 
-		if args.clusterWideProxy.Enabled {
 			if args.clusterWideProxy.HTTPSProxy == nil {
 				args.clusterWideProxy.HTTPSProxy = new(string)
 			}
@@ -636,9 +632,40 @@ func promptClusterWideProxy() error {
 				}
 				args.existingVPC.Enabled = true
 			}
-		}
 
-		if args.clusterWideProxy.Enabled {
+			if args.clusterWideProxy.NoProxy == nil {
+				args.clusterWideProxy.NoProxy = new(string)
+			}
+			*args.clusterWideProxy.NoProxy, err = interactive.GetString(interactive.Input{
+				Question: "No Proxy",
+				Required: false,
+				Default:  *args.clusterWideProxy.NoProxy,
+			})
+			if err != nil {
+				return err
+			}
+			if len(*args.clusterWideProxy.NoProxy) == 0 {
+				args.clusterWideProxy.NoProxy = nil
+			} else {
+				if *args.clusterWideProxy.NoProxy != "" {
+					noProxyValues := strings.Split(*args.clusterWideProxy.NoProxy, ",")
+					err := utils.MatchNoPorxyRE(noProxyValues)
+					if err != nil {
+						return err
+					}
+
+					duplicate, found := utils.HasDuplicates(noProxyValues)
+					if found {
+						return fmt.Errorf("no-proxy values must be unique, duplicate key '%s' found", duplicate)
+					}
+					if args.clusterWideProxy.HTTPProxy == nil && args.clusterWideProxy.HTTPSProxy == nil &&
+						len(noProxyValues) > 0 {
+						return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy")
+					}
+				}
+				args.existingVPC.Enabled = true
+			}
+
 			if args.clusterWideProxy.AdditionalTrustBundleFile == nil {
 				args.clusterWideProxy.AdditionalTrustBundleFile = new(string)
 			}
@@ -661,6 +688,7 @@ func promptClusterWideProxy() error {
 			}
 		}
 	}
+
 	// Get certificate contents
 	if args.clusterWideProxy.AdditionalTrustBundleFile != nil &&
 		*args.clusterWideProxy.AdditionalTrustBundleFile != "" {
