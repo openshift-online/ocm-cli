@@ -20,7 +20,7 @@ package arguments
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"os"
 	"reflect"
@@ -339,12 +339,12 @@ func ApplyBodyFlag(request *sdk.Request, value string) error {
 	var err error
 	if value != "" {
 		// #nosec G304
-		body, err = ioutil.ReadFile(value)
+		body, err = os.ReadFile(value)
 	} else {
 		if output.IsTerminal(os.Stdin) && output.IsTerminal(os.Stderr) {
 			fmt.Fprintln(os.Stderr, "No --body file specified, reading request body from stdin:")
 		}
-		body, err = ioutil.ReadAll(os.Stdin)
+		body, err = io.ReadAll(os.Stdin)
 	}
 	if err != nil {
 		return err

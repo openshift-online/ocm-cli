@@ -19,7 +19,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -155,7 +154,7 @@ func findPlugins() (result []Plugin, err error) {
 
 // listPlugins scans the given directory looking for files that are plugins.
 func listPlugins(dir string) (result []Plugin, err error) {
-	items, err := ioutil.ReadDir(dir)
+	items, err := os.ReadDir(dir)
 	if err != nil {
 		return
 	}

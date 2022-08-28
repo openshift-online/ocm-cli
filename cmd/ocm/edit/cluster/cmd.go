@@ -15,7 +15,7 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -235,7 +235,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	if clusterWideProxy.AdditionalTrustBundleFile != nil {
 		if len(*additionalTrustBundleFile) > 0 {
-			cert, err := ioutil.ReadFile(*additionalTrustBundleFile)
+			cert, err := os.ReadFile(*additionalTrustBundleFile)
 			if err != nil {
 				return fmt.Errorf("Failed to read additional trust bundle file: %s", err)
 			}
