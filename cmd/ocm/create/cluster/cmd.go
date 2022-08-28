@@ -884,6 +884,9 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			}
 		}
 		if !verifiedVPCName {
+			if wasClusterWideProxyReceived() && args.existingVPC.VPCName == "" {
+				return fmt.Errorf("Please provide vpc name")
+			}
 			return fmt.Errorf("Could not find the following vpc name provided: %s", args.existingVPC.VPCName)
 		}
 
