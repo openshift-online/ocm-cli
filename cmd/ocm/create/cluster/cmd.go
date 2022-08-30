@@ -688,6 +688,11 @@ func promptClusterWideProxy() error {
 			}
 		}
 	}
+	if (args.clusterWideProxy.HTTPProxy != nil && *args.clusterWideProxy.HTTPProxy == "") &&
+		(args.clusterWideProxy.HTTPSProxy != nil && *args.clusterWideProxy.HTTPSProxy == "") &&
+		(args.clusterWideProxy.NoProxy != nil && *args.clusterWideProxy.NoProxy != "") {
+		return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy")
+	}
 
 	// Get certificate contents
 	if args.clusterWideProxy.AdditionalTrustBundleFile != nil &&
