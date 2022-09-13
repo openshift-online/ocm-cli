@@ -16,10 +16,11 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -43,7 +44,7 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "cluster --cluster={NAME|ID|EXTERNAL_ID}",
+	Use:   "cluster [flags] {NAME|ID|EXTERNAL_ID}",
 	Short: "Edit cluster",
 	Long:  "Edit cluster.",
 	Example: `  # Edit a cluster named "mycluster" to make it private
@@ -54,16 +55,6 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-
-	flags.StringVarP(
-		&args.clusterKey,
-		"cluster",
-		"c",
-		"",
-		"Name or ID or external_id of the cluster.",
-	)
-	//nolint:gosec
-	Cmd.MarkFlagRequired("cluster")
 
 	// Basic options
 	flags.StringVar(
@@ -145,10 +136,18 @@ func wasClusterWideProxyReceived(httpProxy, httpsProxy, noProxy, additionalTrust
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	// Check that there is exactly one cluster name, identifir or external identifier in the
+	// command line arguments:
+	if len(argv) != 1 {
+		return fmt.Errorf(
+			"Expected exactly one cluster name, identifier or external identifier " +
+				"is required",
+		)
+	}
 
-	//Check that the cluster key (name, identifier or external identifier) given by the user
-	//is reasonably safe so that there is no risk of SQL injection:
-	clusterKey := args.clusterKey
+	// Check that the cluster key (name, identifier or external identifier) given by the user
+	// is reasonably safe so that there is no risk of SQL injection:
+	clusterKey := argv[0]
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
 			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
