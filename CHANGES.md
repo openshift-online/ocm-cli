@@ -15,7 +15,7 @@ This document describes the relevant changes between releases of the
 - Added name = '%s'
 - network: Ensure there is no default network type
 - Removed DisplayName/display_name from cluster
-- Merge pull request #397 from luis-falcon/OSD-11991-adding-getlimitedsupportreasons
+- Merge pull request 397 from luis-falcon/OSD-11991-adding-getlimitedsupportreasons
 - added GetLimitedSupportReasons function to allow cluster objects to access them easier
 
 ## 0.1.64 Jul 6 2022
