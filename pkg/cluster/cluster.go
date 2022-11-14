@@ -148,7 +148,7 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 
 	// Try to find a matching subscription:
 	subsSearch := fmt.Sprintf(
-		"(name = '%s' or cluster_id = '%s' or external_cluster_id = '%s') and "+
+		"(display_name = '%s' or cluster_id = '%s' or external_cluster_id = '%s') and "+
 			"status in ('Reserved', 'Active')",
 		key, key, key,
 	)
