@@ -15,7 +15,6 @@ package cluster
 
 import (
 	"fmt"
-
 	"os"
 	"strings"
 	"time"
@@ -29,8 +28,6 @@ import (
 )
 
 var args struct {
-	clusterKey string
-
 	// Basic options
 	expirationTime     string
 	expirationDuration time.Duration
@@ -49,7 +46,6 @@ var Cmd = &cobra.Command{
 	Long:  "Edit cluster.",
 	Example: `  # Edit a cluster named "mycluster" to make it private
   ocm edit cluster mycluster --private`,
-	Args: cobra.NoArgs,
 	RunE: run,
 }
 
