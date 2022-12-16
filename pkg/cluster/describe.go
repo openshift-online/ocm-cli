@@ -157,6 +157,18 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		isExistingVPC = "true"
 	}
 
+	// Check Hypershift-related values
+	mgmtCluster := ""
+	if cluster.Hypershift().Enabled() {
+		// Ignorning the error here as this endpoint is behind a specific permissioon
+		hypershiftResp, _ := connection.ClustersMgmt().V1().Clusters().
+			Cluster(cluster.ID()).
+			Hypershift().
+			Get().
+			Send()
+		mgmtCluster = hypershiftResp.Body().ManagementCluster()
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:			%s\n"+
@@ -225,6 +237,10 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	)
 	if shard != "" {
 		fmt.Printf("Shard:			%v\n", shard)
+	}
+	// This should be mutually exclusive with shard as it's hypershift specific
+	if mgmtCluster != "" {
+		fmt.Printf("Management Cluster:     %s\n", mgmtCluster)
 	}
 	if cluster.Proxy().HTTPProxy() != "" {
 		fmt.Printf("HTTPProxy:	        %s\n", cluster.Proxy().HTTPProxy())
