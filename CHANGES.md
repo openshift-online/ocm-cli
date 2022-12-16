@@ -3,6 +3,25 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.65 Dec 16 2022
+
+- added GetLimitedSupportReasons function to allow cluster objects to access them easier
+- Removed DisplayName/display_name from cluster
+- network: Ensure there is no default network type
+- Added name = '%s'
+- Bump golang dependencies
+- Upgrade linter version
+- Fix linting errors
+- Add no-proxy attribute to OCM-CLI
+- adding an error when proxy is set for non byo-vpc cluster creation
+- Add validationn when user creates a cluster onlt with no-proxy (non-interacitve mode)
+- Swap flags to match usage
+- Bump golang dependencies
+- Fix GetCluster AMS search
+- Fix edit cluster command
+- Bump dependencies on ocm-sdk-go and rosa
+- Add field for Management Cluster in describe cluster for hypershift clusters
+
 ## 0.1.64 Jul 6 2022
 
 - Add extra scopes support for OpenID IDP
