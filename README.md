@@ -22,7 +22,6 @@ mechanism used to update all the other packages of the distribution.
 ### MacOS Brew
 
 ```
-$ brew tap cblecker/tap
 $ brew install ocm
 ```
 
@@ -81,7 +80,7 @@ $ ocm login --token=eyJ...
 
 This will use the provided token to request _OpenID_ access and refresh tokens
 to _sso.redhat.com_. The tokens will be saved for future use to the
-`~/.config/ocm/ocm.json` file. 
+`~/.config/ocm/ocm.json` file.
 
 Note: MacOS store the token at `~/Library/Application\ Support/ocm/ocm.json`
 
