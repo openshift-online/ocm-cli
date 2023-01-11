@@ -1,25 +1,25 @@
 module github.com/openshift-online/ocm-cli
 
-go 1.17
+go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
-	github.com/golang-jwt/jwt/v4 v4.4.2
+	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/golang/glog v1.0.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/m1/go-generate-password v0.2.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nwidger/jsoncolor v0.3.1
-	github.com/onsi/ginkgo/v2 v2.2.0
-	github.com/onsi/gomega v1.20.2
-	github.com/openshift-online/ocm-sdk-go v0.1.301
-	github.com/openshift/rosa v1.2.10
+	github.com/onsi/ginkgo/v2 v2.7.0
+	github.com/onsi/gomega v1.24.2
+	github.com/openshift-online/ocm-sdk-go v0.1.306
+	github.com/openshift/rosa v1.2.11
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/pflag v1.0.5
 	gitlab.com/c0b/go-ordered-json v0.0.0-20201030195603-febf46534d5a
-	golang.org/x/term v0.0.0-20220919170432-7a66f970e087
-	golang.org/x/text v0.3.7
+	golang.org/x/term v0.3.0
+	golang.org/x/text v0.5.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.24.3
 )
@@ -33,6 +33,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -65,8 +66,8 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/zgalor/weberr v0.7.0 // indirect
-	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be // indirect
-	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect
-	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
+	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/net v0.4.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )
