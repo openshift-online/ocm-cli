@@ -41,10 +41,14 @@ $ chmod +x ~/bin/ocm
 ```
 
 Finally, if none of the installation options described above work for you then
-you can install it using `go get`:
+you can install it using `go get` or `go install`:
 
 ```
 $ go get -u github.com/openshift-online/ocm-cli/cmd/ocm
+```
+or
+```
+$ go install github.com/openshift-online/ocm-cli/cmd/ocm@latest
 ```
 
 But take into account that the results of installing with `go get` depend on the
