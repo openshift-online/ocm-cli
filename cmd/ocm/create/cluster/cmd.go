@@ -435,10 +435,6 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	if args.private && args.provider != c.ProviderAWS {
-		return fmt.Errorf("Setting cluster as private is not supported for cloud provider '%s'", args.provider)
-	}
-
 	// Compute node instance type:
 	machineTypes, err := getMachineTypeOptions(connection)
 	if err != nil {

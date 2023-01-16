@@ -112,11 +112,6 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
 	}
 
-	if cluster.CloudProvider().ID() != "aws" {
-		return fmt.Errorf(
-			"Creating ingresses is not supported for cloud provider '%s'", cluster.CloudProvider().ID())
-	}
-
 	if cluster.State() != cmv1.ClusterStateReady {
 		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
 	}
