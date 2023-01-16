@@ -164,7 +164,7 @@ to diagnose authentication issues.
 If you've compromised your offline token, you can get it revoked like this:
 
 1. Make sure you're logged into OCM with your browser.
-2. Go [here](https://sso.redhat.com/auth/realms/redhat-external/account/applications).
+2. Go [here](https://sso.redhat.com/auth/realms/redhat-external/account/#/applications).
 3. Click REVOKE GRANT for the application _cloud-services_.
 
 If you now follow the log in procedure new tokens will be generated.
