@@ -13,7 +13,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.8.0
 	github.com/onsi/gomega v1.26.0
 	github.com/openshift-online/ocm-sdk-go v0.1.316
-	github.com/openshift/rosa v1.2.11
+	github.com/openshift/rosa v1.2.15
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
