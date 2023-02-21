@@ -157,17 +157,8 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		isExistingVPC = "true"
 	}
 
-	// Check Hypershift-related values
-	mgmtCluster := ""
-	if cluster.Hypershift().Enabled() {
-		// Ignorning the error here as this endpoint is behind a specific permissioon
-		hypershiftResp, _ := connection.ClustersMgmt().V1().Clusters().
-			Cluster(cluster.ID()).
-			Hypershift().
-			Get().
-			Send()
-		mgmtCluster = hypershiftResp.Body().ManagementCluster()
-	}
+	// Parse Hypershift-related values
+	mgmtClusterName, svcClusterName := findHyperShiftMgmtSvcClusters(connection, cluster)
 
 	// Print short cluster description:
 	fmt.Printf("\n"+
@@ -235,26 +226,35 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
+
+	// Hive
 	if shard != "" {
 		fmt.Printf("Shard:			%v\n", shard)
 	}
-	// This should be mutually exclusive with shard as it's hypershift specific
-	if mgmtCluster != "" {
-		fmt.Printf("Management Cluster:     %s\n", mgmtCluster)
+
+	// HyperShift (should be mutually exclusive with Hive)
+	if mgmtClusterName != "" {
+		fmt.Printf("Management Cluster:     %s\n", mgmtClusterName)
 	}
+	if svcClusterName != "" {
+		fmt.Printf("Service Cluster:        %s\n", svcClusterName)
+	}
+
+	// Cluster-wide-proxy
 	if cluster.Proxy().HTTPProxy() != "" {
 		fmt.Printf("HTTPProxy:	        %s\n", cluster.Proxy().HTTPProxy())
 	}
 	if cluster.Proxy().HTTPSProxy() != "" {
 		fmt.Printf("HTTPSProxy:	        %s\n", cluster.Proxy().HTTPSProxy())
 	}
-
 	if cluster.Proxy().NoProxy() != "" {
 		fmt.Printf("NoProxy:	        %s\n", cluster.Proxy().NoProxy())
 	}
 	if cluster.AdditionalTrustBundle() != "" {
 		fmt.Printf("AdditionalTrustBundle:  %s\n", cluster.AdditionalTrustBundle())
 	}
+
+	// GCP
 	if cluster.GCPNetwork().VPCName() != "" {
 		fmt.Printf("VPC-Name:	        %s\n", cluster.GCPNetwork().VPCName())
 	}
@@ -264,6 +264,8 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	if cluster.GCPNetwork().ComputeSubnet() != "" {
 		fmt.Printf("Compute-Subnet:	        %s\n", cluster.GCPNetwork().ComputeSubnet())
 	}
+
+	// Limited Support Status
 	if cluster.Status().LimitedSupportReasonCount() > 0 {
 		fmt.Printf("Limited Support:	%t\n", cluster.Status().LimitedSupportReasonCount() > 0)
 	}
@@ -271,4 +273,38 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	fmt.Println()
 
 	return nil
+}
+
+// findHyperShiftMgmtSvcClusters returns the name of a HyperShift cluster's management and service clusters.
+// It essentially ignores error as these endpoint is behind specific permissions by returning empty strings when any
+// errors are encountered, which results in them not being printed in the output.
+func findHyperShiftMgmtSvcClusters(conn *sdk.Connection, cluster *cmv1.Cluster) (string, string) {
+	if !cluster.Hypershift().Enabled() {
+		return "", ""
+	}
+
+	hypershiftResp, err := conn.ClustersMgmt().V1().Clusters().
+		Cluster(cluster.ID()).
+		Hypershift().
+		Get().
+		Send()
+	if err != nil {
+		return "", ""
+	}
+
+	mgmtClusterName := hypershiftResp.Body().ManagementCluster()
+	fmMgmtResp, err := conn.OSDFleetMgmt().V1().ManagementClusters().
+		List().
+		Parameter("search", fmt.Sprintf("name='%s'", mgmtClusterName)).
+		Send()
+	if err != nil {
+		return mgmtClusterName, ""
+	}
+
+	if kind := fmMgmtResp.Items().Get(0).Parent().Kind(); kind == "ServiceCluster" {
+		return mgmtClusterName, fmMgmtResp.Items().Get(0).Parent().Name()
+	}
+
+	// Shouldn't normally happen as every management cluster should have a service cluster
+	return mgmtClusterName, ""
 }
