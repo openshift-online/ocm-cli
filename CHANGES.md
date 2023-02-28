@@ -3,6 +3,31 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.66 Feb 28 2023
+
+- docs: update the installation w/ 'go install'
+- Update brew installation instructions
+- Add dependabot config
+- Update github actions
+- Upgrade dependencies
+- Bump github.com/spf13/cobra from 1.5.0 to 1.6.1
+- Bump github.com/openshift-online/ocm-sdk-go from 0.1.306 to 0.1.308
+- Update revocation link
+- Remove validation for GCP+private clusters
+- Add build artifact for darwin/arm64
+- Bump k8s.io/apimachinery from 0.24.3 to 0.26.1
+- Bump github.com/onsi/gomega from 1.24.2 to 1.25.0
+- Bump github.com/onsi/ginkgo/v2 from 2.7.0 to 2.8.0
+- Bump golang.org/x/text from 0.6.0 to 0.7.0
+- Bump golang.org/x/term from 0.4.0 to 0.5.0
+- Bump github.com/onsi/gomega from 1.25.0 to 1.26.0
+- Bump github.com/openshift-online/ocm-sdk-go from 0.1.308 to 0.1.316
+- Bump github.com/openshift/rosa from 1.2.11 to 1.2.15
+- Bump golang.org/x/net from 0.5.0 to 0.7.0
+- Bump github.com/golang-jwt/jwt/v4 from 4.4.3 to 4.5.0
+- Return the service cluster associated with a hypershift cluster in ocm describe cluster
+- Bump github.com/onsi/gomega from 1.26.0 to 1.27.1
+
 ## 0.1.65 Dec 16 2022
 
 - added GetLimitedSupportReasons function to allow cluster objects to access them easier
