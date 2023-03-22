@@ -165,10 +165,12 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"ID:			%s\n"+
 		"External ID:		%s\n"+
 		"Name:			%s\n"+
+		"Display Name:		%s\n"+
 		"State:			%s\n",
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
+		sub.DisplayName(),
 		cluster.State(),
 	)
 	if cluster.Status().State() == cmv1.ClusterStateError {
