@@ -10,8 +10,8 @@ require (
 	github.com/m1/go-generate-password v0.2.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nwidger/jsoncolor v0.3.1
-	github.com/onsi/ginkgo/v2 v2.9.1
-	github.com/onsi/gomega v1.27.3
+	github.com/onsi/ginkgo/v2 v2.9.2
+	github.com/onsi/gomega v1.27.5
 	github.com/openshift-online/ocm-sdk-go v0.1.318
 	github.com/openshift/rosa v1.2.15
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
@@ -34,7 +34,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
