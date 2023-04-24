@@ -105,8 +105,8 @@ var _ = Describe("List clusters", func() {
 					`{
 						"kind": "ClusterList",
 						"page": 1,
-						"size": 2,
-						"total": 2,
+						"size": 3,
+						"total": 3,
 						"items": [
 							{
 								"kind": "Cluster",
@@ -131,6 +131,9 @@ var _ = Describe("List clusters", func() {
 									"kind": "CloudRegion",
 									"id": "us-east-1",
 									"href": "/api/clusters_mgmt/v1/cloud_providers/aws/us-east-1"
+								},
+								"hypershift": {
+									"enabled": false
 								},
 								"state": "ready"
 							},
@@ -158,7 +161,39 @@ var _ = Describe("List clusters", func() {
 									"id": "us-west1",
 									"href": "/api/clusters_mgmt/v1/cloud_providers/gcp/us-west1"
 								},
+								"hypershift": {
+									"enabled": false
+								},
 								"state": "installing"
+							},
+							{
+								"kind": "Cluster",
+								"id": "789",
+								"href": "/api/clusters_mgmt/v1/clusters/789",
+								"name": "their_cluster",
+								"api": {
+									"url": "http://api.their-cluster.com"
+								},
+								"openshift_version": "4.12",
+								"product": {
+									"kind": "ProductLink",
+									"id": "rosa",
+									"href": "/api/clusters_mgmt/v1/products/rosa"
+								},
+								"cloud_provider": {
+									"kind": "CloudProviderLink",
+									"id": "aws",
+									"href": "/api/clusters_mgmt/v1/cloud_providers/aws"
+								},
+								"region": {
+									"kind": "CloudRegion",
+									"id": "us-east-2",
+									"href": "/api/clusters_mgmt/v1/cloud_providers/aws/us-east-2"
+								},
+								"hypershift": {
+									"enabled": true
+								},
+								"state": "ready"
 							}
 						]
 					}`,
@@ -173,15 +208,18 @@ var _ = Describe("List clusters", func() {
 			Expect(result.ExitCode()).To(BeZero())
 			Expect(result.ErrString()).To(BeEmpty())
 			lines := result.OutLines()
-			Expect(lines).To(HaveLen(3))
+			Expect(lines).To(HaveLen(4))
 			Expect(lines[0]).To(MatchRegexp(
-				`^\s*ID\s+NAME\s+API URL\s+OPENSHIFT_VERSION\s+PRODUCT ID\s+CLOUD_PROVIDER\s+REGION ID\s+STATE\s*$`,
+				`^\s*ID\s+NAME\s+API URL\s+OPENSHIFT_VERSION\s+PRODUCT ID\s+HCP\s+CLOUD_PROVIDER\s+REGION ID\s+STATE\s*$`,
 			))
 			Expect(lines[1]).To(MatchRegexp(
-				`^\s*123\s+my_cluster\s+http://api.my-cluster.com\s+4\.7\s+osd\s+aws\s+us-east-1\s+ready\s*$`,
+				`^\s*123\s+my_cluster\s+http://api.my-cluster.com\s+4\.7\s+osd\s+false\s+aws\s+us-east-1\s+ready\s*$`,
 			))
 			Expect(lines[2]).To(MatchRegexp(
-				`^\s*456\s+your_cluster\s+http://api.your-cluster.com\s+4\.8\s+ocp\s+gcp\s+us-west1\s+installing\s*$`,
+				`^\s*456\s+your_cluster\s+http://api.your-cluster.com\s+4\.8\s+ocp\s+false\s+gcp\s+us-west1\s+installing\s*$`,
+			))
+			Expect(lines[3]).To(MatchRegexp(
+				`^\s*789\s+their_cluster\s+http://api.their-cluster.com\s+4\.12\s+rosa\s+true\s+aws\s+us-east-2\s+ready\s*$`,
 			))
 		})
 
