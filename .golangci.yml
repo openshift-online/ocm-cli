@@ -8,7 +8,6 @@ issues:
 linters:
   disable-all: true
   enable:
-    - deadcode
     - gas
     - goconst
     - gofmt
@@ -17,12 +16,11 @@ linters:
     - lll
     - megacheck
     - misspell
-    - structcheck
     - staticcheck
     - unconvert
-    - varcheck
+    - unused
 linters-settings:
   staticcheck:
-    go: "1.17"
+    go: "1.18"
   goconst:
     min-len: 4 # ignore "gcp" and "aws"
