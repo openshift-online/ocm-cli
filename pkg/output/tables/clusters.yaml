@@ -29,7 +29,10 @@ columns:
   width: 18
 - name: product.id
   header: PRODUCT ID
-  width: 14
+  width: 10
+- name: hypershift.enabled
+  header: HCP
+  width: 7
 - name: cloud_provider.id
   header: CLOUD_PROVIDER
   width: 14

@@ -191,6 +191,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Region:			%s\n"+
 		"Multi-az:		%t\n"+
 		"CCS:			%t\n"+
+		"HCP:			%t\n"+
 		"Subnet IDs:		%s\n"+
 		"PrivateLink:		%t\n"+
 		"STS:			%t\n"+
@@ -215,6 +216,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
 		cluster.CCS().Enabled(),
+		cluster.Hypershift().Enabled(),
 		cluster.AWS().SubnetIDs(),
 		privateLinkEnabled,
 		stsEnabled,
