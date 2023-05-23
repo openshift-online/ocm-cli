@@ -426,6 +426,9 @@ fi
 # Set the version to use:
 version="${ref:1}"
 
+# Set the date:
+date=$(date +'%a %b %d %Y')
+
 # Generate the .spec file:
 cat > ocm-cli.spec.in <<"."
 %global debug_package %{nil}
@@ -440,8 +443,8 @@ Source: https://github.com/openshift-online/ocm-cli/archive/v@version@.tar.gz
 
 # We need to download Go explicitly because in most of the platforms that we
 # use the version available is too old.
-%define go_tar https://golang.org/dl/go1.16.8.linux-amd64.tar.gz
-%define go_sum f32501aeb8b7b723bc7215f6c373abb6981bbc7e1c7b44e9f07317e1a300dce2
+%define go_tar https://go.dev/dl/go1.20.4.linux-amd64.tar.gz
+%define go_sum 698ef3243972a51ddb4028e4a1ac63dc6d60821bf18e59a807e051fee0a385bd
 
 BuildRequires: curl
 BuildRequires: git
@@ -473,13 +476,25 @@ make
 install -m 0755 -d %{buildroot}%{_bindir}
 install -m 0755 ocm %{buildroot}%{_bindir}
 
+%clean
+# This is necessary because Go writes its cache files and directories without
+# write permission, and that means that a rgular `rm` can't remove them.
+find .gopath -exec chmod +w {} \;
+rm -rf .gopath
+
 %files
 %license LICENSE.txt
 %doc README.md
+%doc CHANGES.md
 %{_bindir}/*
+
+%changelog
+* @date@ OCM <noreply@redhat.com> - @version@
+- Automatic build for version @version@.
 .
 sed \
   -e "s/@version@/${version}/g" \
+  -e "s/@date@/${date}/g" \
   < ocm-cli.spec.in \
   > ocm-cli.spec
 
@@ -491,7 +506,21 @@ If this script needs to be changed you will need to go to the _copr_ user
 interface and update it manually.
 
 The _GitHub_ repository is configured with a webhook that will trigger the
-_copr_ build when a new tag is pushed to the repository.
+_copr_ build when a new tag is pushed to the repository. If you need to trigger
+the build manually you can get the URL of that webhook from the _copr_ page and
+then do something like this:
+
+```
+curl \
+--request POST \
+--header "Content-Type: application/json" \
+--header "Accept: application/json" \
+--data '{
+  "ref_type": "tag",
+  "ref": "v0.1.66"
+}' \
+--url "https://copr.fedorainfracloud.org/webhooks/custom/.../ocm-cli/"
+```
 
 The _build dependencies_ section of the _copr_ configuration should include the
 `jq` package is it is needed to extract the version number from the payload of
