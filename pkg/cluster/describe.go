@@ -160,25 +160,35 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	// Parse Hypershift-related values
 	mgmtClusterName, svcClusterName := findHyperShiftMgmtSvcClusters(connection, cluster)
 
+	provisioningStatus := ""
+	if cluster.Status().State() == cmv1.ClusterStateError && cluster.Status().ProvisionErrorCode() != "" {
+		provisioningStatus = fmt.Sprintf("(%s - %s)",
+			cluster.Status().ProvisionErrorCode(),
+			cluster.Status().ProvisionErrorMessage(),
+		)
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:			%s\n"+
 		"External ID:		%s\n"+
 		"Name:			%s\n"+
 		"Display Name:		%s\n"+
-		"State:			%s\n",
+		"State:			%s %s\n",
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
 		sub.DisplayName(),
 		cluster.State(),
+		provisioningStatus,
 	)
-	if cluster.Status().State() == cmv1.ClusterStateError {
-		fmt.Printf("Details:		%s - %s\n",
-			cluster.Status().ProvisionErrorCode(),
-			cluster.Status().ProvisionErrorMessage(),
+
+	if cluster.Status().Description() != "" {
+		fmt.Printf("Details:		%s\n",
+			cluster.Status().Description(),
 		)
 	}
+
 	fmt.Printf("API URL:		%s\n"+
 		"API Listening:		%s\n"+
 		"Console URL:		%s\n"+
