@@ -3,6 +3,24 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.67 Jun 14 2023
+
+- Bump github.com/onsi/ginkgo/v2 from 2.8.1 to 2.9.1
+- Add display name to describe output
+- Bump github.com/onsi/gomega from 1.27.3 to 1.27.6
+- Update linting configuration
+- Add HCP status to list/describe output
+- Bump k8s.io/apimachinery from 0.26.1 to 0.27.1
+- Bump github.com/openshift/rosa from 1.2.15 to 1.2.17
+- Bump golang.org/x/term from 0.6.0 to 0.7.0
+- Bump github.com/spf13/cobra from 1.6.1 to 1.7.0
+- Update _copr_ build instructions
+- Bump github.com/onsi/ginkgo/v2 from 2.9.2 to 2.9.7
+- Bump k8s.io/apimachinery from 0.27.1 to 0.27.2
+- Bump github.com/openshift-online/ocm-sdk-go from 0.1.330 to 0.1.344
+- Bump github.com/openshift/rosa from 1.2.17 to 1.2.22
+- OCM-2177 | Add additional status details to the describe cluster output
+
 ## 0.1.66 Feb 28 2023
 
 - docs: update the installation w/ 'go install'
