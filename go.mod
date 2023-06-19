@@ -3,7 +3,7 @@ module github.com/openshift-online/ocm-cli
 go 1.18
 
 require (
-	github.com/AlecAivazis/survey/v2 v2.3.6
+	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/golang/glog v1.0.0
 	github.com/hashicorp/go-version v1.6.0
