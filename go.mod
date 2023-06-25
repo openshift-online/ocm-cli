@@ -11,7 +11,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/onsi/ginkgo/v2 v2.9.7
-	github.com/onsi/gomega v1.27.7
+	github.com/onsi/gomega v1.27.8
 	github.com/openshift-online/ocm-sdk-go v0.1.348
 	github.com/openshift/rosa v1.2.22
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
