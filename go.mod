@@ -13,7 +13,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8
 	github.com/openshift-online/ocm-sdk-go v0.1.349
-	github.com/openshift/rosa v1.2.22
+	github.com/openshift/rosa v1.2.23
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
@@ -67,6 +67,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/zgalor/weberr v0.7.0 // indirect
