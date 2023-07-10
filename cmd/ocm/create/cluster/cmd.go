@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/ingress"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -36,6 +37,13 @@ import (
 	"github.com/openshift/rosa/pkg/interactive"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+)
+
+const (
+	defaultIngressRouteSelectorFlag            = "default-ingress-route-selector"
+	defaultIngressExcludedNamespacesFlag       = "default-ingress-excluded-namespaces"
+	defaultIngressWildcardPolicyFlag           = "default-ingress-wildcard-policy"
+	defaultIngressNamespaceOwnershipPolicyFlag = "default-ingress-namespace-ownership-policy"
 )
 
 var args struct {
@@ -72,6 +80,12 @@ var args struct {
 	machineCIDR net.IPNet
 	serviceCIDR net.IPNet
 	podCIDR     net.IPNet
+
+	// Default Ingress Attributes
+	defaultIngressRouteSelectors           string
+	defaultIngressExcludedNamespaces       string
+	defaultIngressWildcardPolicy           string
+	defaultIngressNamespaceOwnershipPolicy string
 }
 
 const clusterNameHelp = "will be used when generating a sub-domain for your cluster on openshiftapps.com."
@@ -254,6 +268,37 @@ func init() {
 		0,
 		"Subnet prefix length to assign to each individual node. For example, if host prefix is set "+
 			"to \"23\", then each node is assigned a /23 subnet out of the given CIDR.",
+	)
+
+	fs.StringVar(
+		&args.defaultIngressRouteSelectors,
+		defaultIngressRouteSelectorFlag,
+		"",
+		"Route Selector for ingress. Format should be a comma-separated list of 'key=value'. "+
+			"If no label is specified, all routes will be exposed on both routers.",
+	)
+
+	fs.StringVar(
+		&args.defaultIngressExcludedNamespaces,
+		defaultIngressExcludedNamespacesFlag,
+		"",
+		"Excluded namespaces for ingress. Format should be a comma-separated list 'value1, value2...'. "+
+			"If no values are specified, all namespaces will be exposed.",
+	)
+
+	fs.StringVar(
+		&args.defaultIngressWildcardPolicy,
+		defaultIngressWildcardPolicyFlag,
+		"",
+		fmt.Sprintf("Wildcard Policy for ingress. Options are %s", strings.Join(ingress.ValidWildcardPolicies, ",")),
+	)
+
+	fs.StringVar(
+		&args.defaultIngressNamespaceOwnershipPolicy,
+		defaultIngressNamespaceOwnershipPolicyFlag,
+		"",
+		fmt.Sprintf("Namespace Ownership Policy for ingress. Options are %s",
+			strings.Join(ingress.ValidNamespaceOwnershipPolicies, ",")),
 	)
 }
 
@@ -503,6 +548,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	defaultIngress, err := buildDefaultIngressSpec()
+	if err != nil {
+		return err
+	}
+
 	clusterConfig := c.Spec{
 		Name:               args.clusterName,
 		Region:             args.region,
@@ -525,6 +575,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		HostPrefix:         args.hostPrefix,
 		Private:            &args.private,
 		EtcdEncryption:     args.etcdEncryption,
+		DefaultIngress:     defaultIngress,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
@@ -545,6 +596,34 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	return nil
+}
+
+func buildDefaultIngressSpec() (c.DefaultIngressSpec, error) {
+	defaultIngress := c.NewDefaultIngressSpec()
+	if args.defaultIngressRouteSelectors != "" {
+		routeSelectors := make(map[string]string)
+		for _, labelMatch := range strings.Split(args.defaultIngressRouteSelectors, ",") {
+			if !strings.Contains(labelMatch, "=") {
+				return defaultIngress, fmt.Errorf("Expected key=value format for label-match")
+			}
+			tokens := strings.Split(labelMatch, "=")
+			routeSelectors[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+		}
+		defaultIngress.RouteSelectors = routeSelectors
+	}
+
+	if args.defaultIngressExcludedNamespaces != "" {
+		defaultIngress.ExcludedNamespaces = strings.Split(args.defaultIngressExcludedNamespaces, ",")
+	}
+
+	if args.defaultIngressWildcardPolicy != "" {
+		defaultIngress.WildcardPolicy = args.defaultIngressWildcardPolicy
+	}
+
+	if args.defaultIngressNamespaceOwnershipPolicy != "" {
+		defaultIngress.NamespaceOwnershipPolicy = args.defaultIngressNamespaceOwnershipPolicy
+	}
+	return defaultIngress, nil
 }
 
 func wasClusterWideProxyReceived() bool {
