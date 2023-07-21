@@ -166,8 +166,7 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 
 	// Try to find a matching subscription:
 	subsSearch := fmt.Sprintf(
-		"(display_name = '%s' or cluster_id = '%s' or external_cluster_id = '%s') and "+
-			"status in ('Reserved', 'Active')",
+		"(display_name = '%s' or cluster_id = '%s' or external_cluster_id = '%s')",
 		key, key, key,
 	)
 	subsListResponse, err := subsResource.List().
@@ -182,7 +181,14 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 	// If there is exactly one matching subscription then return the corresponding cluster:
 	subsTotal := subsListResponse.Total()
 	if subsTotal == 1 {
-		id, ok := subsListResponse.Items().Slice()[0].GetClusterID()
+		sub := subsListResponse.Items().Slice()[0]
+		status, ok := sub.GetStatus()
+		subID, _ := sub.GetID()
+		if !ok || (status != "Reserved" && status != "Active") {
+			err = fmt.Errorf("Cluster was %s, see `ocm get subscription %s` for details", status, subID)
+			return
+		}
+		id, ok := sub.GetClusterID()
 		if ok {
 			var clusterGetResponse *cmv1.ClusterGetResponse
 			clusterGetResponse, err = clustersResource.Cluster(id).Get().
