@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -37,6 +38,20 @@ const (
 	NetworkTypeSDN = "OpenShiftSDN"
 	NetworkTypeOVN = "OVNKubernetes"
 )
+
+type DefaultIngressSpec struct {
+	RouteSelectors           map[string]string
+	ExcludedNamespaces       []string
+	WildcardPolicy           string
+	NamespaceOwnershipPolicy string
+}
+
+func NewDefaultIngressSpec() DefaultIngressSpec {
+	defaultIngressSpec := DefaultIngressSpec{}
+	defaultIngressSpec.RouteSelectors = map[string]string{}
+	defaultIngressSpec.ExcludedNamespaces = []string{}
+	return defaultIngressSpec
+}
 
 // Spec is the configuration for a cluster spec.
 type Spec struct {
@@ -69,6 +84,9 @@ type Spec struct {
 
 	// Properties
 	CustomProperties map[string]string
+
+	// Default Ingress Attributes
+	DefaultIngress DefaultIngressSpec
 }
 
 type Autoscaling struct {
@@ -415,6 +433,24 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 			clusterNodesBuilder = clusterNodesBuilder.AvailabilityZones(strings.Split(availabilityZones, ",")...)
 		}
 		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
+	}
+
+	if !reflect.DeepEqual(config.DefaultIngress, NewDefaultIngressSpec()) {
+		defaultIngress := cmv1.NewIngress().Default(true)
+		if len(config.DefaultIngress.RouteSelectors) != 0 {
+			defaultIngress.RouteSelectors(config.DefaultIngress.RouteSelectors)
+		}
+		if len(config.DefaultIngress.ExcludedNamespaces) != 0 {
+			defaultIngress.ExcludedNamespaces(config.DefaultIngress.ExcludedNamespaces...)
+		}
+		if config.DefaultIngress.WildcardPolicy != "" {
+			defaultIngress.RouteWildcardPolicy(cmv1.WildcardPolicy(config.DefaultIngress.WildcardPolicy))
+		}
+		if config.DefaultIngress.NamespaceOwnershipPolicy != "" {
+			defaultIngress.RouteNamespaceOwnershipPolicy(
+				cmv1.NamespaceOwnershipPolicy(config.DefaultIngress.NamespaceOwnershipPolicy))
+		}
+		clusterBuilder.Ingresses(cmv1.NewIngressList().Items(defaultIngress))
 	}
 
 	clusterSpec, err := clusterBuilder.Build()

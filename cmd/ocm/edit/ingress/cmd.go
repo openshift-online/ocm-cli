@@ -26,11 +26,36 @@ import (
 
 var ingressKeyRE = regexp.MustCompile(`^[a-z0-9]{4,5}$`)
 
+var validLbTypes = []string{string(cmv1.LoadBalancerFlavorClassic), string(cmv1.LoadBalancerFlavorNlb)}
+var ValidWildcardPolicies = []string{string(cmv1.WildcardPolicyWildcardsDisallowed),
+	string(cmv1.WildcardPolicyWildcardsAllowed)}
+var ValidNamespaceOwnershipPolicies = []string{string(cmv1.NamespaceOwnershipPolicyStrict),
+	string(cmv1.NamespaceOwnershipPolicyInterNamespaceAllowed)}
+
 var args struct {
-	clusterKey string
-	private    bool
-	labelMatch string
+	clusterKey    string
+	private       bool
+	routeSelector string
+	lbType        string
+
+	excludedNamespaces        string
+	wildcardPolicy            string
+	namespaceOwnershipPolicy  string
+	clusterRoutesHostname     string
+	clusterRoutesTlsSecretRef string
 }
+
+const (
+	privateFlag                   = "private"
+	labelMatchFlag                = "label-match"
+	lbTypeFlag                    = "lb-type"
+	routeSelectorFlag             = "route-selector"
+	excludedNamespacesFlag        = "excluded-namespaces"
+	wildcardPolicyFlag            = "wildcard-policy"
+	namespaceOwnershipPolicyFlag  = "namespace-ownership-policy"
+	clusterRoutesHostnameFlag     = "cluster-routes-hostname"
+	clusterRoutesTlsSecretRefFlag = "cluster-routes-tls-secret-ref"
+)
 
 var Cmd = &cobra.Command{
 	Use:     "ingress --cluster={NAME|ID|EXTERNAL_ID} [flags] INGRESS_ID",
@@ -65,11 +90,62 @@ func init() {
 	)
 
 	flags.StringVar(
-		&args.labelMatch,
-		"label-match",
+		&args.routeSelector,
+		labelMatchFlag,
 		"",
-		"Label match for ingress. Format should be a comma-separated list of 'key=value'. "+
+		fmt.Sprintf("Alias to '%s' flag.", routeSelectorFlag),
+	)
+
+	flags.StringVar(
+		&args.routeSelector,
+		routeSelectorFlag,
+		"",
+		"Route Selector for ingress. Format should be a comma-separated list of 'key=value'. "+
 			"If no label is specified, all routes will be exposed on both routers.",
+	)
+
+	flags.StringVar(
+		&args.lbType,
+		lbTypeFlag,
+		"",
+		fmt.Sprintf("Type of Load Balancer. Options are %s.", strings.Join(validLbTypes, ",")),
+	)
+
+	flags.StringVar(
+		&args.excludedNamespaces,
+		excludedNamespacesFlag,
+		"",
+		"Excluded namespaces for ingress. Format should be a comma-separated list 'value1, value2...'. "+
+			"If no values are specified, all namespaces will be exposed.",
+	)
+
+	flags.StringVar(
+		&args.wildcardPolicy,
+		wildcardPolicyFlag,
+		"",
+		fmt.Sprintf("Wildcard Policy for ingress. Options are %s", strings.Join(ValidWildcardPolicies, ",")),
+	)
+
+	flags.StringVar(
+		&args.namespaceOwnershipPolicy,
+		namespaceOwnershipPolicyFlag,
+		"",
+		fmt.Sprintf("Namespace Ownership Policy for ingress. Options are %s",
+			strings.Join(ValidNamespaceOwnershipPolicies, ",")),
+	)
+
+	flags.StringVar(
+		&args.clusterRoutesHostname,
+		clusterRoutesHostnameFlag,
+		"",
+		"Cluster Routes Hostname.",
+	)
+
+	flags.StringVar(
+		&args.clusterRoutesTlsSecretRef,
+		clusterRoutesTlsSecretRefFlag,
+		"",
+		"Cluster Routes TLS Secret Reference.",
 	)
 }
 
@@ -145,7 +221,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	ingressBuilder := cmv1.NewIngress().ID(ingress.ID())
-	if cmd.Flags().Changed("private") {
+	if cmd.Flags().Changed(privateFlag) {
 		if args.private {
 			ingressBuilder = ingressBuilder.Listening(cmv1.ListeningMethodInternal)
 		} else {
@@ -154,8 +230,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	routeSelectors := make(map[string]string)
-	if args.labelMatch != "" {
-		for _, labelMatch := range strings.Split(args.labelMatch, ",") {
+	if args.routeSelector != "" {
+		for _, labelMatch := range strings.Split(args.routeSelector, ",") {
 			if !strings.Contains(labelMatch, "=") {
 				return fmt.Errorf("Expected key=value format for label-match")
 			}
@@ -165,11 +241,61 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Add route selectors
-	if cmd.Flags().Changed("label-match") || len(routeSelectors) > 0 {
-		if ingress.Default() {
-			return fmt.Errorf("Adding route selectors to the default ingress is not allowed")
+	if cmd.Flags().Changed(labelMatchFlag) ||
+		cmd.Flags().Changed(routeSelectorFlag) ||
+		len(routeSelectors) > 0 {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", routeSelectorFlag)
 		}
 		ingressBuilder = ingressBuilder.RouteSelectors(routeSelectors)
+	}
+
+	if cmd.Flags().Changed(lbTypeFlag) {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", lbTypeFlag)
+		}
+		if cluster.AWS().STS().RoleARN() != "" {
+			return fmt.Errorf("Can't edit `%s` for STS clusters", lbTypeFlag)
+		}
+		ingressBuilder = ingressBuilder.LoadBalancerType(cmv1.LoadBalancerFlavor(args.lbType))
+	}
+
+	if cmd.Flags().Changed(excludedNamespacesFlag) {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", excludedNamespacesFlag)
+		}
+		if args.excludedNamespaces != "" {
+			ingressBuilder = ingressBuilder.ExcludedNamespaces(strings.Split(args.excludedNamespaces, ",")...)
+		}
+	}
+
+	if cmd.Flags().Changed(wildcardPolicyFlag) {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", wildcardPolicyFlag)
+		}
+		ingressBuilder = ingressBuilder.RouteWildcardPolicy(cmv1.WildcardPolicy(args.wildcardPolicy))
+	}
+
+	if cmd.Flags().Changed(namespaceOwnershipPolicyFlag) {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", namespaceOwnershipPolicyFlag)
+		}
+		ingressBuilder = ingressBuilder.RouteNamespaceOwnershipPolicy(
+			cmv1.NamespaceOwnershipPolicy(args.namespaceOwnershipPolicy))
+	}
+
+	if cmd.Flags().Changed(clusterRoutesHostnameFlag) {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", clusterRoutesHostnameFlag)
+		}
+		ingressBuilder = ingressBuilder.ClusterRoutesHostname(args.clusterRoutesHostname)
+	}
+
+	if cmd.Flags().Changed(clusterRoutesTlsSecretRefFlag) {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", clusterRoutesTlsSecretRefFlag)
+		}
+		ingressBuilder = ingressBuilder.ClusterRoutesHostname(args.clusterRoutesTlsSecretRef)
 	}
 
 	ingress, err = ingressBuilder.Build()
