@@ -101,7 +101,8 @@ func init() {
 		routeSelectorFlag,
 		"",
 		"Route Selector for ingress. Format should be a comma-separated list of 'key=value'. "+
-			"If no label is specified, all routes will be exposed on both routers.",
+			"If no label is specified, all routes will be exposed on both routers."+
+			" For legacy ingress support these are inclusion labels, otherwise they are treated as exclusion label.",
 	)
 
 	flags.StringVar(
@@ -295,7 +296,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		if cluster.Hypershift().Enabled() {
 			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", clusterRoutesTlsSecretRefFlag)
 		}
-		ingressBuilder = ingressBuilder.ClusterRoutesHostname(args.clusterRoutesTlsSecretRef)
+		ingressBuilder = ingressBuilder.ClusterRoutesTlsSecretRef(args.clusterRoutesTlsSecretRef)
 	}
 
 	ingress, err = ingressBuilder.Build()
