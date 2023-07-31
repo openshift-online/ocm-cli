@@ -39,11 +39,16 @@ import (
 	"github.com/spf13/pflag"
 )
 
+var ValidSubscriptionTypes = []string{standardSubscriptionType, marketplaceRhmSubscriptionType, marketplaceGcpSubscriptionType}
+
 const (
 	defaultIngressRouteSelectorFlag            = "default-ingress-route-selector"
 	defaultIngressExcludedNamespacesFlag       = "default-ingress-excluded-namespaces"
 	defaultIngressWildcardPolicyFlag           = "default-ingress-wildcard-policy"
 	defaultIngressNamespaceOwnershipPolicyFlag = "default-ingress-namespace-ownership-policy"
+	standardSubscriptionType                   = "standard"
+	marketplaceRhmSubscriptionType             = "marketplace-rhm"
+	marketplaceGcpSubscriptionType             = "marketplace-gcp"
 )
 
 var args struct {
@@ -68,6 +73,7 @@ var args struct {
 	clusterWideProxy      c.ClusterWideProxy
 	gcpServiceAccountFile arguments.FilePath
 	etcdEncryption        bool
+	subscriptionType      string
 
 	// Scaling options
 	computeMachineType string
@@ -301,6 +307,14 @@ func init() {
 		fmt.Sprintf("Namespace Ownership Policy for ingress. Options are %s",
 			strings.Join(ingress.ValidNamespaceOwnershipPolicies, ",")),
 	)
+
+	fs.StringVar(
+		&args.subscriptionType,
+		"subscription-type",
+		standardSubscriptionType,
+		fmt.Sprintf("The subscription billing model for the cluster. Options are %s",
+			strings.Join(ValidSubscriptionTypes, ",")),
+	)
 }
 
 func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
@@ -375,6 +389,18 @@ func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup strin
 		})
 	}
 	return
+}
+
+func getSubscriptionTypeOptions() []arguments.Option {
+	options := []arguments.Option{}
+	for _, subscriptionType := range ValidSubscriptionTypes {
+		description := ""
+		options = append(options, arguments.Option{
+			Value:       subscriptionType,
+			Description: description,
+		})
+	}
+	return options
 }
 
 func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
@@ -530,6 +556,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return err
 	}
+
+	if err = arguments.CheckOneOf(fs, "subscription-type", getSubscriptionTypeOptions()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -577,6 +608,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Private:            &args.private,
 		EtcdEncryption:     args.etcdEncryption,
 		DefaultIngress:     defaultIngress,
+		SubscriptionType:   args.subscriptionType,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)

@@ -68,6 +68,7 @@ type Spec struct {
 	ChannelGroup     string
 	Expiration       time.Time
 	EtcdEncryption   bool
+	SubscriptionType string
 
 	// Scaling config
 	ComputeMachineType string
@@ -312,6 +313,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 				ID(config.Flavour),
 		).
 		EtcdEncryption(config.EtcdEncryption).
+		BillingModel(cmv1.BillingModel(config.SubscriptionType)).
 		Properties(clusterProperties)
 
 	clusterBuilder = clusterBuilder.Version(
