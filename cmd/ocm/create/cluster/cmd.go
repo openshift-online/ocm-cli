@@ -602,19 +602,15 @@ func run(cmd *cobra.Command, argv []string) error {
 func buildDefaultIngressSpec() (c.DefaultIngressSpec, error) {
 	defaultIngress := c.NewDefaultIngressSpec()
 	if args.defaultIngressRouteSelectors != "" {
-		routeSelectors := make(map[string]string)
-		for _, labelMatch := range strings.Split(args.defaultIngressRouteSelectors, ",") {
-			if !strings.Contains(labelMatch, "=") {
-				return defaultIngress, fmt.Errorf("Expected key=value format for label-match")
-			}
-			tokens := strings.Split(labelMatch, "=")
-			routeSelectors[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+		routeSelectors, err := ingress.GetRouteSelector(args.defaultIngressRouteSelectors)
+		if err != nil {
+			return defaultIngress, err
 		}
 		defaultIngress.RouteSelectors = routeSelectors
 	}
 
 	if args.defaultIngressExcludedNamespaces != "" {
-		defaultIngress.ExcludedNamespaces = strings.Split(args.defaultIngressExcludedNamespaces, ",")
+		defaultIngress.ExcludedNamespaces = ingress.GetExcludedNamespaces(args.defaultIngressExcludedNamespaces)
 	}
 
 	if args.defaultIngressWildcardPolicy != "" {
