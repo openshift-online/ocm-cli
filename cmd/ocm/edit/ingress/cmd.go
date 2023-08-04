@@ -230,23 +230,14 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
-	routeSelectors := make(map[string]string)
-	if args.routeSelector != "" {
-		for _, labelMatch := range strings.Split(args.routeSelector, ",") {
-			if !strings.Contains(labelMatch, "=") {
-				return fmt.Errorf("Expected key=value format for label-match")
-			}
-			tokens := strings.Split(labelMatch, "=")
-			routeSelectors[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
-		}
-	}
-
 	// Add route selectors
-	if cmd.Flags().Changed(labelMatchFlag) ||
-		cmd.Flags().Changed(routeSelectorFlag) ||
-		len(routeSelectors) > 0 {
+	if cmd.Flags().Changed(labelMatchFlag) || cmd.Flags().Changed(routeSelectorFlag) {
 		if cluster.Hypershift().Enabled() {
 			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", routeSelectorFlag)
+		}
+		routeSelectors, err := GetRouteSelector(args.routeSelector)
+		if err != nil {
+			return err
 		}
 		ingressBuilder = ingressBuilder.RouteSelectors(routeSelectors)
 	}
@@ -265,9 +256,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		if cluster.Hypershift().Enabled() {
 			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", excludedNamespacesFlag)
 		}
-		if args.excludedNamespaces != "" {
-			ingressBuilder = ingressBuilder.ExcludedNamespaces(strings.Split(args.excludedNamespaces, ",")...)
-		}
+		_excludedNamespaces := GetExcludedNamespaces(args.excludedNamespaces)
+		ingressBuilder = ingressBuilder.ExcludedNamespaces(_excludedNamespaces...)
 	}
 
 	if cmd.Flags().Changed(wildcardPolicyFlag) {
@@ -315,4 +305,31 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to edit ingress for cluster '%s': %v", clusterKey, err)
 	}
 	return nil
+}
+
+func GetExcludedNamespaces(excludedNamespaces string) []string {
+	if excludedNamespaces == "" {
+		return []string{}
+	}
+	sliceExcludedNamespaces := strings.Split(excludedNamespaces, ",")
+	for i := range sliceExcludedNamespaces {
+		sliceExcludedNamespaces[i] = strings.TrimSpace(sliceExcludedNamespaces[i])
+	}
+	return sliceExcludedNamespaces
+}
+
+func GetRouteSelector(labelMatches string) (map[string]string, error) {
+	if labelMatches == "" {
+		return map[string]string{}, nil
+	}
+	routeSelectors := map[string]string{}
+	for _, labelMatch := range strings.Split(labelMatches, ",") {
+		if !strings.Contains(labelMatch, "=") {
+			return nil, fmt.Errorf("Expected key=value format for label-match")
+		}
+		tokens := strings.Split(labelMatch, "=")
+		routeSelectors[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+	}
+
+	return routeSelectors, nil
 }
