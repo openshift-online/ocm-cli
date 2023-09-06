@@ -33,20 +33,21 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/provider"
 	"github.com/openshift-online/ocm-cli/pkg/utils"
 	sdk "github.com/openshift-online/ocm-sdk-go"
+	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/interactive"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
-var ValidSubscriptionTypes = []string{standardSubscriptionType, marketplaceRhmSubscriptionType, marketplaceGcpSubscriptionType}
+var ValidSubscriptionTypes = []string{StandardSubscriptionType, marketplaceRhmSubscriptionType, marketplaceGcpSubscriptionType}
 
 const (
 	defaultIngressRouteSelectorFlag            = "default-ingress-route-selector"
 	defaultIngressExcludedNamespacesFlag       = "default-ingress-excluded-namespaces"
 	defaultIngressWildcardPolicyFlag           = "default-ingress-wildcard-policy"
 	defaultIngressNamespaceOwnershipPolicyFlag = "default-ingress-namespace-ownership-policy"
-	standardSubscriptionType                   = "standard"
+	StandardSubscriptionType                   = "standard"
 	marketplaceRhmSubscriptionType             = "marketplace-rhm"
 	marketplaceGcpSubscriptionType             = "marketplace-gcp"
 )
@@ -311,10 +312,12 @@ func init() {
 	fs.StringVar(
 		&args.subscriptionType,
 		"subscription-type",
-		standardSubscriptionType,
+		StandardSubscriptionType,
 		fmt.Sprintf("The subscription billing model for the cluster. Options are %s",
 			strings.Join(ValidSubscriptionTypes, ",")),
 	)
+	arguments.SetQuestion(fs, "subscription-type", "Subscription type:")
+	Cmd.RegisterFlagCompletionFunc("subscription-type", arguments.MakeCompleteFunc(getSubscriptionTypeOptions))
 }
 
 func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
@@ -391,16 +394,58 @@ func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup strin
 	return
 }
 
-func getSubscriptionTypeOptions() []arguments.Option {
+func getSubscriptionTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 	options := []arguments.Option{}
-	for _, subscriptionType := range ValidSubscriptionTypes {
-		description := ""
+	billingModels, err := getBillingModels(connection)
+	if err != nil {
+		return options, err
+	}
+	for _, billingModel := range billingModels {
 		options = append(options, arguments.Option{
-			Value:       subscriptionType,
-			Description: description,
+			Value:       fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()),
+			Description: billingModel.Description(),
 		})
 	}
-	return options
+	return options, nil
+}
+
+func getSubscriptionTypeIdFromDescription(connection *sdk.Connection, value string) string {
+	billingModels, _ := getBillingModels(connection)
+	for _, billingModel := range billingModels {
+		if value == fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()) {
+			return billingModel.Id()
+		}
+	}
+	return ""
+}
+
+func getBillingModel(connection *sdk.Connection, billingModelID string) (*amv1.BillingModelItem, error) {
+	billingModels, _ := getBillingModels(connection)
+	var bm *amv1.BillingModelItem
+	for _, billingModel := range billingModels {
+		if billingModel.Id() == billingModelID {
+			bm = billingModel
+			break
+		}
+	}
+	return bm, nil
+}
+
+func getBillingModels(connection *sdk.Connection) ([]*amv1.BillingModelItem, error) {
+	response, err := connection.AccountsMgmt().V1().BillingModels().List().Send()
+	if err != nil {
+		return nil, err
+	}
+	billingModels := response.Items().Slice()
+	var validBillingModel []*amv1.BillingModelItem
+	for _, billingModel := range billingModels {
+		for _, validSubscriptionTypeId := range ValidSubscriptionTypes {
+			if billingModel.Id() == validSubscriptionTypeId {
+				validBillingModel = append(validBillingModel, billingModel)
+			}
+		}
+	}
+	return validBillingModel, nil
 }
 
 func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
@@ -447,9 +492,25 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// Validate flags / ask for missing data.
 	fs := cmd.Flags()
 
+	subscriptionTypeOptions, _ := getSubscriptionTypeOptions(connection)
+	err = arguments.PromptOneOf(fs, "subscription-type", subscriptionTypeOptions)
+	if err != nil {
+		return err
+	}
+
 	// Only offer the 2 providers known to support OSD now;
 	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
 	providers, _ := osdProviderOptions(connection)
+
+	gcpBillingModel, _ := getBillingModel(connection, marketplaceGcpSubscriptionType)
+	isGcpSubscriptionType := args.subscriptionType == fmt.Sprintf("%s (%s)", gcpBillingModel.Id(), gcpBillingModel.Description())
+	if isGcpSubscriptionType {
+		providers = []arguments.Option{
+			{Value: c.ProviderGCP, Description: ""},
+		}
+		args.ccs.Enabled = true
+	}
+
 	err = arguments.PromptOneOf(fs, "provider", providers)
 	if err != nil {
 		return err
@@ -461,7 +522,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		args.clusterWideProxy.Enabled = true
 	}
 
-	err = promptCCS(fs)
+	err = promptCCS(fs, isGcpSubscriptionType)
 	if err != nil {
 		return err
 	}
@@ -557,10 +618,6 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	if err = arguments.CheckOneOf(fs, "subscription-type", getSubscriptionTypeOptions()); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -583,6 +640,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	defaultIngress, err := buildDefaultIngressSpec()
 	if err != nil {
 		return err
+	}
+
+	if args.interactive {
+		args.subscriptionType = getSubscriptionTypeIdFromDescription(connection, args.subscriptionType)
 	}
 
 	clusterConfig := c.Spec{
@@ -1068,8 +1129,11 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	return err
 }
 
-func promptCCS(fs *pflag.FlagSet) error {
-	err := arguments.PromptBool(fs, "ccs")
+func promptCCS(fs *pflag.FlagSet, isGcpSubscriptionType bool) error {
+	var err error
+	if !isGcpSubscriptionType {
+		err = arguments.PromptBool(fs, "ccs")
+	}
 	if err != nil {
 		return err
 	}
