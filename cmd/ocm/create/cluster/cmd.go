@@ -313,8 +313,7 @@ func init() {
 		&args.subscriptionType,
 		"subscription-type",
 		StandardSubscriptionType,
-		fmt.Sprintf("The subscription billing model for the cluster. Options are %s",
-			strings.Join(ValidSubscriptionTypes, ",")),
+		fmt.Sprintf("The subscription billing model for the cluster."),
 	)
 	arguments.SetQuestion(fs, "subscription-type", "Subscription type:")
 	Cmd.RegisterFlagCompletionFunc("subscription-type", arguments.MakeCompleteFunc(getSubscriptionTypeOptions))
@@ -420,15 +419,11 @@ func getSubscriptionTypeIdFromDescription(connection *sdk.Connection, value stri
 }
 
 func getBillingModel(connection *sdk.Connection, billingModelID string) (*amv1.BillingModelItem, error) {
-	billingModels, _ := getBillingModels(connection)
-	var bm *amv1.BillingModelItem
-	for _, billingModel := range billingModels {
-		if billingModel.Id() == billingModelID {
-			bm = billingModel
-			break
-		}
+	bilingModel, err := connection.AccountsMgmt().V1().BillingModels().BillingModel(billingModelID).Get().Send()
+	if err != nil {
+		return nil, err
 	}
-	return bm, nil
+	return bilingModel.Body(), nil
 }
 
 func getBillingModels(connection *sdk.Connection) ([]*amv1.BillingModelItem, error) {
@@ -492,6 +487,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// Validate flags / ask for missing data.
 	fs := cmd.Flags()
 
+	// Get options for subscription type
 	subscriptionTypeOptions, _ := getSubscriptionTypeOptions(connection)
 	err = arguments.PromptOneOf(fs, "subscription-type", subscriptionTypeOptions)
 	if err != nil {
@@ -502,6 +498,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
 	providers, _ := osdProviderOptions(connection)
 
+	// If marketplace-gcp subscription type is used, provider can only be GCP
 	gcpBillingModel, _ := getBillingModel(connection, marketplaceGcpSubscriptionType)
 	isGcpSubscriptionType := args.subscriptionType == fmt.Sprintf("%s (%s)", gcpBillingModel.Id(), gcpBillingModel.Description())
 	if isGcpSubscriptionType {
@@ -1131,6 +1128,7 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 
 func promptCCS(fs *pflag.FlagSet, isGcpSubscriptionType bool) error {
 	var err error
+	// If marketplace-gcp subscription type is used, ccs should by default be true
 	if !isGcpSubscriptionType {
 		err = arguments.PromptBool(fs, "ccs")
 	}
