@@ -313,7 +313,8 @@ func init() {
 		&args.subscriptionType,
 		"subscription-type",
 		StandardSubscriptionType,
-		fmt.Sprintf("The subscription billing model for the cluster."),
+		fmt.Sprintf("The subscription billing model for the cluster. Options are %s",
+			strings.Join(ValidSubscriptionTypes, ",")),
 	)
 	arguments.SetQuestion(fs, "subscription-type", "Subscription type:")
 	Cmd.RegisterFlagCompletionFunc("subscription-type", arguments.MakeCompleteFunc(getSubscriptionTypeOptions))
@@ -400,10 +401,22 @@ func getSubscriptionTypeOptions(connection *sdk.Connection) ([]arguments.Option,
 		return options, err
 	}
 	for _, billingModel := range billingModels {
-		options = append(options, arguments.Option{
-			Value:       fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()),
-			Description: billingModel.Description(),
-		})
+		//Standard billing model should always be the first option
+		if billingModel.Id() == StandardSubscriptionType {
+			standardOption := arguments.Option{
+				Value: fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()),
+			}
+			if len(options) == 0 { // nil or empty slice or after last element
+				options = append(options, standardOption)
+			} else {
+				options = append(options[:1], options[0:]...)
+				options[0] = standardOption
+			}
+		} else {
+			options = append(options, arguments.Option{
+				Value: fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()),
+			})
+		}
 	}
 	return options, nil
 }
@@ -497,20 +510,18 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// Only offer the 2 providers known to support OSD now;
 	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
 	providers, _ := osdProviderOptions(connection)
-
 	// If marketplace-gcp subscription type is used, provider can only be GCP
 	gcpBillingModel, _ := getBillingModel(connection, marketplaceGcpSubscriptionType)
 	isGcpSubscriptionType := args.subscriptionType == fmt.Sprintf("%s (%s)", gcpBillingModel.Id(), gcpBillingModel.Description())
-	if isGcpSubscriptionType {
-		providers = []arguments.Option{
-			{Value: c.ProviderGCP, Description: ""},
-		}
-		args.ccs.Enabled = true
-	}
 
-	err = arguments.PromptOneOf(fs, "provider", providers)
-	if err != nil {
-		return err
+	if isGcpSubscriptionType {
+		fmt.Println("setting provider to", c.ProviderGCP)
+		args.provider = c.ProviderGCP
+	} else {
+		err = arguments.PromptOneOf(fs, "provider", providers)
+		if err != nil {
+			return err
+		}
 	}
 
 	if wasClusterWideProxyReceived() {
@@ -1129,7 +1140,10 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 func promptCCS(fs *pflag.FlagSet, isGcpSubscriptionType bool) error {
 	var err error
 	// If marketplace-gcp subscription type is used, ccs should by default be true
-	if !isGcpSubscriptionType {
+	if isGcpSubscriptionType {
+		fmt.Println("setting ccs to 'true'")
+		args.ccs.Enabled = true
+	} else {
 		err = arguments.PromptBool(fs, "ccs")
 	}
 	if err != nil {
