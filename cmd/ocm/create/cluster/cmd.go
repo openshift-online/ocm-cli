@@ -19,6 +19,7 @@ package cluster
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/openshift-online/ocm-cli/pkg/billing"
 	"io"
 	"net"
 	"os"
@@ -33,23 +34,17 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/provider"
 	"github.com/openshift-online/ocm-cli/pkg/utils"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/interactive"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
-var ValidSubscriptionTypes = []string{StandardSubscriptionType, marketplaceRhmSubscriptionType, marketplaceGcpSubscriptionType}
-
 const (
 	defaultIngressRouteSelectorFlag            = "default-ingress-route-selector"
 	defaultIngressExcludedNamespacesFlag       = "default-ingress-excluded-namespaces"
 	defaultIngressWildcardPolicyFlag           = "default-ingress-wildcard-policy"
 	defaultIngressNamespaceOwnershipPolicyFlag = "default-ingress-namespace-ownership-policy"
-	StandardSubscriptionType                   = "standard"
-	marketplaceRhmSubscriptionType             = "marketplace-rhm"
-	marketplaceGcpSubscriptionType             = "marketplace-gcp"
 )
 
 var args struct {
@@ -312,9 +307,9 @@ func init() {
 	fs.StringVar(
 		&args.subscriptionType,
 		"subscription-type",
-		StandardSubscriptionType,
+		billing.StandardSubscriptionType,
 		fmt.Sprintf("The subscription billing model for the cluster. Options are %s",
-			strings.Join(ValidSubscriptionTypes, ",")),
+			strings.Join(billing.ValidSubscriptionTypes, ",")),
 	)
 	arguments.SetQuestion(fs, "subscription-type", "Subscription type:")
 	Cmd.RegisterFlagCompletionFunc("subscription-type", arguments.MakeCompleteFunc(getSubscriptionTypeOptions))
@@ -396,64 +391,42 @@ func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup strin
 
 func getSubscriptionTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 	options := []arguments.Option{}
-	billingModels, err := getBillingModels(connection)
+	billingModels, err := billing.GetBillingModels(connection)
 	if err != nil {
 		return options, err
 	}
 	for _, billingModel := range billingModels {
+		option := subscriptionTypeTemplate(billingModel.Id(), billingModel.Description())
 		//Standard billing model should always be the first option
-		if billingModel.Id() == StandardSubscriptionType {
-			standardOption := arguments.Option{
-				Value: fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()),
-			}
+		if billingModel.Id() == billing.StandardSubscriptionType {
 			if len(options) == 0 { // nil or empty slice or after last element
-				options = append(options, standardOption)
+				options = append(options, option)
 			} else {
 				options = append(options[:1], options[0:]...)
-				options[0] = standardOption
+				options[0] = option
 			}
 		} else {
-			options = append(options, arguments.Option{
-				Value: fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()),
-			})
+			options = append(options, option)
 		}
 	}
 	return options, nil
 }
 
+func subscriptionTypeTemplate(id string, description string) arguments.Option {
+	option := arguments.Option{
+		Value: fmt.Sprintf("%s (%s)", id, description),
+	}
+	return option
+}
+
 func getSubscriptionTypeIdFromDescription(connection *sdk.Connection, value string) string {
-	billingModels, _ := getBillingModels(connection)
+	billingModels, _ := billing.GetBillingModels(connection)
 	for _, billingModel := range billingModels {
 		if value == fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()) {
 			return billingModel.Id()
 		}
 	}
 	return ""
-}
-
-func getBillingModel(connection *sdk.Connection, billingModelID string) (*amv1.BillingModelItem, error) {
-	bilingModel, err := connection.AccountsMgmt().V1().BillingModels().BillingModel(billingModelID).Get().Send()
-	if err != nil {
-		return nil, err
-	}
-	return bilingModel.Body(), nil
-}
-
-func getBillingModels(connection *sdk.Connection) ([]*amv1.BillingModelItem, error) {
-	response, err := connection.AccountsMgmt().V1().BillingModels().List().Send()
-	if err != nil {
-		return nil, err
-	}
-	billingModels := response.Items().Slice()
-	var validBillingModel []*amv1.BillingModelItem
-	for _, billingModel := range billingModels {
-		for _, validSubscriptionTypeId := range ValidSubscriptionTypes {
-			if billingModel.Id() == validSubscriptionTypeId {
-				validBillingModel = append(validBillingModel, billingModel)
-			}
-		}
-	}
-	return validBillingModel, nil
 }
 
 func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
@@ -511,10 +484,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
 	providers, _ := osdProviderOptions(connection)
 	// If marketplace-gcp subscription type is used, provider can only be GCP
-	gcpBillingModel, _ := getBillingModel(connection, marketplaceGcpSubscriptionType)
-	isGcpSubscriptionType := args.subscriptionType == fmt.Sprintf("%s (%s)", gcpBillingModel.Id(), gcpBillingModel.Description())
+	gcpBillingModel, _ := billing.GetBillingModel(connection, billing.MarketplaceGcpSubscriptionType)
+	gcpSubscriptionTypeTemplate := subscriptionTypeTemplate(gcpBillingModel.Id(), gcpBillingModel.Description())
+	isGcpMarketplaceSubscriptionType := args.subscriptionType == gcpSubscriptionTypeTemplate.Value
 
-	if isGcpSubscriptionType {
+	if isGcpMarketplaceSubscriptionType {
 		fmt.Println("setting provider to", c.ProviderGCP)
 		args.provider = c.ProviderGCP
 	} else {
@@ -530,7 +504,12 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		args.clusterWideProxy.Enabled = true
 	}
 
-	err = promptCCS(fs, isGcpSubscriptionType)
+	// If marketplace-gcp subscription type is used, ccs should by default be true
+	if isGcpMarketplaceSubscriptionType {
+		fmt.Println("setting ccs to 'true'")
+		args.ccs.Enabled = true
+	}
+	err = promptCCS(fs, args.ccs.Enabled == true)
 	if err != nil {
 		return err
 	}
@@ -1137,13 +1116,9 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	return err
 }
 
-func promptCCS(fs *pflag.FlagSet, isGcpSubscriptionType bool) error {
+func promptCCS(fs *pflag.FlagSet, presetCCS bool) error {
 	var err error
-	// If marketplace-gcp subscription type is used, ccs should by default be true
-	if isGcpSubscriptionType {
-		fmt.Println("setting ccs to 'true'")
-		args.ccs.Enabled = true
-	} else {
+	if !presetCCS {
 		err = arguments.PromptBool(fs, "ccs")
 	}
 	if err != nil {
