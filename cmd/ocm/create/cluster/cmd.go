@@ -504,7 +504,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		fmt.Println("setting ccs to 'true'")
 		args.ccs.Enabled = true
 	}
-	err = promptCCS(fs, args.ccs.Enabled == true)
+	err = promptCCS(fs, args.ccs.Enabled)
 	if err != nil {
 		return err
 	}
