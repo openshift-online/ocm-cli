@@ -409,12 +409,7 @@ func getSubscriptionTypeOptions(connection *sdk.Connection) ([]arguments.Option,
 		option := subscriptionTypeOption(billingModel.ID(), billingModel.Description())
 		//Standard billing model should always be the first option
 		if billingModel.ID() == billing.StandardSubscriptionType {
-			if len(options) == 0 { // nil or empty slice or after last element
-				options = append(options, option)
-			} else {
-				options = append(options[:1], options[0:]...)
-				options[0] = option
-			}
+			options = append([]arguments.Option{option}, options...)
 		} else {
 			options = append(options, option)
 		}
