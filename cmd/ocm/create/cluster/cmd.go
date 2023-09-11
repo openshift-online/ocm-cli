@@ -19,7 +19,6 @@ package cluster
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/openshift-online/ocm-cli/pkg/billing"
 	"io"
 	"net"
 	"os"
@@ -29,6 +28,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/ingress"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
+	"github.com/openshift-online/ocm-cli/pkg/billing"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/provider"
