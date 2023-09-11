@@ -94,6 +94,8 @@ const clusterNameHelp = "will be used when generating a sub-domain for your clus
 
 const subnetTemplate = "%s (%s)"
 
+const subscriptionTypeTemplate = "%s (%s)"
+
 // Creates a subnet options using a predefined template.
 func setSubnetOption(subnet, zone string) string {
 	return fmt.Sprintf(subnetTemplate, subnet, zone)
@@ -102,6 +104,14 @@ func setSubnetOption(subnet, zone string) string {
 // Parses the subnet from the option chosen by the user.
 func parseSubnet(subnetOption string) string {
 	return strings.Split(subnetOption, " ")[0]
+}
+
+func setSubscriptionTypeOption(id, description string) string {
+	return fmt.Sprintf(subscriptionTypeTemplate, id, description)
+}
+
+func parseSubscriptionType(subscriptionTypeOption string) string {
+	return strings.Split(subscriptionTypeOption, " ")[0]
 }
 
 // Cmd Constant:
@@ -396,7 +406,7 @@ func getSubscriptionTypeOptions(connection *sdk.Connection) ([]arguments.Option,
 		return options, err
 	}
 	for _, billingModel := range billingModels {
-		option := subscriptionTypeTemplate(billingModel.Id(), billingModel.Description())
+		option := subscriptionTypeOption(billingModel.Id(), billingModel.Description())
 		//Standard billing model should always be the first option
 		if billingModel.Id() == billing.StandardSubscriptionType {
 			if len(options) == 0 { // nil or empty slice or after last element
@@ -412,21 +422,11 @@ func getSubscriptionTypeOptions(connection *sdk.Connection) ([]arguments.Option,
 	return options, nil
 }
 
-func subscriptionTypeTemplate(id string, description string) arguments.Option {
+func subscriptionTypeOption(id string, description string) arguments.Option {
 	option := arguments.Option{
-		Value: fmt.Sprintf("%s (%s)", id, description),
+		Value: setSubscriptionTypeOption(id, description),
 	}
 	return option
-}
-
-func getSubscriptionTypeIdFromDescription(connection *sdk.Connection, value string) string {
-	billingModels, _ := billing.GetBillingModels(connection)
-	for _, billingModel := range billingModels {
-		if value == fmt.Sprintf("%s (%s)", billingModel.Id(), billingModel.Description()) {
-			return billingModel.Id()
-		}
-	}
-	return ""
 }
 
 func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
@@ -485,7 +485,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	providers, _ := osdProviderOptions(connection)
 	// If marketplace-gcp subscription type is used, provider can only be GCP
 	gcpBillingModel, _ := billing.GetBillingModel(connection, billing.MarketplaceGcpSubscriptionType)
-	gcpSubscriptionTypeTemplate := subscriptionTypeTemplate(gcpBillingModel.Id(), gcpBillingModel.Description())
+	gcpSubscriptionTypeTemplate := subscriptionTypeOption(gcpBillingModel.Id(), gcpBillingModel.Description())
 	isGcpMarketplaceSubscriptionType := args.subscriptionType == gcpSubscriptionTypeTemplate.Value
 
 	if isGcpMarketplaceSubscriptionType {
@@ -630,7 +630,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	if args.interactive {
-		args.subscriptionType = getSubscriptionTypeIdFromDescription(connection, args.subscriptionType)
+		args.subscriptionType = parseSubscriptionType(args.subscriptionType)
 	}
 
 	clusterConfig := c.Spec{
