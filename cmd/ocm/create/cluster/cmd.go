@@ -406,9 +406,9 @@ func getSubscriptionTypeOptions(connection *sdk.Connection) ([]arguments.Option,
 		return options, err
 	}
 	for _, billingModel := range billingModels {
-		option := subscriptionTypeOption(billingModel.Id(), billingModel.Description())
+		option := subscriptionTypeOption(billingModel.ID(), billingModel.Description())
 		//Standard billing model should always be the first option
-		if billingModel.Id() == billing.StandardSubscriptionType {
+		if billingModel.ID() == billing.StandardSubscriptionType {
 			if len(options) == 0 { // nil or empty slice or after last element
 				options = append(options, option)
 			} else {
@@ -485,7 +485,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	providers, _ := osdProviderOptions(connection)
 	// If marketplace-gcp subscription type is used, provider can only be GCP
 	gcpBillingModel, _ := billing.GetBillingModel(connection, billing.MarketplaceGcpSubscriptionType)
-	gcpSubscriptionTypeTemplate := subscriptionTypeOption(gcpBillingModel.Id(), gcpBillingModel.Description())
+	gcpSubscriptionTypeTemplate := subscriptionTypeOption(gcpBillingModel.ID(), gcpBillingModel.Description())
 	isGcpMarketplaceSubscriptionType := args.subscriptionType == gcpSubscriptionTypeTemplate.Value
 
 	if isGcpMarketplaceSubscriptionType {

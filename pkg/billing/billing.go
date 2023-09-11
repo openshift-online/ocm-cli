@@ -30,7 +30,7 @@ func GetBillingModels(connection *sdk.Connection) ([]*amv1.BillingModelItem, err
 	var validBillingModel []*amv1.BillingModelItem
 	for _, billingModel := range billingModels {
 		for _, validSubscriptionTypeId := range ValidSubscriptionTypes {
-			if billingModel.Id() == validSubscriptionTypeId {
+			if billingModel.ID() == validSubscriptionTypeId {
 				validBillingModel = append(validBillingModel, billingModel)
 			}
 		}
