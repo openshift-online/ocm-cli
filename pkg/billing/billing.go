@@ -11,7 +11,11 @@ const (
 	MarketplaceGcpSubscriptionType = "marketplace-gcp"
 )
 
-var ValidSubscriptionTypes = []string{StandardSubscriptionType, MarketplaceRhmSubscriptionType, MarketplaceGcpSubscriptionType}
+var ValidSubscriptionTypes = []string{
+	StandardSubscriptionType,
+	MarketplaceRhmSubscriptionType,
+	MarketplaceGcpSubscriptionType,
+}
 
 func GetBillingModel(connection *sdk.Connection, billingModelID string) (*amv1.BillingModelItem, error) {
 	bilingModel, err := connection.AccountsMgmt().V1().BillingModels().BillingModel(billingModelID).Get().Send()
