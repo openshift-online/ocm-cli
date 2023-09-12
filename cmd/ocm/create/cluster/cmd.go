@@ -28,6 +28,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/ingress"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
+	"github.com/openshift-online/ocm-cli/pkg/billing"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/provider"
@@ -68,6 +69,7 @@ var args struct {
 	clusterWideProxy      c.ClusterWideProxy
 	gcpServiceAccountFile arguments.FilePath
 	etcdEncryption        bool
+	subscriptionType      string
 
 	// Scaling options
 	computeMachineType string
@@ -92,6 +94,8 @@ const clusterNameHelp = "will be used when generating a sub-domain for your clus
 
 const subnetTemplate = "%s (%s)"
 
+const subscriptionTypeTemplate = "%s (%s)"
+
 // Creates a subnet options using a predefined template.
 func setSubnetOption(subnet, zone string) string {
 	return fmt.Sprintf(subnetTemplate, subnet, zone)
@@ -100,6 +104,14 @@ func setSubnetOption(subnet, zone string) string {
 // Parses the subnet from the option chosen by the user.
 func parseSubnet(subnetOption string) string {
 	return strings.Split(subnetOption, " ")[0]
+}
+
+func setSubscriptionTypeOption(id, description string) string {
+	return fmt.Sprintf(subscriptionTypeTemplate, id, description)
+}
+
+func parseSubscriptionType(subscriptionTypeOption string) string {
+	return strings.Split(subscriptionTypeOption, " ")[0]
 }
 
 // Cmd Constant:
@@ -301,6 +313,16 @@ func init() {
 		fmt.Sprintf("Namespace Ownership Policy for ingress. Options are %s",
 			strings.Join(ingress.ValidNamespaceOwnershipPolicies, ",")),
 	)
+
+	fs.StringVar(
+		&args.subscriptionType,
+		"subscription-type",
+		billing.StandardSubscriptionType,
+		fmt.Sprintf("The subscription billing model for the cluster. Options are %s",
+			strings.Join(billing.ValidSubscriptionTypes, ",")),
+	)
+	arguments.SetQuestion(fs, "subscription-type", "Subscription type:")
+	Cmd.RegisterFlagCompletionFunc("subscription-type", arguments.MakeCompleteFunc(getSubscriptionTypeOptions))
 }
 
 func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
@@ -377,6 +399,31 @@ func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup strin
 	return
 }
 
+func getSubscriptionTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+	options := []arguments.Option{}
+	billingModels, err := billing.GetBillingModels(connection)
+	if err != nil {
+		return options, err
+	}
+	for _, billingModel := range billingModels {
+		option := subscriptionTypeOption(billingModel.ID(), billingModel.Description())
+		//Standard billing model should always be the first option
+		if billingModel.ID() == billing.StandardSubscriptionType {
+			options = append([]arguments.Option{option}, options...)
+		} else {
+			options = append(options, option)
+		}
+	}
+	return options, nil
+}
+
+func subscriptionTypeOption(id string, description string) arguments.Option {
+	option := arguments.Option{
+		Value: setSubscriptionTypeOption(id, description),
+	}
+	return option
+}
+
 func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 	return provider.GetMachineTypeOptions(
 		connection.ClustersMgmt().V1(),
@@ -421,12 +468,29 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// Validate flags / ask for missing data.
 	fs := cmd.Flags()
 
+	// Get options for subscription type
+	subscriptionTypeOptions, _ := getSubscriptionTypeOptions(connection)
+	err = arguments.PromptOneOf(fs, "subscription-type", subscriptionTypeOptions)
+	if err != nil {
+		return err
+	}
+
 	// Only offer the 2 providers known to support OSD now;
 	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
 	providers, _ := osdProviderOptions(connection)
-	err = arguments.PromptOneOf(fs, "provider", providers)
-	if err != nil {
-		return err
+	// If marketplace-gcp subscription type is used, provider can only be GCP
+	gcpBillingModel, _ := billing.GetBillingModel(connection, billing.MarketplaceGcpSubscriptionType)
+	gcpSubscriptionTypeTemplate := subscriptionTypeOption(gcpBillingModel.ID(), gcpBillingModel.Description())
+	isGcpMarketplaceSubscriptionType := args.subscriptionType == gcpSubscriptionTypeTemplate.Value
+
+	if isGcpMarketplaceSubscriptionType {
+		fmt.Println("setting provider to", c.ProviderGCP)
+		args.provider = c.ProviderGCP
+	} else {
+		err = arguments.PromptOneOf(fs, "provider", providers)
+		if err != nil {
+			return err
+		}
 	}
 
 	if wasClusterWideProxyReceived() {
@@ -435,7 +499,12 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		args.clusterWideProxy.Enabled = true
 	}
 
-	err = promptCCS(fs)
+	// If marketplace-gcp subscription type is used, ccs should by default be true
+	if isGcpMarketplaceSubscriptionType {
+		fmt.Println("setting ccs to 'true'")
+		args.ccs.Enabled = true
+	}
+	err = promptCCS(fs, args.ccs.Enabled)
 	if err != nil {
 		return err
 	}
@@ -530,6 +599,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -552,6 +622,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	defaultIngress, err := buildDefaultIngressSpec()
 	if err != nil {
 		return err
+	}
+
+	if args.interactive {
+		args.subscriptionType = parseSubscriptionType(args.subscriptionType)
 	}
 
 	clusterConfig := c.Spec{
@@ -577,6 +651,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Private:            &args.private,
 		EtcdEncryption:     args.etcdEncryption,
 		DefaultIngress:     defaultIngress,
+		SubscriptionType:   args.subscriptionType,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
@@ -1032,8 +1107,11 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	return err
 }
 
-func promptCCS(fs *pflag.FlagSet) error {
-	err := arguments.PromptBool(fs, "ccs")
+func promptCCS(fs *pflag.FlagSet, presetCCS bool) error {
+	var err error
+	if !presetCCS {
+		err = arguments.PromptBool(fs, "ccs")
+	}
 	if err != nil {
 		return err
 	}

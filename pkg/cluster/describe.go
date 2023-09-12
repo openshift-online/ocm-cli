@@ -196,6 +196,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Infra:			%d\n"+
 		"Computes:		%s\n"+
 		"Product:		%s\n"+
+		"Subscription type:	%s\n"+
 		"Provider:		%s\n"+
 		"Version:		%s\n"+
 		"Region:			%s\n"+
@@ -221,6 +222,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.Nodes().Infra(),
 		computesStr,
 		cluster.Product().ID(),
+		cluster.BillingModel(),
 		cluster.CloudProvider().ID(),
 		cluster.OpenshiftVersion(),
 		cluster.Region().ID(),

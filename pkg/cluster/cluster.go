@@ -27,7 +27,7 @@ import (
 	"time"
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	amsv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
+	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -68,6 +68,7 @@ type Spec struct {
 	ChannelGroup     string
 	Expiration       time.Time
 	EtcdEncryption   bool
+	SubscriptionType string
 
 	// Scaling config
 	ComputeMachineType string
@@ -312,6 +313,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 				ID(config.Flavour),
 		).
 		EtcdEncryption(config.EtcdEncryption).
+		BillingModel(cmv1.BillingModel(config.SubscriptionType)).
 		Properties(clusterProperties)
 
 	clusterBuilder = clusterBuilder.Version(
@@ -703,7 +705,7 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 			}
 
 			// Only display add-ons for which the org has quota
-			quotaCosts.Each(func(quotaCost *amsv1.QuotaCost) bool {
+			quotaCosts.Each(func(quotaCost *amv1.QuotaCost) bool {
 				relatedResources := quotaCost.RelatedResources()
 				for _, relatedResource := range relatedResources {
 					if relatedResource.ResourceType() == "add-on" &&
