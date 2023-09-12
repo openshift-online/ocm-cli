@@ -3,6 +3,22 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.68 Sep 12 2023
+
+- Bump k8s.io/apimachinery from 0.27.2 to 0.27.3
+- Bump github.com/onsi/ginkgo/v2 from 2.9.7 to 2.11.0
+- Bump golang.org/x/text from 0.9.0 to 0.11.0
+- Bump golang.org/x/term from 0.8.0 to 0.10.0
+- Bump github.com/AlecAivazis/survey/v2 from 2.3.6 to 2.3.7
+- Bump github.com/openshift-online/ocm-sdk-go from 0.1.344 to 0.1.367
+- Improve GetCluster message when Subscription exists but is inactive
+- OCM-2657 | feat: day1/2 operations for managed ingress attributes
+- Bump github.com/openshift/rosa from 1.2.22 to 1.2.24
+- OCM-2941| fix: Adjusting help usage and ingress builder call
+- OCM-2942 | fix: adjust help usage for cluster routes attributes
+- OCM-2966 : Feat : Added subscription_type parameter to create cluster command
+- OCM-3061 | fix: allow to reset route selectors/excluded namespaces
+
 ## 0.1.67 Jun 14 2023
 
 - Bump github.com/onsi/ginkgo/v2 from 2.8.1 to 2.9.1
