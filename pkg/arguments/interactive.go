@@ -295,12 +295,14 @@ func PromptIPNet(fs *pflag.FlagSet, flagName string) error {
 		if flag.Changed {
 			return nil
 		}
-
+		// If the default value is nil, set the value as a default value
+		if flag.DefValue == "<nil>" {
+			flag.DefValue = flag.Value.String()
+		}
 		prompt := &survey.Input{
 			Message: getQuestion(flag),
 			Help:    flag.Usage,
-			// TODO respect flag default, if set
-			// (awkward because https://github.com/golang/go/issues/39516).
+			Default: flag.DefValue,
 		}
 		var response string
 		// Set() flag as side effect of validation => prompts again if invalid.
