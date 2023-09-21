@@ -624,8 +624,8 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	}
 
 	if args.interactive {
-		machineCIDR, serviceCIDR, podCIDR, hostPrefix := GetDefaultClusterFlavors(connection, args.flavour)
-		args.machineCIDR, args.serviceCIDR, args.podCIDR, args.hostPrefix = *machineCIDR, *serviceCIDR, *podCIDR, hostPrefix
+		machineCIDR, podCIDR, serviceCIDR, hostPrefix := GetDefaultClusterFlavors(connection, args.flavour)
+		args.machineCIDR, args.podCIDR, args.serviceCIDR, args.hostPrefix = *machineCIDR, *podCIDR, *serviceCIDR, hostPrefix
 	}
 
 	err = promptNetwork(fs)

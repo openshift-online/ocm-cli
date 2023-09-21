@@ -302,6 +302,8 @@ func PromptIPNet(fs *pflag.FlagSet, flagName string) error {
 		prompt := &survey.Input{
 			Message: getQuestion(flag),
 			Help:    flag.Usage,
+			// TODO respect flag default, if set
+			// (awkward because https://github.com/golang/go/issues/39516).
 			Default: flag.DefValue,
 		}
 		var response string
