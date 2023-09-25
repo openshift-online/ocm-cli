@@ -371,6 +371,34 @@ func getFlavourOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 	return options, nil
 }
 
+func GetDefaultClusterFlavors(connection *sdk.Connection, flavour string) (dMachinecidr *net.IPNet, dPodcidr *net.IPNet,
+	dServicecidr *net.IPNet, dhostPrefix int) {
+	flavourGetResponse, err := connection.ClustersMgmt().V1().Flavours().Flavour(flavour).Get().Send()
+	if err != nil {
+		flavourGetResponse, _ = connection.ClustersMgmt().V1().Flavours().Flavour("osd-4").Get().Send()
+	}
+
+	network, ok := flavourGetResponse.Body().GetNetwork()
+	if !ok {
+		return nil, nil, nil, 0
+	}
+	_, dMachinecidr, err = net.ParseCIDR(network.MachineCIDR())
+	if err != nil {
+		dMachinecidr = nil
+	}
+	_, dPodcidr, err = net.ParseCIDR(network.PodCIDR())
+	if err != nil {
+		dPodcidr = nil
+	}
+	_, dServicecidr, err = net.ParseCIDR(network.ServiceCIDR())
+	if err != nil {
+		dServicecidr = nil
+	}
+	dhostPrefix, _ = network.GetHostPrefix()
+
+	return dMachinecidr, dPodcidr, dServicecidr, dhostPrefix
+}
+
 func getVersionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 	options, _, err := getVersionOptionsWithDefault(connection, "")
 	return options, err
@@ -593,6 +621,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	err = promptClusterWideProxy()
 	if err != nil {
 		return err
+	}
+
+	if args.interactive {
+		machineCIDR, podCIDR, serviceCIDR, hostPrefix := GetDefaultClusterFlavors(connection, args.flavour)
+		args.machineCIDR, args.podCIDR, args.serviceCIDR, args.hostPrefix = *machineCIDR, *podCIDR, *serviceCIDR, hostPrefix
 	}
 
 	err = promptNetwork(fs)
