@@ -22,6 +22,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -400,16 +401,16 @@ func GetDefaultClusterFlavors(connection *sdk.Connection, flavour string) (dMach
 }
 
 func getVersionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
-	options, _, err := getVersionOptionsWithDefault(connection, "")
+	options, _, err := getVersionOptionsWithDefault(connection, "", nil)
 	return options, err
 }
 
-func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup string) (
+func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup string, gcpMarketplaceEnabled *string) (
 	options []arguments.Option, defaultVersion string, err error,
 ) {
 	// Check and set the cluster version
 	versionList, defaultVersion, err := c.GetEnabledVersions(
-		connection.ClustersMgmt().V1(), channelGroup)
+		connection.ClustersMgmt().V1(), channelGroup, gcpMarketplaceEnabled)
 	if err != nil {
 		return
 	}
@@ -551,7 +552,12 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channelGroup)
+	var gcpMarketplaceEnabled string
+	if isGcpMarketplaceSubscriptionType {
+		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplaceSubscriptionType)
+	}
+	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channelGroup,
+		&gcpMarketplaceEnabled)
 	if err != nil {
 		return err
 	}
