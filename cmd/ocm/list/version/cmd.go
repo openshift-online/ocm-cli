@@ -74,7 +74,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	defer connection.Close()
 
 	client := connection.ClustersMgmt().V1()
-	versions, defaultVersion, err := cluster.GetEnabledVersions(client, args.channelGroup, &args.gcpMarketplace)
+	versions, defaultVersion, err := cluster.GetEnabledVersions(client, args.channelGroup, args.gcpMarketplace)
 	if err != nil {
 		return fmt.Errorf("Can't retrieve versions: %v", err)
 	}

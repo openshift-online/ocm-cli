@@ -401,11 +401,11 @@ func GetDefaultClusterFlavors(connection *sdk.Connection, flavour string) (dMach
 }
 
 func getVersionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
-	options, _, err := getVersionOptionsWithDefault(connection, "", nil)
+	options, _, err := getVersionOptionsWithDefault(connection, "", "")
 	return options, err
 }
 
-func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup string, gcpMarketplaceEnabled *string) (
+func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup string, gcpMarketplaceEnabled string) (
 	options []arguments.Option, defaultVersion string, err error,
 ) {
 	// Check and set the cluster version
@@ -557,7 +557,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplaceSubscriptionType)
 	}
 	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channelGroup,
-		&gcpMarketplaceEnabled)
+		gcpMarketplaceEnabled)
 	if err != nil {
 		return err
 	}
