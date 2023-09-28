@@ -27,7 +27,7 @@ import (
 var args struct {
 	defaultVersion bool
 	channelGroup   string
-	gcpMarketplace string
+	marketplaceGcp string
 }
 
 var Cmd = &cobra.Command{
@@ -58,8 +58,8 @@ func init() {
 	)
 
 	fs.StringVar(
-		&args.gcpMarketplace,
-		"gcp-marketplace",
+		&args.marketplaceGcp,
+		"marketplace-gcp",
 		"",
 		"List only versions that support 'marketplace-gcp' subscription type",
 	)
@@ -74,7 +74,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	defer connection.Close()
 
 	client := connection.ClustersMgmt().V1()
-	versions, defaultVersion, err := cluster.GetEnabledVersions(client, args.channelGroup, args.gcpMarketplace)
+	versions, defaultVersion, err := cluster.GetEnabledVersions(client, args.channelGroup, args.marketplaceGcp)
 	if err != nil {
 		return fmt.Errorf("Can't retrieve versions: %v", err)
 	}
