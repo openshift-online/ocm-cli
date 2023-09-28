@@ -53,10 +53,10 @@ var _ = Describe("List machine pools", Ordered, func() {
 			"id":"my-cluster",
 			"subscription": {"id":"subsID"},
 			"state":"ready"
-			}]	
+			}]
 	  }`
 
-	BeforeAll(func() {
+	BeforeEach(func() {
 		// Create a context:
 		ctx = context.Background()
 
@@ -86,7 +86,7 @@ var _ = Describe("List machine pools", Ordered, func() {
 		config = result.ConfigString()
 	})
 
-	AfterAll(func() {
+	AfterEach(func() {
 		// Close the servers:
 		ssoServer.Close()
 		apiServer.Close()
@@ -185,5 +185,69 @@ var _ = Describe("List machine pools", Ordered, func() {
 		Expect(lines[1]).To(MatchRegexp(
 			`^default\s+No\s+2\s+m5.xlarge\s+us-west-2a$`,
 		))
+	})
+
+	It("Fail on invalid cluster key", func() {
+		apiServer.AppendHandlers(
+			RespondWithJSON(http.StatusOK, subscriptionInfo),
+		)
+
+		// Run the command:
+		result := NewCommand().
+			ConfigString(config).
+			Args(
+				"list", "machinepools",
+				"--cluster", "invalid!cluster",
+			).Run(ctx)
+
+		Expect(result.ExitCode()).ToNot(BeZero())
+		Expect(result.ErrString()).To(ContainSubstring("Cluster name, identifier or external identifier"))
+		Expect(result.ErrString()).To(ContainSubstring("isn't valid"))
+	})
+
+	It("Fail on non-existing cluster", func() {
+		apiServer.AppendHandlers(
+			RespondWithJSON(http.StatusOK, subscriptionInfo),
+			RespondWith(http.StatusNotFound, `{}`),
+		)
+
+		// Run the command:
+		result := NewCommand().
+			ConfigString(config).
+			Args(
+				"list", "machinepools",
+				"--cluster", "my-cluster",
+			).Run(ctx)
+
+		Expect(result.ExitCode()).ToNot(BeZero())
+		Expect(result.ErrString()).To(ContainSubstring("Failed to get cluster"))
+	})
+
+	It("Fail when cluster is not in ready state", func() {
+		apiServer.AppendHandlers(
+			RespondWithJSON(http.StatusOK, subscriptionInfo),
+			RespondWithJSON(http.StatusOK, `{
+				"kind": "ClusterList",
+				"total": 1,
+				"items": [
+					{
+					"kind":"Cluster",
+					"id":"my-cluster",
+					"subscription": {"id":"subsID"},
+					"state":"waiting"
+					}]
+			  }`),
+		)
+
+		// Run the command:
+		result := NewCommand().
+			ConfigString(config).
+			Args(
+				"list", "machinepools",
+				"--cluster", "my-cluster",
+			).Run(ctx)
+
+		Expect(result.ExitCode()).ToNot(BeZero())
+		Expect(result.ErrString()).To(ContainSubstring("is not yet ready"))
 	})
 })
