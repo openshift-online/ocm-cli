@@ -3,6 +3,14 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.69 Sep 29 2023
+
+- 447488d Added default values for CIDRs and host prefix
+- 1f2b39b fix duplicate machine pool information printed for the same cluster
+- f0fadd8 add tests for list machinepools command
+- 5b60bbf added failure tests for list machinepools command
+- 498c54e Filtered OCM versions for marketplace gcp clusters
+
 ## 0.1.68 Sep 12 2023
 
 - Bump k8s.io/apimachinery from 0.27.2 to 0.27.3
