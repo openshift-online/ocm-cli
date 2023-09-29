@@ -5,15 +5,11 @@ This document describes the relevant changes between releases of the
 
 ## 0.1.69 Sep 29 2023
 
--447488d Added default values for CIDRs and host prefix
--672ca8b Fixed CIDR order and added back the comment
--fbff80f Fixed the comment statement
--1f2b39b fix duplicate machine pool information printed for the same cluster
--f0fadd8 add tests for list machinepools command
--5b60bbf added failure tests for list machinepools command
--498c54e Filtered OCM versions for marketplace gcp clusters
--a9f32b7 Changed string pointer to string and removed nil check
--0aca318 Changed gcp-marketplace keyword to marketplace-gcp
+- 447488d Added default values for CIDRs and host prefix
+- 1f2b39b fix duplicate machine pool information printed for the same cluster
+- f0fadd8 add tests for list machinepools command
+- 5b60bbf added failure tests for list machinepools command
+- 498c54e Filtered OCM versions for marketplace gcp clusters
 
 ## 0.1.68 Sep 12 2023
 
