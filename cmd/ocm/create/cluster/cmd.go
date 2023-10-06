@@ -510,9 +510,10 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// If marketplace-gcp subscription type is used, provider can only be GCP
 	gcpBillingModel, _ := billing.GetBillingModel(connection, billing.MarketplaceGcpSubscriptionType)
 	gcpSubscriptionTypeTemplate := subscriptionTypeOption(gcpBillingModel.ID(), gcpBillingModel.Description())
-	isGcpMarketplaceSubscriptionType := args.subscriptionType == gcpSubscriptionTypeTemplate.Value
+	isGcpMarketplace :=
+		parseSubscriptionType(args.subscriptionType) == parseSubscriptionType(gcpSubscriptionTypeTemplate.Value)
 
-	if isGcpMarketplaceSubscriptionType {
+	if isGcpMarketplace {
 		fmt.Println("setting provider to", c.ProviderGCP)
 		args.provider = c.ProviderGCP
 	} else {
@@ -529,7 +530,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	}
 
 	// If marketplace-gcp subscription type is used, ccs should by default be true
-	if isGcpMarketplaceSubscriptionType {
+	if isGcpMarketplace {
 		fmt.Println("setting ccs to 'true'")
 		args.ccs.Enabled = true
 	}
@@ -553,8 +554,8 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	}
 
 	var gcpMarketplaceEnabled string
-	if isGcpMarketplaceSubscriptionType {
-		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplaceSubscriptionType)
+	if isGcpMarketplace {
+		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
 	}
 	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channelGroup,
 		gcpMarketplaceEnabled)
