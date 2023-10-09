@@ -46,6 +46,9 @@ const (
 	defaultIngressExcludedNamespacesFlag       = "default-ingress-excluded-namespaces"
 	defaultIngressWildcardPolicyFlag           = "default-ingress-wildcard-policy"
 	defaultIngressNamespaceOwnershipPolicyFlag = "default-ingress-namespace-ownership-policy"
+	gcpTermsAgreementsHyperlink                = "https://console.cloud.google.com" +
+		"/marketplace/agreements/redhat-marketplace/red-hat-openshift-dedicated"
+	gcpTermsAgreementError = "Please accept Google Terms and Agreements in order to proceed"
 )
 
 var args struct {
@@ -71,6 +74,7 @@ var args struct {
 	gcpServiceAccountFile arguments.FilePath
 	etcdEncryption        bool
 	subscriptionType      string
+	marketplaceGcpTerms   bool
 
 	// Scaling options
 	computeMachineType string
@@ -324,6 +328,15 @@ func init() {
 	)
 	arguments.SetQuestion(fs, "subscription-type", "Subscription type:")
 	Cmd.RegisterFlagCompletionFunc("subscription-type", arguments.MakeCompleteFunc(getSubscriptionTypeOptions))
+
+	fs.BoolVar(
+		&args.marketplaceGcpTerms,
+		"marketplace-gcp-terms",
+		false,
+		fmt.Sprintf("Review and accept Google Terms and Agreements on %s. "+
+			"Set the flag to true once agreed in order to proceed further.", gcpTermsAgreementsHyperlink),
+	)
+	arguments.SetQuestion(fs, "marketplace-gcp-terms", "I have accepted Google Terms and Agreements:")
 }
 
 func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
@@ -516,6 +529,18 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	if isGcpMarketplace {
 		fmt.Println("setting provider to", c.ProviderGCP)
 		args.provider = c.ProviderGCP
+		fmt.Println("setting ccs to 'true'")
+		args.ccs.Enabled = true
+		if args.interactive {
+			fmt.Println("Review and accept Google Terms and Agreements on", gcpTermsAgreementsHyperlink)
+			err = arguments.PromptBool(fs, "marketplace-gcp-terms")
+			if err != nil {
+				return err
+			}
+		}
+		if !args.marketplaceGcpTerms {
+			return fmt.Errorf(gcpTermsAgreementError)
+		}
 	} else {
 		err = arguments.PromptOneOf(fs, "provider", providers)
 		if err != nil {
@@ -529,11 +554,6 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		args.clusterWideProxy.Enabled = true
 	}
 
-	// If marketplace-gcp subscription type is used, ccs should by default be true
-	if isGcpMarketplace {
-		fmt.Println("setting ccs to 'true'")
-		args.ccs.Enabled = true
-	}
 	err = promptCCS(fs, args.ccs.Enabled)
 	if err != nil {
 		return err
