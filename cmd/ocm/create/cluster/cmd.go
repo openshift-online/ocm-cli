@@ -1179,11 +1179,12 @@ func promptCCS(fs *pflag.FlagSet, presetCCS bool) error {
 				return err
 			}
 
-			if args.gcpServiceAccountFile != "" {
-				err = constructGCPCredentials(args.gcpServiceAccountFile, &args.ccs)
-				if err != nil {
-					return err
-				}
+			if args.gcpServiceAccountFile == "" {
+				return fmt.Errorf("A GCP service account file must be specified for CCS clusters")
+			}
+			err = constructGCPCredentials(args.gcpServiceAccountFile, &args.ccs)
+			if err != nil {
+				return err
 			}
 		}
 	}
