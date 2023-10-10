@@ -50,7 +50,8 @@ const (
 		"/marketplace/agreements/redhat-marketplace/red-hat-openshift-dedicated"
 	gcpTermsAgreementInteractiveError    = "Please accept Google Terms and Agreements in order to proceed"
 	gcpTermsAgreementNonInteractiveError = "Review and accept Google Terms and Agreements on " +
-		gcpTermsAgreementsHyperlink + ". Set the flag --marketplace-gcp-terms to true once agreed in order to proceed further."
+		gcpTermsAgreementsHyperlink + ". Set the flag --marketplace-gcp-terms to true " +
+		"once agreed in order to proceed further."
 )
 
 var args struct {
