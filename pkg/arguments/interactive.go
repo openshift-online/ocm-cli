@@ -253,7 +253,7 @@ func PromptPassword(fs *pflag.FlagSet, flagName string) error {
 
 // PromptFilePath sets a FilePath flag value interactively, unless already set.
 // Does nothing in non-interactive mode.
-func PromptFilePath(fs *pflag.FlagSet, flagName string) error {
+func PromptFilePath(fs *pflag.FlagSet, flagName string, required bool) error {
 	flag := fs.Lookup(flagName)
 	if flag.Value.Type() != "filepath" {
 		return fmt.Errorf("PromptFilePath can't be used on flag %q of type %q",
@@ -272,7 +272,11 @@ func PromptFilePath(fs *pflag.FlagSet, flagName string) error {
 				},
 			}
 			var response string
-			err := survey.AskOne(prompt, &response)
+			var validator survey.AskOpt
+			if required {
+				validator = survey.WithValidator(survey.Required)
+			}
+			err := survey.AskOne(prompt, &response, validator)
 			if err != nil {
 				return err
 			}
