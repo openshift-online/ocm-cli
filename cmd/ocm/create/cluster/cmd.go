@@ -1194,13 +1194,13 @@ func promptCCS(fs *pflag.FlagSet, presetCCS bool) error {
 			}
 		case c.ProviderGCP:
 			// TODO: re-prompt when selected file is not readable / invalid JSON
-			err = arguments.PromptFilePath(fs, "service-account-file")
+			err = arguments.PromptFilePath(fs, "service-account-file", true)
 			if err != nil {
 				return err
 			}
 
 			if args.gcpServiceAccountFile == "" {
-				return fmt.Errorf("A GCP service account file must be specified for CCS clusters")
+				return fmt.Errorf("A valid GCP service account file must be specified for CCS clusters")
 			}
 			err = constructGCPCredentials(args.gcpServiceAccountFile, &args.ccs)
 			if err != nil {
