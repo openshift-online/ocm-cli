@@ -299,15 +299,11 @@ func resolveRelativePath(path string) (string, error) {
 		return "", err
 	}
 	dir := usr.HomeDir
-	if path == "~" {
-		// In case of "~", "else if" would not catch that
-		path = dir
-	} else if strings.HasPrefix(path, "~/") {
-		// Use strings.HasPrefix so we don't match paths like
-		// "/something/~/something/"
-		path = filepath.Join(dir, path[2:])
+	absPath := dir
+	if strings.HasPrefix(path, "~/") && len(path) > 2 {
+		absPath = filepath.Join(dir, path[2:])
 	}
-	return path, nil
+	return absPath, nil
 }
 
 // PromptIPNet sets an optional IPNet flag value interactively, unless already set.
