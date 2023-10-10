@@ -48,7 +48,10 @@ const (
 	defaultIngressNamespaceOwnershipPolicyFlag = "default-ingress-namespace-ownership-policy"
 	gcpTermsAgreementsHyperlink                = "https://console.cloud.google.com" +
 		"/marketplace/agreements/redhat-marketplace/red-hat-openshift-dedicated"
-	gcpTermsAgreementError = "Please accept Google Terms and Agreements in order to proceed"
+	gcpTermsAgreementInteractiveError    = "Please accept Google Terms and Agreements in order to proceed"
+	gcpTermsAgreementNonInteractiveError = "Review and accept Google Terms and Agreements on " +
+		gcpTermsAgreementsHyperlink + ". Set the flag --marketplace-gcp-terms to true " +
+		"once agreed in order to proceed further."
 )
 
 var args struct {
@@ -539,7 +542,10 @@ func preRun(cmd *cobra.Command, argv []string) error {
 			}
 		}
 		if !args.marketplaceGcpTerms {
-			return fmt.Errorf(gcpTermsAgreementError)
+			if args.interactive {
+				return fmt.Errorf(gcpTermsAgreementInteractiveError)
+			}
+			return fmt.Errorf(gcpTermsAgreementNonInteractiveError)
 		}
 	} else {
 		err = arguments.PromptOneOf(fs, "provider", providers)
