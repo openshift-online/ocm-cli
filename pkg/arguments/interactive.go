@@ -301,12 +301,10 @@ func resolveRelativePath(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dir := usr.HomeDir
-	absPath := dir
-	if strings.HasPrefix(path, "~/") && len(path) > 2 {
-		absPath = filepath.Join(dir, path[2:])
+	if strings.HasPrefix(path, "~/") {
+		path = strings.Replace(path, "~", usr.HomeDir, 1)
 	}
-	return absPath, nil
+	return path, nil
 }
 
 // PromptIPNet sets an optional IPNet flag value interactively, unless already set.
