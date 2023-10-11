@@ -294,6 +294,9 @@ func PromptFilePath(fs *pflag.FlagSet, flagName string, required bool) error {
 // Golang does not support tilde file paths https://github.com/golang/go/issues/57569
 // However, we try to resolve this by manually so user can proceed further
 func resolveRelativePath(path string) (string, error) {
+	if !strings.Contains(path, "~") {
+		return path, nil
+	}
 	usr, err := user.Current()
 	if err != nil {
 		return "", err
