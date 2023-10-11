@@ -20,6 +20,7 @@ package arguments
 
 import (
 	"fmt"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -280,10 +281,30 @@ func PromptFilePath(fs *pflag.FlagSet, flagName string, required bool) error {
 			if err != nil {
 				return err
 			}
+			response, err = resolveRelativePath(response)
+			if err != nil {
+				return err
+			}
 			fs.Set(flagName, response)
 		}
 		return nil
 	})
+}
+
+// Golang does not support tilde file paths https://github.com/golang/go/issues/57569
+// However, we try to resolve this by manually so user can proceed further
+func resolveRelativePath(path string) (string, error) {
+	if !strings.Contains(path, "~") {
+		return path, nil
+	}
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	if strings.HasPrefix(path, "~/") {
+		path = strings.Replace(path, "~", usr.HomeDir, 1)
+	}
+	return path, nil
 }
 
 // PromptIPNet sets an optional IPNet flag value interactively, unless already set.
