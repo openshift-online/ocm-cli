@@ -3,6 +3,16 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.70 Oct 13 2023
+
+- 4dad47f OCM-3510 | fix: allow clusters to edit ingresses
+- 57855bf fixed setting isGcpMarketplaceSubscriptionType for non interactive mode
+- 557a66b making GCP service account file mandatory for CCS clusters (#565)
+- 1f5481b Add GCP marketplace terms and conditions for marketplace GCP clusters
+- 47cd35c showing error and re-prompting service-account-file question if one is not provided (#567)
+- 0d3f4c3 OCM-4186 | Feat | Changed marketplace-gcp-terms error message for non-interactive mode (#569)
+- 455f27e OCM-4184 | Feat | Convert relative path containing tilde for service account file (#568)
+
 ## 0.1.69 Sep 29 2023
 
 - 447488d Added default values for CIDRs and host prefix
