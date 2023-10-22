@@ -204,6 +204,14 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 	)
 	SetQuestion(fs, "compute-subnet", "compute subnet:")
 
+	fs.StringVar(
+		&value.VPCProjectID,
+		"vpc-project-id",
+		"",
+		"The name of the project the existing VPC is located for shared VPC on GCP",
+	)
+	SetQuestion(fs, "vpc-project-id", "vpc project id:")
+
 	fs.StringSliceVar(
 		&value.AdditionalComputeSecurityGroupIds,
 		additionalComputeSecurityGroupIdsFlag,
