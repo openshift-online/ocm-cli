@@ -157,6 +157,13 @@ func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
 	return nil
 }
 
+const (
+	additionalComputeSecurityGroupIdsFlag      = "additional-compute-security-group-ids"
+	additionalInfraSecurityGroupIdsFlag        = "additional-infra-security-group-ids"
+	additionalControlPlaneSecurityGroupIdsFlag = "additional-control-plane-security-group-ids"
+	listInputMessage                           = "Format should be a comma-separated list."
+)
+
 func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 
 	fs.StringVar(
@@ -196,6 +203,30 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 		"The name of the existing subnet that you want to deploy your compute machines to",
 	)
 	SetQuestion(fs, "compute-subnet", "compute subnet:")
+
+	fs.StringSliceVar(
+		&value.AdditionalComputeSecurityGroupIds,
+		additionalComputeSecurityGroupIdsFlag,
+		nil,
+		"The additional Security Group IDs to be added to the default worker machine pool. "+
+			listInputMessage,
+	)
+
+	fs.StringSliceVar(
+		&value.AdditionalInfraSecurityGroupIds,
+		additionalInfraSecurityGroupIdsFlag,
+		nil,
+		"The additional Security Group IDs to be added to the default infra machine pool. "+
+			listInputMessage,
+	)
+
+	fs.StringSliceVar(
+		&value.AdditionalControlPlaneSecurityGroupIds,
+		additionalControlPlaneSecurityGroupIdsFlag,
+		nil,
+		"The additional Security Group IDs to be added to the default control plane machine pool. "+
+			listInputMessage,
+	)
 }
 
 func AddClusterWideProxyFlags(fs *pflag.FlagSet, value *cluster.ClusterWideProxy) {
