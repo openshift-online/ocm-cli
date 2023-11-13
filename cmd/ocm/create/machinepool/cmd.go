@@ -26,13 +26,18 @@ import (
 )
 
 var args struct {
-	clusterKey   string
-	instanceType string
-	replicas     int
-	autoscaling  c.Autoscaling
-	labels       string
-	taints       string
+	clusterKey                 string
+	instanceType               string
+	replicas                   int
+	autoscaling                c.Autoscaling
+	labels                     string
+	taints                     string
+	additionalSecurityGroupIds []string
 }
+
+const (
+	additionalSecurityGroupIdsFlag = "additional-security-group-ids"
+)
 
 var Cmd = &cobra.Command{
 	Use:     "machinepool --cluster={NAME|ID|EXTERNAL_ID} --instance-type=TYPE --replicas=N [flags] MACHINE_POOL_ID",
@@ -97,6 +102,13 @@ func init() {
 		"",
 		"Taints for machine pool. Format should be a comma-separated list of 'key=value:scheduleType'. "+
 			"This list will overwrite any modifications made to Node taints on an ongoing basis.",
+	)
+
+	flags.StringSliceVar(&args.additionalSecurityGroupIds,
+		additionalSecurityGroupIdsFlag,
+		nil,
+		"The additional Security Group IDs to be added to the machine pool. "+
+			"Format should be a comma-separated list.",
 	)
 }
 
@@ -198,6 +210,15 @@ func run(cmd *cobra.Command, argv []string) error {
 		InstanceType(args.instanceType).
 		Labels(labels).
 		Taints(taintBuilders...)
+
+	if len(args.additionalSecurityGroupIds) != 0 {
+		for i, sg := range args.additionalSecurityGroupIds {
+			args.additionalSecurityGroupIds[i] = strings.TrimSpace(sg)
+		}
+		mpBuilder.AWS(
+			cmv1.NewAWSMachinePool().
+				AdditionalSecurityGroupIds(args.additionalSecurityGroupIds...))
+	}
 
 	if args.autoscaling.Enabled {
 		mpBuilder = mpBuilder.Autoscaling(

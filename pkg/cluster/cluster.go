@@ -103,12 +103,15 @@ type CCS struct {
 }
 
 type ExistingVPC struct {
-	Enabled            bool
-	SubnetIDs          string
-	AvailabilityZones  []string
-	VPCName            string
-	ControlPlaneSubnet string
-	ComputeSubnet      string
+	Enabled                                bool
+	SubnetIDs                              string
+	AvailabilityZones                      []string
+	VPCName                                string
+	ControlPlaneSubnet                     string
+	ComputeSubnet                          string
+	AdditionalComputeSecurityGroupIds      []string
+	AdditionalInfraSecurityGroupIds        []string
+	AdditionalControlPlaneSecurityGroupIds []string
 }
 
 type ClusterWideProxy struct {
@@ -370,13 +373,21 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 			if config.ExistingVPC.SubnetIDs != "" {
 				subnets = strings.Split(config.ExistingVPC.SubnetIDs, ",")
 			}
-			clusterBuilder = clusterBuilder.AWS(
-				cmv1.NewAWS().
-					AccountID(config.CCS.AWS.AccountID).
-					AccessKeyID(config.CCS.AWS.AccessKeyID).
-					SecretAccessKey(config.CCS.AWS.SecretAccessKey).
-					SubnetIDs(subnets...),
-			)
+			awsBuilder := cmv1.NewAWS().
+				AccountID(config.CCS.AWS.AccountID).
+				AccessKeyID(config.CCS.AWS.AccessKeyID).
+				SecretAccessKey(config.CCS.AWS.SecretAccessKey).
+				SubnetIDs(subnets...)
+			if len(config.ExistingVPC.AdditionalComputeSecurityGroupIds) != 0 {
+				awsBuilder.AdditionalComputeSecurityGroupIds(config.ExistingVPC.AdditionalComputeSecurityGroupIds...)
+			}
+			if len(config.ExistingVPC.AdditionalInfraSecurityGroupIds) != 0 {
+				awsBuilder.AdditionalInfraSecurityGroupIds(config.ExistingVPC.AdditionalInfraSecurityGroupIds...)
+			}
+			if len(config.ExistingVPC.AdditionalControlPlaneSecurityGroupIds) != 0 {
+				awsBuilder.AdditionalControlPlaneSecurityGroupIds(config.ExistingVPC.AdditionalControlPlaneSecurityGroupIds...)
+			}
+			clusterBuilder = clusterBuilder.AWS(awsBuilder)
 		case ProviderGCP:
 			if config.CCS.GCP.Type == "" || config.CCS.GCP.ClientEmail == "" ||
 				config.CCS.GCP.ProjectID == "" {

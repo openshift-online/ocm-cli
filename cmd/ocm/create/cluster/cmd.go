@@ -1047,9 +1047,17 @@ func promptExistingAWSVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 				}
 			}
 		}
-		return nil
+		cleanSecurityGroups(&args.existingVPC.AdditionalComputeSecurityGroupIds)
+		cleanSecurityGroups(&args.existingVPC.AdditionalInfraSecurityGroupIds)
+		cleanSecurityGroups(&args.existingVPC.AdditionalControlPlaneSecurityGroupIds)
 	}
 	return nil
+}
+
+func cleanSecurityGroups(securityGroups *[]string) {
+	for i, sg := range *securityGroups {
+		(*securityGroups)[i] = strings.TrimSpace(sg)
+	}
 }
 
 func wasGCPNetworkReceived() bool {
