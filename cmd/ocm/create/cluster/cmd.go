@@ -1062,7 +1062,7 @@ func cleanSecurityGroups(securityGroups *[]string) {
 
 func wasGCPNetworkReceived() bool {
 	return args.existingVPC.VPCName != "" && args.existingVPC.ControlPlaneSubnet != "" &&
-		args.existingVPC.ComputeSubnet != ""
+		args.existingVPC.ComputeSubnet != "" && args.existingVPC.VPCProjectID != ""
 }
 
 func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
@@ -1079,22 +1079,47 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		}
 	}
 
-	if args.existingVPC.Enabled || wasGCPNetworkReceived() {
-		err = arguments.PromptString(fs, "vpc-name")
+	if !args.existingVPC.Enabled && !wasGCPNetworkReceived() {
+		return nil
+	}
+
+	err = arguments.PromptString(fs, "vpc-name")
+	if err != nil {
+		return err
+	}
+
+	err = arguments.PromptString(fs, "control-plane-subnet")
+	if err != nil {
+		return err
+	}
+
+	err = arguments.PromptString(fs, "compute-subnet")
+	if err != nil {
+		return err
+	}
+
+	useSharedVpc := (args.existingVPC.VPCProjectID != "")
+	if !useSharedVpc && args.interactive {
+		useSharedVpc, err = interactive.GetBool(interactive.Input{
+			Question: "Install into a shared VPC",
+			Help: "To install with shared VPC you need to have a shared VPC network configured in a separate " +
+				"project in the same organization as the project that you want the cluster installed into. ",
+			Default: false,
+		})
 		if err != nil {
 			return err
 		}
+	}
 
-		err = arguments.PromptString(fs, "control-plane-subnet")
+	if useSharedVpc {
+		err = arguments.PromptString(fs, "vpc-project-id")
 		if err != nil {
 			return err
 		}
+	}
 
-		err = arguments.PromptString(fs, "compute-subnet")
-		if err != nil {
-			return err
-		}
-
+	// skip validation if shared vpc is used
+	if !useSharedVpc {
 		//get vpc's from the provider
 		vpcList, err := provider.GetGCPVPCs(connection.ClustersMgmt().V1(),
 			args.ccs, args.region)
@@ -1148,27 +1173,31 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			return fmt.Errorf("Could not find the following compute-subnet provided: %s",
 				args.existingVPC.ComputeSubnet)
 		}
+	}
 
-		if wasGCPNetworkReceived() {
-			args.existingVPC.Enabled = true
-		}
+	if wasGCPNetworkReceived() {
+		args.existingVPC.Enabled = true
+	}
 
-		fs.Set("use-existing-vpc", "true")
-		flag := fs.Lookup("vpc-name")
-		if !flag.Changed {
-			fs.Set("vpc-name", args.existingVPC.VPCName)
-		}
-		flag = fs.Lookup("control-plane-subnet")
-		if !flag.Changed {
-			fs.Set("control-plabe-subnet", args.existingVPC.ControlPlaneSubnet)
-		}
-		flag = fs.Lookup("compute-subnet")
-		if !flag.Changed {
-			fs.Set("compute-subnet", args.existingVPC.ComputeSubnet)
-		}
-		return nil
+	fs.Set("use-existing-vpc", "true")
+	flag := fs.Lookup("vpc-name")
+	if !flag.Changed {
+		fs.Set("vpc-name", args.existingVPC.VPCName)
+	}
+	flag = fs.Lookup("control-plane-subnet")
+	if !flag.Changed {
+		fs.Set("control-plabe-subnet", args.existingVPC.ControlPlaneSubnet)
+	}
+	flag = fs.Lookup("compute-subnet")
+	if !flag.Changed {
+		fs.Set("compute-subnet", args.existingVPC.ComputeSubnet)
+	}
+	flag = fs.Lookup("vpc-project-id")
+	if !flag.Changed {
+		fs.Set("vpc-project-id", args.existingVPC.VPCProjectID)
 	}
 	return nil
+
 }
 
 func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
