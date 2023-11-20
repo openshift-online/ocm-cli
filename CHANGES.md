@@ -3,6 +3,10 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.71 Nov 15 2023
+
+- OCM-4750 | feat: additional security group ids attributes
+
 ## 0.1.70 Oct 13 2023
 
 - 4dad47f OCM-3510 | fix: allow clusters to edit ingresses
