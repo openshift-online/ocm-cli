@@ -213,8 +213,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Creator:		%s\n"+
 		"Email:			%s\n"+
 		"AccountNumber:          %s\n"+
-		"Created:		%v\n"+
-		"Expiration:		%v\n",
+		"Created:		%v\n",
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
@@ -240,8 +239,12 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		email,
 		accountNumber,
 		cluster.CreationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
-		cluster.ExpirationTimestamp().Round(time.Second).Format(time.RFC3339Nano),
 	)
+
+	expirationTime, hasExpirationTimestamp := cluster.GetExpirationTimestamp()
+	if hasExpirationTimestamp {
+		fmt.Printf("Expiration:		%v\n", expirationTime.Round(time.Second).Format(time.RFC3339Nano))
+	}
 
 	// Hive
 	if shard != "" {
