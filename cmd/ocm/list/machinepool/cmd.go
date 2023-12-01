@@ -98,10 +98,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the writer that will be used to print the tabulated results:
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	fmt.Fprintf(writer, "ID\tAUTOSCALING\tREPLICAS\tINSTANCE TYPE\tLABELS\t\tTAINTS\t\tAVAILABILITY ZONES\n")
+	fmt.Fprintf(writer, "ID\tAUTOSCALING\tREPLICAS\tINSTANCE TYPE\tLABELS\t\tTAINTS\t\tAVAILABILITY ZONES\tSG IDs\n")
 
 	for _, machinePool := range machinePools {
-		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t\t%s\t\t%s\n",
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t\t%s\t\t%s\t%s\n",
 			machinePool.ID(),
 			printAutoscaling(machinePool.Autoscaling()),
 			printReplicas(machinePool.Autoscaling(), machinePool.Replicas()),
@@ -109,6 +109,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			printLabels(machinePool.Labels()),
 			printTaints(machinePool.Taints()),
 			printAZ(machinePool.AvailabilityZones()),
+			printAdditionalSecurityGroups(machinePool.AWS().AdditionalSecurityGroupIds()),
 		)
 	}
 	writer.Flush()
@@ -130,6 +131,10 @@ func printReplicas(autoscaling *cmv1.MachinePoolAutoscaling, replicas int) strin
 			autoscaling.MaxReplicas())
 	}
 	return fmt.Sprintf("%d", replicas)
+}
+
+func printAdditionalSecurityGroups(securityGroups []string) string {
+	return strings.Join(securityGroups, ", ")
 }
 
 func printAZ(az []string) string {
