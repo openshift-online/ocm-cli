@@ -48,6 +48,7 @@ var urlAliases = map[string]string{
 
 var args struct {
 	tokenURL     string
+	region       string
 	clientID     string
 	clientSecret string
 	scopes       []string
@@ -108,6 +109,12 @@ func init() {
 		sdk.DefaultURL,
 		"URL of the API gateway. The value can be the complete URL or an alias. The "+
 			"valid aliases are 'production', 'staging', 'integration' and their shorthands.",
+	)
+	flags.StringVar(
+		&args.region,
+		"region",
+		"",
+		"OCM region identifier. Takes precedence over the --url flag",
 	)
 	flags.StringVar(
 		&args.token,
@@ -239,6 +246,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Update the configuration with the values given in the command line:
 	cfg.TokenURL = tokenURL
+	cfg.Region = args.region
 	cfg.ClientID = clientID
 	cfg.ClientSecret = args.clientSecret
 	cfg.Scopes = args.scopes
@@ -265,6 +273,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		cfg.User = ""
 		cfg.Password = ""
 	}
+
+	// If an OCM region is provided, update the config URL with the SDK generated URL
+	if cfg.Region != "" {
+		cfg.URL = connection.URL()
+	}
+
 	err = config.Save(cfg)
 	if err != nil {
 		return fmt.Errorf("Can't save config file: %v", err)
