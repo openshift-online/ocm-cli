@@ -202,20 +202,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Provider:		%s\n"+
 		"Version:		%s\n"+
 		"Region:			%s\n"+
-		"Multi-az:		%t\n"+
-		"CCS:			%t\n"+
-		"HCP:			%t\n"+
-		"Subnet IDs:		%s\n"+
-		"PrivateLink:		%t\n"+
-		"STS:			%t\n"+
-		"Existing VPC:		%s\n"+
-		"Channel Group:		%v\n"+
-		"Cluster Admin:		%t\n"+
-		"Organization:		%s\n"+
-		"Creator:		%s\n"+
-		"Email:			%s\n"+
-		"AccountNumber:          %s\n"+
-		"Created:		%v\n",
+		"Multi-az:		%t\n",
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
@@ -228,6 +215,26 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.OpenshiftVersion(),
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
+	)
+
+	// secureboot
+	if cluster.GCP().Security().SecureBoot() {
+		fmt.Printf("SecureBoot:             %t\n", cluster.GCP().Security().SecureBoot())
+	}
+
+	fmt.Printf("CCS:			%t\n"+
+		"HCP:			%t\n"+
+		"Subnet IDs:		%s\n"+
+		"PrivateLink:		%t\n"+
+		"STS:			%t\n"+
+		"Existing VPC:		%s\n"+
+		"Channel Group:		%v\n"+
+		"Cluster Admin:		%t\n"+
+		"Organization:		%s\n"+
+		"Creator:		%s\n"+
+		"Email:			%s\n"+
+		"AccountNumber:          %s\n"+
+		"Created:		%v\n",
 		cluster.CCS().Enabled(),
 		cluster.Hypershift().Enabled(),
 		cluster.AWS().SubnetIDs(),

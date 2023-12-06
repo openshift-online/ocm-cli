@@ -88,6 +88,9 @@ type Spec struct {
 
 	// Default Ingress Attributes
 	DefaultIngress DefaultIngressSpec
+
+	// Gcp-specific settings
+	GcpSecurity GcpSecurity
 }
 
 type Autoscaling struct {
@@ -141,6 +144,10 @@ type GCPCredentials struct {
 	TokenURI                string `json:"token_uri"`
 	AuthProviderX509CertURL string `json:"auth_provider_x509_cert_url"`
 	ClientX509CertURL       string `json:"client_x509_cert_url"`
+}
+
+type GcpSecurity struct {
+	SecureBoot bool `json:"secure_boot,omitempty"`
 }
 
 type AddOnItem struct {
@@ -366,6 +373,8 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		}
 	}
 
+	gcpBuilder := cmv1.NewGCP()
+
 	if config.CCS.Enabled {
 		clusterBuilder = clusterBuilder.CCS(cmv1.NewCCS().Enabled(true))
 		switch config.Provider {
@@ -394,20 +403,17 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 				config.CCS.GCP.ProjectID == "" {
 				return nil, fmt.Errorf("Missing credentials for GCP CCS cluster")
 			}
-			clusterBuilder =
-				clusterBuilder.GCP(
-					cmv1.NewGCP().
-						Type(config.CCS.GCP.Type).
-						ProjectID(config.CCS.GCP.ProjectID).
-						PrivateKeyID(config.CCS.GCP.PrivateKeyID).
-						PrivateKey(config.CCS.GCP.PrivateKey).
-						ClientEmail(config.CCS.GCP.ClientEmail).
-						ClientID(config.CCS.GCP.ClientID).
-						AuthURI(config.CCS.GCP.AuthURI).
-						TokenURI(config.CCS.GCP.TokenURI).
-						AuthProviderX509CertURL(config.CCS.GCP.AuthProviderX509CertURL).
-						ClientX509CertURL(config.CCS.GCP.ClientX509CertURL),
-				)
+			gcpBuilder.
+				Type(config.CCS.GCP.Type).
+				ProjectID(config.CCS.GCP.ProjectID).
+				PrivateKeyID(config.CCS.GCP.PrivateKeyID).
+				PrivateKey(config.CCS.GCP.PrivateKey).
+				ClientEmail(config.CCS.GCP.ClientEmail).
+				ClientID(config.CCS.GCP.ClientID).
+				AuthURI(config.CCS.GCP.AuthURI).
+				TokenURI(config.CCS.GCP.TokenURI).
+				AuthProviderX509CertURL(config.CCS.GCP.AuthProviderX509CertURL).
+				ClientX509CertURL(config.CCS.GCP.ClientX509CertURL)
 
 			if isGCPNetworkExists(config.ExistingVPC) {
 				gcpNetwork := cmv1.NewGCPNetwork().VPCName(config.ExistingVPC.VPCName).
@@ -439,6 +445,11 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		if config.ClusterWideProxy.AdditionalTrustBundle != nil {
 			clusterBuilder = clusterBuilder.AdditionalTrustBundle(*config.ClusterWideProxy.AdditionalTrustBundle)
 		}
+	}
+
+	if config.GcpSecurity.SecureBoot {
+		gcpSecurity := cmv1.NewGcpSecurity().SecureBoot(config.GcpSecurity.SecureBoot)
+		gcpBuilder.Security(gcpSecurity)
 	}
 
 	if config.ComputeMachineType != "" || config.ComputeNodes > 0 || len(config.ExistingVPC.AvailabilityZones) > 0 ||
@@ -474,6 +485,10 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 				cmv1.NamespaceOwnershipPolicy(config.DefaultIngress.NamespaceOwnershipPolicy))
 		}
 		clusterBuilder.Ingresses(cmv1.NewIngressList().Items(defaultIngress))
+	}
+
+	if config.Provider == ProviderGCP {
+		clusterBuilder = clusterBuilder.GCP(gcpBuilder)
 	}
 
 	clusterSpec, err := clusterBuilder.Build()
