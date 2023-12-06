@@ -18,6 +18,8 @@ package cluster
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -109,16 +111,6 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		shard = shardPath.Body().HiveConfig().Server()
 	}
 
-	var computesStr string
-	if cluster.Nodes().AutoscaleCompute() != nil {
-		computesStr = fmt.Sprintf("%d-%d (Autoscaled)",
-			cluster.Nodes().AutoscaleCompute().MinReplicas(),
-			cluster.Nodes().AutoscaleCompute().MaxReplicas(),
-		)
-	} else {
-		computesStr = fmt.Sprintf("%d", cluster.Nodes().Compute())
-	}
-
 	clusterAdminEnabled := false
 	if cluster.CCS().Enabled() {
 		clusterAdminEnabled = true
@@ -189,12 +181,22 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		)
 	}
 
+	var computesStr string
+	if cluster.Nodes().AutoscaleCompute() != nil {
+		computesStr = fmt.Sprintf("%d-%d (Autoscaled)",
+			cluster.Nodes().AutoscaleCompute().MinReplicas(),
+			cluster.Nodes().AutoscaleCompute().MaxReplicas(),
+		)
+	} else {
+		computesStr = strconv.Itoa(cluster.Nodes().Compute())
+	}
+
 	fmt.Printf("API URL:		%s\n"+
 		"API Listening:		%s\n"+
 		"Console URL:		%s\n"+
-		"Masters:		%d\n"+
-		"Infra:			%d\n"+
-		"Computes:		%s\n"+
+		"Control Plane:\n%s\n"+
+		"Infra:\n%s\n"+
+		"Compute:\n%s\n"+
 		"Product:		%s\n"+
 		"Subscription type:	%s\n"+
 		"Provider:		%s\n"+
@@ -217,9 +219,9 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
-		cluster.Nodes().Master(),
-		cluster.Nodes().Infra(),
-		computesStr,
+		printNodeInfo(strconv.Itoa(cluster.Nodes().Master()), cluster.AWS().AdditionalControlPlaneSecurityGroupIds()),
+		printNodeInfo(strconv.Itoa(cluster.Nodes().Infra()), cluster.AWS().AdditionalInfraSecurityGroupIds()),
+		printNodeInfo(computesStr, cluster.AWS().AdditionalComputeSecurityGroupIds()),
 		cluster.Product().ID(),
 		cluster.BillingModel(),
 		cluster.CloudProvider().ID(),
@@ -292,6 +294,14 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	fmt.Println()
 
 	return nil
+}
+
+func printNodeInfo(replicasInfo string, securityGroups []string) string {
+	nodeStr := fmt.Sprintf("\tReplicas: %s", replicasInfo)
+	if len(securityGroups) > 0 {
+		nodeStr += fmt.Sprintf("\n\tAWS Additional Security Group IDs: %s", strings.Join(securityGroups, ", "))
+	}
+	return nodeStr
 }
 
 // findHyperShiftMgmtSvcClusters returns the name of a HyperShift cluster's management and service clusters.

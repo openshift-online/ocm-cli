@@ -136,13 +136,13 @@ var _ = Describe("List machine pools", Ordered, func() {
 		// The heading and 2 machinepool record information
 		Expect(lines).To(HaveLen(3))
 		Expect(lines[0]).To(MatchRegexp(
-			`^ID\s+AUTOSCALING\s+REPLICAS\s+INSTANCE TYPE\s+LABELS\s+TAINTS\s+AVAILABILITY ZONES$`,
+			`^ID\s+AUTOSCALING\s+REPLICAS\s+INSTANCE TYPE\s+LABELS\s+TAINTS\s+AVAILABILITY ZONES\s+SG IDs$`,
 		))
 		Expect(lines[1]).To(MatchRegexp(
-			`^worker\s+No\s+4\s+m5.xlarge\s+us-west-2a$`,
+			`^worker\s+No\s+4\s+m5.xlarge\s+us-west-2a\s+$`,
 		))
 		Expect(lines[2]).To(MatchRegexp(
-			`^worker1\s+No\s+2\s+m5.2xlarge\s+us-west-2a$`,
+			`^worker1\s+No\s+2\s+m5.2xlarge\s+us-west-2a\s+$`,
 		))
 	})
 
@@ -180,10 +180,10 @@ var _ = Describe("List machine pools", Ordered, func() {
 		// The heading and 1 machinepool record information
 		Expect(lines).To(HaveLen(2))
 		Expect(lines[0]).To(MatchRegexp(
-			`^ID\s+AUTOSCALING\s+REPLICAS\s+INSTANCE TYPE\s+LABELS\s+TAINTS\s+AVAILABILITY ZONES$`,
+			`^ID\s+AUTOSCALING\s+REPLICAS\s+INSTANCE TYPE\s+LABELS\s+TAINTS\s+AVAILABILITY ZONES\s+SG IDs$`,
 		))
 		Expect(lines[1]).To(MatchRegexp(
-			`^default\s+No\s+2\s+m5.xlarge\s+us-west-2a$`,
+			`^default\s+No\s+2\s+m5.xlarge\s+us-west-2a\s+$`,
 		))
 	})
 
