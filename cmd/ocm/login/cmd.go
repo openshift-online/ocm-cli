@@ -48,7 +48,7 @@ var urlAliases = map[string]string{
 
 var args struct {
 	tokenURL     string
-	region       string
+	rhRegion     string
 	clientID     string
 	clientSecret string
 	scopes       []string
@@ -111,11 +111,12 @@ func init() {
 			"valid aliases are 'production', 'staging', 'integration' and their shorthands.",
 	)
 	flags.StringVar(
-		&args.region,
-		"region",
+		&args.rhRegion,
+		"rh-region",
 		"",
 		"OCM region identifier. Takes precedence over the --url flag",
 	)
+	flags.MarkHidden("rh-region")
 	flags.StringVar(
 		&args.token,
 		"token",
@@ -246,7 +247,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Update the configuration with the values given in the command line:
 	cfg.TokenURL = tokenURL
-	cfg.Region = args.region
+	cfg.RhRegion = args.rhRegion
 	cfg.ClientID = clientID
 	cfg.ClientSecret = args.clientSecret
 	cfg.Scopes = args.scopes
@@ -275,7 +276,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// If an OCM region is provided, update the config URL with the SDK generated URL
-	if cfg.Region != "" {
+	if cfg.RhRegion != "" {
 		cfg.URL = connection.URL()
 	}
 
