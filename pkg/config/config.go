@@ -48,7 +48,7 @@ type Config struct {
 	RefreshToken string   `json:"refresh_token,omitempty" doc:"Offline or refresh token."`
 	Scopes       []string `json:"scopes,omitempty" doc:"OpenID scope. If this option is used it will replace completely the default scopes. Can be repeated multiple times to specify multiple scopes."`
 	TokenURL     string   `json:"token_url,omitempty" doc:"OpenID token URL."`
-	RhRegion     string   `json:"region,omitempty" doc:"OCM region name."`
+	RhRegion     string   `json:"rh_region,omitempty" doc:"OCM region name."`
 	URL          string   `json:"url,omitempty" doc:"URL of the API gateway. The value can be the complete URL or an alias. The valid aliases are 'production', 'staging' and 'integration'."`
 	User         string   `json:"user,omitempty" doc:"User name."`
 	Pager        string   `json:"pager,omitempty" doc:"Pager command, for example 'less'. If empty no pager will be used."`
