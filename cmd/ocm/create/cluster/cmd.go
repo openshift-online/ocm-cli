@@ -75,6 +75,7 @@ var args struct {
 	existingVPC           c.ExistingVPC
 	clusterWideProxy      c.ClusterWideProxy
 	gcpServiceAccountFile arguments.FilePath
+	gcpSecureBoot         c.GcpSecurity
 	etcdEncryption        bool
 	subscriptionType      string
 	marketplaceGcpTerms   bool
@@ -340,6 +341,14 @@ func init() {
 			"Set the flag to true once agreed in order to proceed further.", gcpTermsAgreementsHyperlink),
 	)
 	arguments.SetQuestion(fs, "marketplace-gcp-terms", "I have accepted Google Terms and Agreements:")
+
+	fs.BoolVar(
+		&args.gcpSecureBoot.SecureBoot,
+		"secure-boot-for-shielded-vms",
+		false,
+		"Secure Boot enables the use of Shielded VMs in the Google Cloud Platform.",
+	)
+	arguments.SetQuestion(fs, "secure-boot-for-shielded-vms", "Secure boot support for Shielded VMs:")
 }
 
 func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
@@ -570,6 +579,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	err = promptSecureBoot(fs)
+	if err != nil {
+		return err
+	}
+
 	regions, err := getRegionOptions(connection)
 	if err != nil {
 		return err
@@ -718,6 +732,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		EtcdEncryption:     args.etcdEncryption,
 		DefaultIngress:     defaultIngress,
 		SubscriptionType:   args.subscriptionType,
+		GcpSecurity:        args.gcpSecureBoot,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
@@ -1273,6 +1288,19 @@ func promptNetwork(fs *pflag.FlagSet) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func promptSecureBoot(fs *pflag.FlagSet) error {
+	// this is a GCP setting
+	if args.provider != c.ProviderGCP {
+		return nil
+	}
+	err := arguments.PromptBool(fs, "secure-boot-for-shielded-vms")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
