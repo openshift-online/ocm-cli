@@ -208,7 +208,8 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.Console().URL(),
 		printNodeInfo(strconv.Itoa(cluster.Nodes().Master()), cluster.AWS().AdditionalControlPlaneSecurityGroupIds()),
 		printNodeInfo(strconv.Itoa(cluster.Nodes().Infra()), cluster.AWS().AdditionalInfraSecurityGroupIds()),
-		printNodeInfo(computesStr, cluster.AWS().AdditionalComputeSecurityGroupIds()),
+		// To view additional compute SGs customer can use describe machine-pool
+		printNodeInfo(computesStr, []string{}),
 		cluster.Product().ID(),
 		cluster.BillingModel(),
 		cluster.CloudProvider().ID(),
