@@ -3,6 +3,13 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.72 Dec 11 2023
+
+- OCM-4960: Do not print expiration timestamp if not set
+- OCM-5131 | feat: add SG IDs to describe cluster and list machinepools
+- Add 'secure-boot-for-shielded-vms' flag to expose secureboot on GCP
+- OCM-5131 | fix: don't show additional compute SGs describing cluster
+
 ## 0.1.71 Nov 15 2023
 
 - OCM-4750 | feat: additional security group ids attributes
