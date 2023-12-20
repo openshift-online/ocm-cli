@@ -25,6 +25,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	slv1 "github.com/openshift-online/ocm-sdk-go/servicelogs/v1"
 )
 
 const (
@@ -344,4 +345,18 @@ func findHyperShiftMgmtSvcClusters(conn *sdk.Connection, cluster *cmv1.Cluster) 
 
 	// Shouldn't normally happen as every management cluster should have a service cluster
 	return mgmtClusterName, ""
+}
+
+func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
+	serviceLogs, err := connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()).Send()
+	if err != nil {
+		return err
+	}
+	serviceLogs.Items().Each(func(entry *slv1.LogEntry) bool {
+		if entry.Severity() == slv1.SeverityWarning {
+			fmt.Printf("⚠️ WARNING:\n%s\n%s\n", entry.Summary(), entry.Description())
+		}
+		return true
+	})
+	return nil
 }
