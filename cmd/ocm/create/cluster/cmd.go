@@ -750,6 +750,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		if err != nil {
 			return err
 		}
+		err = c.PrintClusterWarnings(connection, cluster)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
