@@ -29,6 +29,7 @@ import (
 	"github.com/golang/glog"
 	homedir "github.com/mitchellh/go-homedir"
 	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/openshift-online/ocm-sdk-go/authentication/securestore"
 
 	"github.com/openshift-online/ocm-cli/pkg/debug"
 	"github.com/openshift-online/ocm-cli/pkg/info"
@@ -53,12 +54,16 @@ type Config struct {
 	Pager        string   `json:"pager,omitempty" doc:"Pager command, for example 'less'. If empty no pager will be used."`
 }
 
-// Load loads the configuration from the configuration file. If the configuration file doesn't exist
+// Loads the configuration from the configuration file. If the configuration file doesn't exist
 // it will return an empty configuration object.
 func Load() (cfg *Config, err error) {
 	file, err := Location()
 	if err != nil {
 		return
+	}
+
+	if ocmCfg := os.Getenv("OCM_CONFIG"); ocmCfg == securestore.SecureStoreConfigKey {
+		return LoadFromOS()
 	}
 	_, err = os.Stat(file)
 	if os.IsNotExist(err) {
@@ -88,20 +93,46 @@ func Load() (cfg *Config, err error) {
 	return
 }
 
+// Loads the configuration from the OS keyring. If the configuration file doesn't exist
+// it will return an empty configuration object.
+func LoadFromOS() (cfg *Config, err error) {
+	data, err := securestore.GetConfigFromKeyring()
+	if err != nil || len(data) == 0 {
+		return cfg, err
+	}
+
+	cfg = &Config{}
+	if len(data) == 0 {
+		return
+	}
+	err = json.Unmarshal(data, cfg)
+	if err != nil {
+		err = fmt.Errorf("can't parse config: %v", err)
+		return
+	}
+	return
+}
+
 // Save saves the given configuration to the configuration file.
 func Save(cfg *Config) error {
 	file, err := Location()
 	if err != nil {
 		return err
 	}
+
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("can't marshal config: %v", err)
+	}
+
+	if ocmCfg := os.Getenv("OCM_CONFIG"); ocmCfg == securestore.SecureStoreConfigKey {
+		return securestore.UpsertConfigToKeyring(data)
+	}
+
 	dir := filepath.Dir(file)
 	err = os.MkdirAll(dir, os.FileMode(0755))
 	if err != nil {
 		return fmt.Errorf("can't create directory %s: %v", dir, err)
-	}
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return fmt.Errorf("can't marshal config: %v", err)
 	}
 	err = os.WriteFile(file, data, 0600)
 	if err != nil {
