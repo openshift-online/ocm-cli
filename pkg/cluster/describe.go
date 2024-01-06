@@ -196,9 +196,9 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"API Listening:		%s\n"+
 		"Console URL:		%s\n"+
 		"Cluster History URL:	%s\n"+
-		"Control Plane:\n%s\n"+
-		"Infra:\n%s\n"+
-		"Compute:\n%s\n"+
+		"Control Plane:\n		%s\n"+
+		"Infra:\n		%s\n"+
+		"Compute:\n		%s\n"+
 		"Product:		%s\n"+
 		"Subscription type:	%s\n"+
 		"Provider:		%s\n"+
