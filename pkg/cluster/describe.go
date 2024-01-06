@@ -195,6 +195,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	fmt.Printf("API URL:		%s\n"+
 		"API Listening:		%s\n"+
 		"Console URL:		%s\n"+
+		"Cluster History URL:	%s\n"+
 		"Control Plane:\n%s\n"+
 		"Infra:\n%s\n"+
 		"Compute:\n%s\n"+
@@ -207,6 +208,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
+		fmt.Sprintf("https://cloud.redhat.com/openshift/details/s/%s#clusterHistory", cluster.Subscription().ID()),
 		printNodeInfo(strconv.Itoa(cluster.Nodes().Master()), cluster.AWS().AdditionalControlPlaneSecurityGroupIds()),
 		printNodeInfo(strconv.Itoa(cluster.Nodes().Infra()), cluster.AWS().AdditionalInfraSecurityGroupIds()),
 		// To view additional compute SGs customer can use describe machine-pool
