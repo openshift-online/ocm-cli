@@ -20,17 +20,18 @@ import (
 	"fmt"
 	"os"
 
-	sdk "github.com/openshift-online/ocm-sdk-go"
-	"github.com/spf13/cobra"
-
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
+	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/openshift-online/ocm-sdk-go/authentication"
+	"github.com/spf13/cobra"
 )
 
 const (
 	productionURL  = "https://api.openshift.com"
 	stagingURL     = "https://api.stage.openshift.com"
 	integrationURL = "https://api.integration.openshift.com"
+	oauthClientID  = "ocm-cli"
 )
 
 // When the value of the `--url` option is one of the keys of this map it will be replaced by the
@@ -57,6 +58,7 @@ var args struct {
 	password     string
 	insecure     bool
 	persistent   bool
+	useAuthCode  bool
 }
 
 var Cmd = &cobra.Command{
@@ -143,6 +145,15 @@ func init() {
 			"this option is provided then the user name and password will be stored "+
 			"persistently, in clear text, which is potentially unsafe.",
 	)
+	flags.BoolVar(
+		&args.useAuthCode,
+		"use-auth-code",
+		false,
+		"Enables OAuth Authorization Code login using PKCE. If this option is provided, "+
+			"the user will be taken to Red Hat SSO for authentication. In order to use a different account, "+
+			"log out from sso.redhat.com after using the 'ocm logout' command.",
+	)
+	flags.MarkHidden("use-auth-code")
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -151,6 +162,16 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Check mandatory options:
 	if args.url == "" {
 		return fmt.Errorf("Option '--url' is mandatory")
+	}
+
+	if args.useAuthCode {
+		fmt.Println("You will now be redirected to Red Hat SSO login")
+		token, err := authentication.VerifyLogin(oauthClientID)
+		if err != nil {
+			return fmt.Errorf("An error occurred while retrieving the token : %v", err)
+		}
+		args.token = token
+		fmt.Println("Token received successfully")
 	}
 
 	// Check that we have some kind of credentials:
