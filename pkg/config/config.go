@@ -52,7 +52,17 @@ type Config struct {
 	URL          string   `json:"url,omitempty" doc:"URL of the API gateway. The value can be the complete URL or an alias. The valid aliases are 'production', 'staging' and 'integration'."`
 	User         string   `json:"user,omitempty" doc:"User name."`
 	Pager        string   `json:"pager,omitempty" doc:"Pager command, for example 'less'. If empty no pager will be used."`
+	AuthFlow     string   `json:"auth,omitempty" doc:"Authentication method to use. Valid values are 'token', 'client', 'auth-code' and 'device-code'"`
 }
+
+type AuthFlowTypes string
+
+const (
+	ClientAuth AuthFlowTypes = "client"
+	TokenAuth  AuthFlowTypes = "token"
+	AuthCode   AuthFlowTypes = "auth-code"
+	DeviceCode AuthFlowTypes = "device-code"
+)
 
 // Loads the configuration from the configuration file. If the configuration file doesn't exist
 // it will return an empty configuration object.
@@ -62,7 +72,11 @@ func Load() (cfg *Config, err error) {
 		return
 	}
 
-	if ocmCfg := os.Getenv("OCM_CONFIG"); ocmCfg == securestore.SecureStoreConfigKey {
+	// If the OCM_CONFIG env var is set to `securestore`,
+	// or auth code/device code flow is being used,
+	// load from the OS keyring instead
+	ocmCfg := os.Getenv("OCM_CONFIG")
+	if ocmCfg == securestore.SecureStoreConfigKey || ocmCfg == string(AuthCode) || ocmCfg == string(DeviceCode) {
 		return LoadFromOS()
 	}
 	_, err = os.Stat(file)
@@ -103,14 +117,16 @@ func LoadFromOS() (cfg *Config, err error) {
 
 	cfg = &Config{}
 	if len(data) == 0 {
-		return
+		return cfg, nil
 	}
 	err = json.Unmarshal(data, cfg)
 	if err != nil {
-		err = fmt.Errorf("can't parse config: %v", err)
-		return
+		// Clear the config from the keyring if it's invalid
+		// treat it as if it doesn't exist so a new one can be created
+		securestore.UpsertConfigToKeyring([]byte{})
+		return cfg, nil
 	}
-	return
+	return cfg, nil
 }
 
 // Save saves the given configuration to the configuration file.
@@ -125,7 +141,11 @@ func Save(cfg *Config) error {
 		return fmt.Errorf("can't marshal config: %v", err)
 	}
 
-	if ocmCfg := os.Getenv("OCM_CONFIG"); ocmCfg == securestore.SecureStoreConfigKey {
+	// If the OCM_CONFIG env var is set to `securestore`,
+	// or auth code/device code flow is being used,
+	// save to the OS keyring instead
+	ocmCfg := os.Getenv("OCM_CONFIG")
+	if ocmCfg == securestore.SecureStoreConfigKey || ocmCfg == string(AuthCode) || ocmCfg == string(DeviceCode) {
 		return securestore.UpsertConfigToKeyring(data)
 	}
 

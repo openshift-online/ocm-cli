@@ -255,6 +255,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		cfg = new(config.Config)
 	}
 
+	if args.useAuthCode {
+		cfg.AuthFlow = string(config.AuthCode)
+	}
+
 	if haveToken {
 		// Encrypted tokens are assumed to be refresh tokens:
 		if config.IsEncryptedToken(args.token) {
