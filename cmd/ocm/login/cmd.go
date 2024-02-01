@@ -113,7 +113,7 @@ func init() {
 		&args.url,
 		"url",
 		sdk.DefaultURL,
-		"URL of the APIs gateway. The value can be the complete URL or an alias. The "+
+		"URL of the API gateway. The value can be the complete URL or an alias. The "+
 			"valid aliases are 'production', 'staging', 'integration' and their shorthands.",
 	)
 	flags.StringVar(
@@ -122,7 +122,7 @@ func init() {
 		"",
 		"OCM region identifier. Takes precedence over the --url flag",
 	)
-	//flags.MarkHidden("rh-region")
+	flags.MarkHidden("rh-region")
 	flags.StringVar(
 		&args.token,
 		"token",
