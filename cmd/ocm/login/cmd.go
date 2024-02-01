@@ -59,6 +59,7 @@ var args struct {
 	token         string
 	user          string
 	password      string
+	rhRegion      string
 	insecure      bool
 	persistent    bool
 	useAuthCode   bool
@@ -112,9 +113,16 @@ func init() {
 		&args.url,
 		"url",
 		sdk.DefaultURL,
-		"URL of the API gateway. The value can be the complete URL or an alias. The "+
+		"URL of the APIs gateway. The value can be the complete URL or an alias. The "+
 			"valid aliases are 'production', 'staging', 'integration' and their shorthands.",
 	)
+	flags.StringVar(
+		&args.rhRegion,
+		"rh-region",
+		"",
+		"OCM region identifier. Takes precedence over the --url flag",
+	)
+	//flags.MarkHidden("rh-region")
 	flags.StringVar(
 		&args.token,
 		"token",
@@ -322,6 +330,16 @@ func run(cmd *cobra.Command, argv []string) error {
 		cfg.User = ""
 		cfg.Password = ""
 	}
+
+	// If an OCM region is provided, update the config URL with the SDK generated URL
+	if args.rhRegion != "" {
+		regValue, err := sdk.GetRhRegion(args.url, args.rhRegion)
+		if err != nil {
+			return fmt.Errorf("Can't find region: %w", err)
+		}
+		cfg.URL = fmt.Sprintf("https://%s", regValue.URL)
+	}
+
 	err = config.Save(cfg)
 	if err != nil {
 		return fmt.Errorf("Can't save config file: %v", err)
