@@ -154,7 +154,7 @@ func init() {
 		&args.googleHostedDomain,
 		"hosted-domain",
 		"",
-		"Google: Restrict users to a Google Apps domain.\n",
+		"Google: Restrict users to a Google Apps domain. Example: http://redhat.com (scheme required)\n",
 	)
 
 	// LDAP
