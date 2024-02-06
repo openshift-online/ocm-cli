@@ -22,6 +22,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/org"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/quota"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/region"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/list/rhRegion"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/upgradepolicy"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/user"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list/version"
@@ -46,4 +47,5 @@ func init() {
 	Cmd.AddCommand(upgradepolicy.Cmd)
 	Cmd.AddCommand(user.Cmd)
 	Cmd.AddCommand(version.Cmd)
+	Cmd.AddCommand(rhRegion.Cmd)
 }
