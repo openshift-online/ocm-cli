@@ -93,62 +93,62 @@ jobs:
         build("linux", "s390x")
         build("windows", "amd64")
 
-        # Calculate the SHA256 digests:
-        for asset in os.listdir(assets):
-            digest = os.path.join(assets, f"{asset}.sha256")
-            with open(digest, "wb") as stream:
-                args = ["sha256sum", asset]
-                subprocess.run(check=True, cwd=assets, stdout=stream, args=args)
+        # # Calculate the SHA256 digests:
+        # for asset in os.listdir(assets):
+        #     digest = os.path.join(assets, f"{asset}.sha256")
+        #     with open(digest, "wb") as stream:
+        #         args = ["sha256sum", asset]
+        #         subprocess.run(check=True, cwd=assets, stdout=stream, args=args)
 
-        # Get the list of changes:
-        body = ""
-        with open("CHANGES.md", "r") as stream:
-            while True:
-                line = stream.readline()
-                if line == "" or line.startswith("## " + version):
-                    break
-            while True:
-                line = stream.readline()
-                if line == "" or line.startswith("## "):
-                    break
-                body += line
+        # # Get the list of changes:
+        # body = ""
+        # with open("CHANGES.md", "r") as stream:
+        #     while True:
+        #         line = stream.readline()
+        #         if line == "" or line.startswith("## " + version):
+        #             break
+        #     while True:
+        #         line = stream.readline()
+        #         if line == "" or line.startswith("## "):
+        #             break
+        #         body += line
 
-        # Send the request to create the release:
-        response = requests.post(
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            json={
-                "tag_name": f"v{version}",
-                "name": f"Release {version}",
-                "body": body,
-            },
-            url=(
-                "https://api.github.com"
-                f"/repos/{repository}/releases"
-            ),
-        )
-        response.raise_for_status()
+        # # Send the request to create the release:
+        # response = requests.post(
+        #     headers={
+        #         "Authorization": f"Bearer {token}",
+        #         "Content-Type": "application/json",
+        #         "Accept": "application/json",
+        #     },
+        #     json={
+        #         "tag_name": f"v{version}",
+        #         "name": f"Release {version}",
+        #         "body": body,
+        #     },
+        #     url=(
+        #         "https://api.github.com"
+        #         f"/repos/{repository}/releases"
+        #     ),
+        # )
+        # response.raise_for_status()
 
-        # Get the release identifier:
-        release = response.json()["id"]
+        # # Get the release identifier:
+        # release = response.json()["id"]
 
-        # Upload the assets:
-        for asset in os.listdir(assets):
-            file = os.path.join(assets, asset)
-            with open(file, "rb") as stream:
-                response = requests.post(
-                    headers={
-                        "Authorization": f"Bearer {token}",
-                        "Content-Type": "application/octet-stream",
-                        "Accept": "application/json",
-                    },
-                    data=stream,
-                    url=(
-                        "https://uploads.github.com"
-                        f"/repos/{repository}/releases/{release}/assets?name={asset}"
-                    ),
-                )
-                response.raise_for_status()
+        # # Upload the assets:
+        # for asset in os.listdir(assets):
+        #     file = os.path.join(assets, asset)
+        #     with open(file, "rb") as stream:
+        #         response = requests.post(
+        #             headers={
+        #                 "Authorization": f"Bearer {token}",
+        #                 "Content-Type": "application/octet-stream",
+        #                 "Accept": "application/json",
+        #             },
+        #             data=stream,
+        #             url=(
+        #                 "https://uploads.github.com"
+        #                 f"/repos/{repository}/releases/{release}/assets?name={asset}"
+        #             ),
+        #         )
+        #         response.raise_for_status()
