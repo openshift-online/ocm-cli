@@ -254,6 +254,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		authMethod = config.DeviceCode
 	} else if haveClientCreds {
 		authMethod = config.ClientAuth
+	} else if havePassword {
+		authMethod = config.Password
 	} else {
 		authMethod = config.TokenAuth
 	}

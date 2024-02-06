@@ -62,6 +62,7 @@ const (
 	TokenAuth  AuthMethodType = "token"
 	AuthCode   AuthMethodType = "auth-code"
 	DeviceCode AuthMethodType = "device-code"
+	Password   AuthMethodType = "password"
 )
 
 // Loads the configuration conditionally based on the auth method
