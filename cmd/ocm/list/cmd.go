@@ -47,7 +47,5 @@ func init() {
 	Cmd.AddCommand(upgradepolicy.Cmd)
 	Cmd.AddCommand(user.Cmd)
 	Cmd.AddCommand(version.Cmd)
-	rhRegionCmd := rhRegion.Cmd
-	rhRegionCmd.Hidden = true
-	Cmd.AddCommand(rhRegionCmd)
+	Cmd.AddCommand(rhRegion.Cmd)
 }

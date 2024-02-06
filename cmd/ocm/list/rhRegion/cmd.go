@@ -14,6 +14,7 @@ var Cmd = &cobra.Command{
 	Long:    "List available OCM regions",
 	Example: `  # List all supported OCM regions ocm list rh-regions`,
 	RunE:    run,
+	Hidden:  true,
 }
 
 func run(cmd *cobra.Command, argv []string) error {
