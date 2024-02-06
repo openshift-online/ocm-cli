@@ -23,6 +23,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift-online/ocm-cli/cmd/ocm/config/delete"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/config/get"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/config/set"
 	"github.com/openshift-online/ocm-cli/pkg/config"
@@ -73,4 +74,5 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(get.Cmd)
 	Cmd.AddCommand(set.Cmd)
+	Cmd.AddCommand(delete.Cmd)
 }

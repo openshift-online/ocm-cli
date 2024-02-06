@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-sdk-go/authentication/securestore"
 )
 
 var args struct {
@@ -83,9 +84,19 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.URL)
 	case "pager":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.Pager)
+	case "keyrings":
+		fmt.Fprintf(os.Stdout, "%s\n", getKeyrings())
 	default:
 		return fmt.Errorf("Unknown setting")
 	}
 
 	return nil
+}
+
+func getKeyrings() []string {
+	backends := securestore.AvailableBackends()
+	if len(backends) == 0 {
+		fmt.Printf("No keyrings available: %s\n", securestore.ErrNoBackendsAvailable)
+	}
+	return backends
 }

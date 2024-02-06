@@ -220,9 +220,9 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Check that we have some kind of credentials:
 	havePassword := args.user != "" && args.password != ""
-	haveSecret := args.clientID != "" && args.clientSecret != ""
+	haveClientCreds := args.clientID != "" && args.clientSecret != ""
 	haveToken := args.token != ""
-	if !havePassword && !haveSecret && !haveToken {
+	if !havePassword && !haveClientCreds && !haveToken {
 		// Allow bare `ocm login` to suggest the token page without noise of full help.
 		fmt.Fprintf(
 			os.Stderr,
@@ -246,18 +246,28 @@ func run(cmd *cobra.Command, argv []string) error {
 		)
 	}
 
-	// Load the configuration file:
-	cfg, err := config.Load()
+	// Set the authentication method:
+	var authMethod config.AuthMethodType
+	if args.useAuthCode {
+		authMethod = config.AuthCode
+	} else if args.useDeviceCode {
+		authMethod = config.DeviceCode
+	} else if haveClientCreds {
+		authMethod = config.ClientAuth
+	} else {
+		authMethod = config.TokenAuth
+	}
+
+	// Load the configuration:
+	cfg, err := config.LoginLoad(authMethod)
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("Can't load config: %v", err)
 	}
 	if cfg == nil {
 		cfg = new(config.Config)
 	}
 
-	if args.useAuthCode {
-		cfg.AuthFlow = string(config.AuthCode)
-	}
+	cfg.AuthMethod = string(authMethod)
 
 	if haveToken {
 		// Encrypted tokens are assumed to be refresh tokens:
@@ -346,7 +356,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	err = config.Save(cfg)
 	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
+		return fmt.Errorf("can't save config: %v", err)
 	}
 
 	if args.useAuthCode || args.useDeviceCode {
@@ -357,8 +367,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		ssoHost := ssoURL.Scheme + "://" + ssoURL.Hostname()
 
 		fmt.Println("Login successful")
-		fmt.Printf("To switch accounts, logout from %s and run `ocm logout` "+
-			"before attempting to login again", ssoHost)
+		fmt.Println(fmt.Sprintf("To switch accounts, logout from %s and run `ocm logout` "+
+			"before attempting to login again", ssoHost))
 	}
 
 	return nil
