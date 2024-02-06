@@ -9,12 +9,13 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:     "rh-regions",
-	Short:   "List available OCM regions",
-	Long:    "List available OCM regions",
-	Example: `  # List all supported OCM regions ocm list rh-regions`,
-	RunE:    run,
-	Hidden:  true,
+	Use:   "rh-regions",
+	Short: "List available OCM regions",
+	Long:  "List available OCM regions",
+	Example: `  # List all supported OCM regions 
+ocm list rh-regions`,
+	RunE:   run,
+	Hidden: true,
 }
 
 func run(cmd *cobra.Command, argv []string) error {
