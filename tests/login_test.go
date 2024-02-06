@@ -173,7 +173,8 @@ var _ = Describe("Login", func() {
 						{{ end }}
 					],
 					"access_token": "{{ .accessToken }}",
-					"refresh_token": "{{ .refreshToken }}"
+					"refresh_token": "{{ .refreshToken }}",
+					"auth_method": "password"
 				}`,
 				"url", sdk.DefaultURL,
 				"tokenURL", ssoServer.URL(),
