@@ -219,16 +219,35 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.MultiAZ(),
 	)
 
-	// secureboot
-	if cluster.GCP().Security().SecureBoot() {
-		fmt.Printf("SecureBoot:             %t\n", cluster.GCP().Security().SecureBoot())
+	// AWS-specific info
+	if cluster.CloudProvider().ID() == ProviderAWS {
+		fmt.Printf("PrivateLink:		%t\n"+
+			"STS:			%t\n"+
+			"Subnet IDs:		%s\n",
+			privateLinkEnabled,
+			stsEnabled,
+			cluster.AWS().SubnetIDs(),
+		)
+	}
+
+	// GCP-specific info
+	if cluster.CloudProvider().ID() == ProviderGCP {
+		if cluster.GCP().Security().SecureBoot() {
+			fmt.Printf("SecureBoot:             %t\n", cluster.GCP().Security().SecureBoot())
+		}
+		if cluster.GCPNetwork().VPCName() != "" {
+			fmt.Printf("VPC-Name:	        %s\n", cluster.GCPNetwork().VPCName())
+		}
+		if cluster.GCPNetwork().ControlPlaneSubnet() != "" {
+			fmt.Printf("Control-Plane-Subnet:   %s\n", cluster.GCPNetwork().ControlPlaneSubnet())
+		}
+		if cluster.GCPNetwork().ComputeSubnet() != "" {
+			fmt.Printf("Compute-Subnet:	        %s\n", cluster.GCPNetwork().ComputeSubnet())
+		}
 	}
 
 	fmt.Printf("CCS:			%t\n"+
 		"HCP:			%t\n"+
-		"Subnet IDs:		%s\n"+
-		"PrivateLink:		%t\n"+
-		"STS:			%t\n"+
 		"Existing VPC:		%s\n"+
 		"Channel Group:		%v\n"+
 		"Cluster Admin:		%t\n"+
@@ -239,9 +258,6 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Created:		%v\n",
 		cluster.CCS().Enabled(),
 		cluster.Hypershift().Enabled(),
-		cluster.AWS().SubnetIDs(),
-		privateLinkEnabled,
-		stsEnabled,
 		isExistingVPC,
 		cluster.Version().ChannelGroup(),
 		clusterAdminEnabled,
@@ -282,17 +298,6 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	}
 	if cluster.AdditionalTrustBundle() != "" {
 		fmt.Printf("AdditionalTrustBundle:  %s\n", cluster.AdditionalTrustBundle())
-	}
-
-	// GCP
-	if cluster.GCPNetwork().VPCName() != "" {
-		fmt.Printf("VPC-Name:	        %s\n", cluster.GCPNetwork().VPCName())
-	}
-	if cluster.GCPNetwork().ControlPlaneSubnet() != "" {
-		fmt.Printf("Control-Plane-Subnet:   %s\n", cluster.GCPNetwork().ControlPlaneSubnet())
-	}
-	if cluster.GCPNetwork().ComputeSubnet() != "" {
-		fmt.Printf("Compute-Subnet:	        %s\n", cluster.GCPNetwork().ComputeSubnet())
 	}
 
 	// Limited Support Status
