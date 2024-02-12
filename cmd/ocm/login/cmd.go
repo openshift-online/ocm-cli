@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
@@ -31,24 +32,8 @@ import (
 )
 
 const (
-	productionURL  = "https://api.openshift.com"
-	stagingURL     = "https://api.stage.openshift.com"
-	integrationURL = "https://api.integration.openshift.com"
-	oauthClientID  = "ocm-cli"
+	oauthClientID = "ocm-cli"
 )
-
-// When the value of the `--url` option is one of the keys of this map it will be replaced by the
-// corresponding value.
-var urlAliases = map[string]string{
-	"production":  productionURL,
-	"prod":        productionURL,
-	"prd":         productionURL,
-	"staging":     stagingURL,
-	"stage":       stagingURL,
-	"stg":         stagingURL,
-	"integration": integrationURL,
-	"int":         integrationURL,
-}
 
 var args struct {
 	tokenURL      string
@@ -112,15 +97,18 @@ func init() {
 	flags.StringVar(
 		&args.url,
 		"url",
-		sdk.DefaultURL,
-		"URL of the API gateway. The value can be the complete URL or an alias. The "+
-			"valid aliases are 'production', 'staging', 'integration' and their shorthands.",
+		"",
+		"URL of the OCM API gateway. If not provided, will reuse the URL from the configuration "+
+			"file or "+sdk.DefaultURL+" as a last resort. The value should be a complete URL "+
+			"or a valid URL alias: "+strings.Join(urls.ValidOCMUrlAliases(), ", "),
 	)
 	flags.StringVar(
 		&args.rhRegion,
 		"rh-region",
 		"",
-		"OCM region identifier. Takes precedence over the --url flag",
+		"OCM data sovereignty region identifier. --url will be used to initiate a service discovery "+
+			"request to find the region URL matching the provided identifier. Use `ocm list rh-regions` "+
+			"to see available regions.",
 	)
 	flags.MarkHidden("rh-region")
 	flags.StringVar(
@@ -180,11 +168,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
 
 	var err error
-
-	// Check mandatory options:
-	if args.url == "" {
-		return fmt.Errorf("Option '--url' is mandatory")
-	}
 
 	if args.useAuthCode {
 		fmt.Println("You will now be redirected to Red Hat SSO login")
@@ -295,11 +278,28 @@ func run(cmd *cobra.Command, argv []string) error {
 		clientID = args.clientID
 	}
 
-	// If the value of the `--url` is any of the aliases then replace it with the corresponding
-	// real URL:
-	gatewayURL, ok := urlAliases[args.url]
-	if !ok {
-		gatewayURL = args.url
+	gatewayURL, err := urls.ResolveGatewayURL(args.url, cfg)
+	if err != nil {
+		return err
+	}
+
+	// If an --rh-region is provided, --url is resolved as above and then used to initiate
+	// service discovery for the environment --url is a part of, but the gatewayURL (and
+	// ultimately the cfg.URL) is then updated to the URL of the matching --rh-region:
+	//   1. resolve the gatewayURL as above
+	//   2. fetch a well-known file from sdk.GetRhRegion
+	//   3. update the gatewayURL to the region URL matching args.rhRegion
+	//
+	// So `--url=https://api.stage.openshift.com --rh-region=singapore` might result in
+	// gatewayURL/cfg.URL being mutated to "https://api.singapore.stage.openshift.com"
+	//
+	// See ocm-sdk-go/rh_region.go for full details on how service discovery works.
+	if args.rhRegion != "" {
+		regValue, err := sdk.GetRhRegion(gatewayURL, args.rhRegion)
+		if err != nil {
+			return fmt.Errorf("Can't find region: %w", err)
+		}
+		gatewayURL = fmt.Sprintf("https://%s", regValue.URL)
 	}
 
 	// Update the configuration with the values given in the command line:
@@ -329,15 +329,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	if !args.persistent {
 		cfg.User = ""
 		cfg.Password = ""
-	}
-
-	// If an OCM region is provided, update the config URL with the SDK generated URL
-	if args.rhRegion != "" {
-		regValue, err := sdk.GetRhRegion(args.url, args.rhRegion)
-		if err != nil {
-			return fmt.Errorf("Can't find region: %w", err)
-		}
-		cfg.URL = fmt.Sprintf("https://%s", regValue.URL)
 	}
 
 	err = config.Save(cfg)
