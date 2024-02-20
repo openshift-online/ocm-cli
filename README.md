@@ -113,7 +113,7 @@ An `~/config/ocm/ocm.json` file stores login credentials for a single API
 server. Using multiple servers therefore requires having to log in and out a lot
 or the ability to utilize multiple config files. The latter functionality is
 provided with the `OCM_CONFIG` environment variable. If running `ocm login` was
-successfull in both cases, the `ocm whoami` commands will return different
+successful in both cases, the `ocm whoami` commands will return different
 results:
 
 ```
@@ -128,6 +128,39 @@ $ OCM_CONFIG=$HOME/ocm.json.stg ocm whoami
 ```
 
 NOTE: Tokens for production and staging will differ.
+
+## Storing Configuration & Tokens in OS Keyring
+The `RH_KEYRING` environment variable provides the ability to store the OCM 
+configuration containing your tokens in your OS keyring. This is provided
+as an alternative to storing the configuration in plain-text on your system. 
+`RH_KEYRING` will override `OCM_CONFIG` if both are set.
+
+`RH_KEYRING` supports the following keyrings:
+
+* [Windows Credential Manager](https://support.microsoft.com/en-us/windows/accessing-credential-manager-1b5c916a-6a16-889f-8581-fc16e8165ac0) - `wincred`
+* [macOS Keychain](https://support.apple.com/en-us/guide/keychain-access/welcome/mac) - `keychain`
+* Secret Service ([Gnome Keyring](https://wiki.gnome.org/Projects/GnomeKeyring), [KWallet](https://apps.kde.org/kwalletmanager5/), etc.) - `secret-service`
+* [Pass](https://www.passwordstore.org/) - `pass`
+
+| | wincred | keychain | secret-service | pass |
+| ------------- | ------------- | ------------- | ------------- | ------------- |
+| Windows  | :heavy_check_mark: | :x:  | :x:  | :x:  |
+| macOS  | :x:  | :heavy_check_mark:*  | :x:  | :heavy_check_mark:  |
+| Linux  | :x:  | :x:  | :heavy_check_mark: | :heavy_check_mark: |
+
+<sub>* if building from source CGO_ENABLED=1 is required for macOS keychain support.</sub>
+
+#### See Available Keyrings
+The following will list available keyrings in your current context
+```
+$ ocm config get keyrings
+```
+
+#### Remove Keyring Configuration
+The following will remove the OCM configuration from your `RH_KEYRING`
+```
+$ ocm config reset keyring
+```
 
 ## Obtaining Tokens
 

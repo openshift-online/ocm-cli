@@ -29,6 +29,7 @@ import (
 	"github.com/golang/glog"
 	homedir "github.com/mitchellh/go-homedir"
 	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/openshift-online/ocm-sdk-go/authentication/securestore"
 
 	"github.com/openshift-online/ocm-cli/pkg/debug"
 	"github.com/openshift-online/ocm-cli/pkg/info"
@@ -53,9 +54,41 @@ type Config struct {
 	Pager        string   `json:"pager,omitempty" doc:"Pager command, for example 'less'. If empty no pager will be used."`
 }
 
-// Load loads the configuration from the configuration file. If the configuration file doesn't exist
-// it will return an empty configuration object.
+// Loads the configuration from the OS keyring first if available, load from the configuration file if not
 func Load() (cfg *Config, err error) {
+	keyring := os.Getenv("RH_KEYRING")
+
+	if keyring != "" {
+		return loadFromOS(keyring)
+	}
+
+	return loadFromFile()
+}
+
+// Loads the configuration from the OS keyring. If the configuration file doesn't exist
+// it will return an empty configuration object.
+func loadFromOS(keyring string) (cfg *Config, err error) {
+	cfg = &Config{}
+
+	data, err := securestore.GetConfigFromKeyring(keyring)
+	if err != nil {
+		return nil, fmt.Errorf("can't load config from OS keyring [%s]: %v", keyring, err)
+	}
+	// No config found, return
+	if len(data) == 0 {
+		return nil, nil
+	}
+	err = json.Unmarshal(data, cfg)
+	if err != nil {
+		// Treat the config as empty if it can't be unmarshaled, it is invalid
+		return nil, nil
+	}
+	return cfg, nil
+}
+
+// Loads the configuration from the configuration file. If the configuration file doesn't exist
+// it will return an empty configuration object.
+func loadFromFile() (cfg *Config, err error) {
 	file, err := Location()
 	if err != nil {
 		return
@@ -94,14 +127,27 @@ func Save(cfg *Config) error {
 	if err != nil {
 		return err
 	}
+
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("can't marshal config: %v", err)
+	}
+
+	keyring := os.Getenv("RH_KEYRING")
+
+	if keyring != "" {
+		// Use the OS keyring if the OCM_CONFIG env var is set to a valid keyring backend
+		err := securestore.UpsertConfigToKeyring(keyring, data)
+		if err != nil {
+			return fmt.Errorf("can't save config to OS keyring [%s]: %v", keyring, err)
+		}
+		return nil
+	}
+
 	dir := filepath.Dir(file)
 	err = os.MkdirAll(dir, os.FileMode(0755))
 	if err != nil {
 		return fmt.Errorf("can't create directory %s: %v", dir, err)
-	}
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return fmt.Errorf("can't marshal config: %v", err)
 	}
 	err = os.WriteFile(file, data, 0600)
 	if err != nil {
