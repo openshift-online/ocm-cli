@@ -39,6 +39,12 @@ jobs:
     steps:
     - name: Checkout the source
       uses: actions/checkout@v3
+    - name: Install Keyrings (macOS-only)
+      if: ${{ contains(fromJSON('["macos-latest"]'), matrix.platform) }}
+      run: brew install pass gnupg
+    - name: Install Keyrings (linux)
+      if: ${{ contains(fromJSON('["ubuntu-latest"]'), matrix.platform) }}
+      run: sudo apt-get install pass
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
@@ -56,8 +62,12 @@ jobs:
       run: go mod download
     - name: Setup Ginkgo
       run: go install github.com/onsi/ginkgo/v2/ginkgo@v2.9
-    - name: Run the tests
+    - name: Run the tests (linux, windows)
+      if: ${{ contains(fromJSON('["ubuntu-latest", "windows-latest"]'), matrix.platform) }}
       run: make tests
+    - name: Run the tests (macOS-only)
+      if: ${{ contains(fromJSON('["macos-latest"]'), matrix.platform) }}
+      run: make tests-cgo
 
   golangci:
     name: Lint

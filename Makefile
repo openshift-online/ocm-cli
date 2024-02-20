@@ -33,13 +33,30 @@ cmds:
 		go build "./cmd/$${cmd}" || exit 1; \
 	done
 
+# Used for compiling with CGO_ENABLED=1 (macOS keychain support)
+.PHONY: cmds-cgo
+cmds-cgo:
+	for cmd in $$(ls cmd); do \
+		CGO_ENABLED=1 \
+		go build "./cmd/$${cmd}" || exit 1; \
+	done
+
 .PHONY: install
 install:
 	go install ./cmd/ocm
 
+# CGO_ENABLED=1 is required for keychain support on macOS
+.PHONY: install-cgo
+install-cgo:
+	CGO_ENABLED=1 go install ./cmd/ocm
+
 .PHONY: test tests
 test tests: cmds
 	ginkgo run -r
+
+.PHONY: test-cgo tests-cgo
+test-cgo tests-cgo: cmds-cgo
+	CGO_ENABLED=1 ginkgo run -r
 
 .PHONY: fmt
 fmt:

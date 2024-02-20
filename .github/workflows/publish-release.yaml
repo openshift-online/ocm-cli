@@ -22,9 +22,8 @@ on:
     - '*'
 
 jobs:
-
-  release:
-    name: Publish release
+  release-linux-windows:
+    name: Publish release (Linux and Windows)
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the source
@@ -85,8 +84,6 @@ jobs:
             os.rename(binary, asset)
 
         # Build for the supported operating systems and architectures:
-        build("darwin", "amd64")
-        build("darwin", "arm64")
         build("linux", "amd64")
         build("linux", "arm64")
         build("linux", "ppc64le")
@@ -128,6 +125,113 @@ jobs:
             url=(
                 "https://api.github.com"
                 f"/repos/{repository}/releases"
+            ),
+        )
+        response.raise_for_status()
+
+        # Get the release identifier:
+        release = response.json()["id"]
+
+        # Upload the assets:
+        for asset in os.listdir(assets):
+            file = os.path.join(assets, asset)
+            with open(file, "rb") as stream:
+                response = requests.post(
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/octet-stream",
+                        "Accept": "application/json",
+                    },
+                    data=stream,
+                    url=(
+                        "https://uploads.github.com"
+                        f"/repos/{repository}/releases/{release}/assets?name={asset}"
+                    ),
+                )
+                response.raise_for_status()
+
+  release-macos:
+    needs: release-linux-windows
+    name: Publish release (macOS)
+    runs-on: macos-latest
+    steps:
+    - name: Checkout the source
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install Python modules
+      run: pip install -r .github/workflows/requirements.txt
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18
+
+    - name: Create release
+      shell: python
+      run: |
+        import os
+        import re
+        import requests
+        import shutil
+        import subprocess
+
+        # Get the context and secret data that we will need:
+        repository = "${{ github.repository }}"
+        reference = "${{ github.ref }}"
+        token = "${{ secrets.GITHUB_TOKEN }}"
+
+        # Calculate the version number:
+        version = re.sub(r"^refs/tags/v(.*)$", r"\1", reference)
+
+        # Make sure that the assets directory exists and is empty:
+        assets = "assets"
+        shutil.rmtree(assets, ignore_errors=True)
+        os.mkdir(assets)
+
+        def build(goos: str, goarch: str):
+            # Set the environment variables that tell the Go compiler which
+            # operating system and architecture to build for:
+            env = dict(os.environ)
+            env["GOOS"] = goos
+            env["GOARCH"] = goarch
+
+            # Build the binary:
+            args = ["make", "cmds-cgo"]
+
+            subprocess.run(check=True, env=env, args=args)
+
+            # Copy the generated binary to the assets directory:
+            binary = "ocm"
+            asset = os.path.join(assets, f"ocm-{goos}-{goarch}")
+            os.rename(binary, asset)
+
+        # Build for the supported operating systems and architectures:
+        build("darwin", "amd64")
+        build("darwin", "arm64")
+
+        # Calculate the SHA256 digests:
+        for asset in os.listdir(assets):
+            digest = os.path.join(assets, f"{asset}.sha256")
+            with open(digest, "wb") as stream:
+                args = ["shasum", "-a", "256"]
+                subprocess.run(check=True, cwd=assets, stdout=stream, args=args)
+
+        # Get the release:
+        response = requests.get(
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            url=(
+                "https://api.github.com"
+                f"/repos/{repository}/releases/tags/v{version}"
             ),
         )
         response.raise_for_status()

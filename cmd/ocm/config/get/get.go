@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-sdk-go/authentication/securestore"
 )
 
 var args struct {
@@ -48,17 +49,26 @@ func init() {
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+	// The following variables are not stored in the configuration
+	// and can skip loading configuration:
+	skipConfigLoadMap := map[string]bool{
+		"keyrings": true,
 	}
 
-	// If the configuration file doesn't exist yet assume that all the configuration settings
-	// are empty:
-	if cfg == nil {
-		fmt.Printf("\n")
-		return nil
+	cfg := &config.Config{}
+	var err error
+	if !skipConfigLoadMap[argv[0]] {
+		// Load the configuration:
+		cfg, err = config.Load()
+		if err != nil {
+			return fmt.Errorf("can't load config: %v", err)
+		}
+		// If the configuration file doesn't exist yet assume that all the configuration settings
+		// are empty:
+		if cfg == nil {
+			fmt.Printf("\n")
+			return nil
+		}
 	}
 
 	// Print the value of the requested configuration setting:
@@ -83,9 +93,25 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.URL)
 	case "pager":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.Pager)
+	case "keyrings":
+		keyrings, err := getKeyrings()
+		if err != nil {
+			return err
+		}
+		for _, keyring := range keyrings {
+			fmt.Fprintf(os.Stdout, "%s\n", keyring)
+		}
 	default:
 		return fmt.Errorf("Unknown setting")
 	}
 
 	return nil
+}
+
+func getKeyrings() ([]string, error) {
+	backends := securestore.AvailableBackends()
+	if len(backends) == 0 {
+		return backends, fmt.Errorf("error: no keyrings available")
+	}
+	return backends, nil
 }
