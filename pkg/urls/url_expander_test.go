@@ -17,16 +17,9 @@ limitations under the License.
 package urls
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestURLExpander(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "URL expander")
-}
 
 type urlExpanderTest struct {
 	params      []string
