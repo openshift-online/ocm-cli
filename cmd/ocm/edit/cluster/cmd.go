@@ -29,9 +29,9 @@ import (
 
 var args struct {
 	// Basic options
-	expirationTime     string
-	expirationDuration time.Duration
-
+	expirationTime         string
+	expirationDuration     time.Duration
+	enableDeleteProtection bool
 	// Networking options
 	private bool
 
@@ -119,6 +119,12 @@ func init() {
 		"A file contains a PEM-encoded X.509 certificate bundle that will be "+
 			"added to the nodes' trusted certificate store.")
 
+	flags.BoolVar(
+		&args.enableDeleteProtection,
+		"enable-delete-protection",
+		false,
+		"Enable cluster delete protection against accidental cluster deletion.",
+	)
 }
 
 func isGCPNetworkEmpty(network *cmv1.GCPNetwork) bool {
@@ -220,6 +226,15 @@ func run(cmd *cobra.Command, argv []string) error {
 			}
 		}
 		noProxy = args.clusterWideProxy.NoProxy
+	}
+
+	var enableDeleteProtection bool
+	if cmd.Flags().Changed("enable-delete-protection") {
+		enableDeleteProtection = args.enableDeleteProtection
+		err := c.UpdateDeleteProtection(clusterCollection, cluster.ID(), enableDeleteProtection)
+		if err != nil {
+			return err
+		}
 	}
 
 	var additionalTrustBundleFile *string
