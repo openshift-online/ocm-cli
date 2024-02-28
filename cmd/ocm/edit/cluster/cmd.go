@@ -47,6 +47,7 @@ var Cmd = &cobra.Command{
 	Example: `  # Edit a cluster named "mycluster" to make it private
   ocm edit cluster mycluster --private`,
 	RunE: run,
+	Args: cobra.MinimumNArgs(1),
 }
 
 func init() {
@@ -132,7 +133,7 @@ func wasClusterWideProxyReceived(httpProxy, httpsProxy, noProxy, additionalTrust
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-	// Check that there is exactly one cluster name, identifir or external identifier in the
+	// Check that there is exactly one cluster name, identifier or external identifier in the
 	// command line arguments:
 	if len(argv) != 1 {
 		return fmt.Errorf(
