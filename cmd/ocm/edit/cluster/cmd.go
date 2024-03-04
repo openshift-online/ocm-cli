@@ -16,6 +16,7 @@ package cluster
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -268,9 +269,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	clusterConfig.ClusterWideProxy = clusterWideProxy
 
-	err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
-	if err != nil {
-		return fmt.Errorf("Failed to update cluster: %v", err)
+	if !reflect.ValueOf(clusterConfig).IsZero() {
+		err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
+		if err != nil {
+			return fmt.Errorf("Failed to update cluster: %v", err)
+		}
 	}
 
 	return nil
