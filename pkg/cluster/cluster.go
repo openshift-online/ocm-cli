@@ -57,6 +57,7 @@ func NewDefaultIngressSpec() DefaultIngressSpec {
 type Spec struct {
 	// Basic configs
 	Name             string
+	DomainPrefix     string
 	Region           string
 	Provider         string
 	CCS              CCS
@@ -326,6 +327,10 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		EtcdEncryption(config.EtcdEncryption).
 		BillingModel(cmv1.BillingModel(config.SubscriptionType)).
 		Properties(clusterProperties)
+
+	if config.DomainPrefix != "" {
+		clusterBuilder = clusterBuilder.DomainPrefix(config.DomainPrefix)
+	}
 
 	clusterBuilder = clusterBuilder.Version(
 		cmv1.NewVersion().
