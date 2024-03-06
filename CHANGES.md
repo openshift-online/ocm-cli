@@ -3,6 +3,15 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.73 Feb 11 2024
+
+- OCM-4783 | feat: display warnings after cluster creation
+- OCM-4962 | Feat | Add OAuth login using PKCE
+- OCM-5759 | feat: Add Device Code Flow
+- Display only platform-relevant field in cluster describe
+- OCM-5281 | Feat | Add region validation from ocm-shards and list regions command
+- Use Hostname() to set --hosted-domain
+
 ## 0.1.72 Dec 11 2023
 
 - OCM-4960: Do not print expiration timestamp if not set
