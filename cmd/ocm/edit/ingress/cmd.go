@@ -20,6 +20,7 @@ import (
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 )
@@ -31,6 +32,15 @@ var ValidWildcardPolicies = []string{string(cmv1.WildcardPolicyWildcardsDisallow
 	string(cmv1.WildcardPolicyWildcardsAllowed)}
 var ValidNamespaceOwnershipPolicies = []string{string(cmv1.NamespaceOwnershipPolicyStrict),
 	string(cmv1.NamespaceOwnershipPolicyInterNamespaceAllowed)}
+var expectedComponentRoutes = []string{
+	string(cmv1.ComponentRouteTypeOauth),
+	string(cmv1.ComponentRouteTypeConsole),
+	string(cmv1.ComponentRouteTypeDownloads),
+}
+var expectedParameters = []string{
+	hostnameParameter,
+	tlsSecretRefParameter,
+}
 
 var args struct {
 	clusterKey    string
@@ -43,6 +53,8 @@ var args struct {
 	namespaceOwnershipPolicy  string
 	clusterRoutesHostname     string
 	clusterRoutesTlsSecretRef string
+
+	componentRoutes string
 }
 
 const (
@@ -55,6 +67,12 @@ const (
 	namespaceOwnershipPolicyFlag  = "namespace-ownership-policy"
 	clusterRoutesHostnameFlag     = "cluster-routes-hostname"
 	clusterRoutesTlsSecretRefFlag = "cluster-routes-tls-secret-ref"
+	componentRoutesFlag           = "component-routes"
+
+	expectedLengthOfParsedComponent = 2
+	hostnameParameter               = "hostname"
+	//nolint:gosec
+	tlsSecretRefParameter = "tlsSecretRef"
 )
 
 var Cmd = &cobra.Command{
@@ -139,14 +157,23 @@ func init() {
 		&args.clusterRoutesHostname,
 		clusterRoutesHostnameFlag,
 		"",
-		"Components route hostname for oauth, console, download.",
+		"Components route hostname for oauth, console, downloads.",
 	)
 
 	flags.StringVar(
 		&args.clusterRoutesTlsSecretRef,
 		clusterRoutesTlsSecretRefFlag,
 		"",
-		"Components route TLS secret reference for oauth, console, download.",
+		"Components route TLS secret reference for oauth, console, downloads.",
+	)
+
+	flags.StringVar(
+		&args.componentRoutes,
+		componentRoutesFlag,
+		"",
+		//nolint:lll
+		"Component routes settings. Available keys [oauth, console, downloads]. For each key a pair of hostname and tlsSecretRef is expected to be supplied. "+
+			"Format should be a comma separate list 'oauth: hostname=example-hostname;tlsSecretRef=example-secret-ref,downloads:...",
 	)
 }
 
@@ -284,6 +311,17 @@ func run(cmd *cobra.Command, argv []string) error {
 		ingressBuilder = ingressBuilder.ClusterRoutesTlsSecretRef(args.clusterRoutesTlsSecretRef)
 	}
 
+	if cmd.Flags().Changed(componentRoutesFlag) {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", componentRoutesFlag)
+		}
+		componentRoutes, err := parseComponentRoutes(args.componentRoutes)
+		if err != nil {
+			return fmt.Errorf("An error occurred whilst parsing the supplied component routes: %s", err)
+		}
+		ingressBuilder = ingressBuilder.ComponentRoutes(componentRoutes)
+	}
+
 	ingress, err = ingressBuilder.Build()
 	if err != nil {
 		return fmt.Errorf("Failed to edit ingress for cluster '%s': %v", clusterKey, err)
@@ -300,6 +338,66 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to edit ingress for cluster '%s': %v", clusterKey, err)
 	}
 	return nil
+}
+
+func parseComponentRoutes(input string) (map[string]*cmv1.ComponentRouteBuilder, error) {
+	result := map[string]*cmv1.ComponentRouteBuilder{}
+	input = strings.TrimSpace(input)
+	components := strings.Split(input, ",")
+	if len(components) != len(expectedComponentRoutes) {
+		return nil, fmt.Errorf(
+			"the expected amount of component routes is %d, but %d have been supplied",
+			len(expectedComponentRoutes),
+			len(components),
+		)
+	}
+	for _, component := range components {
+		component = strings.TrimSpace(component)
+		parsedComponent := strings.Split(component, ":")
+		if len(parsedComponent) != expectedLengthOfParsedComponent {
+			return nil, fmt.Errorf(
+				"only the name of the component should be followed by ':'",
+			)
+		}
+		componentName := strings.TrimSpace(parsedComponent[0])
+		if !utils.Contains(expectedComponentRoutes, componentName) {
+			return nil, fmt.Errorf(
+				"'%s' is not a valid component name. Expected include %s",
+				componentName,
+				utils.SliceToSortedString(expectedComponentRoutes),
+			)
+		}
+		parameters := strings.TrimSpace(parsedComponent[1])
+		componentRouteBuilder := new(cmv1.ComponentRouteBuilder)
+		parsedParameter := strings.Split(parameters, ";")
+		if len(parsedParameter) != len(expectedParameters) {
+			return nil, fmt.Errorf(
+				"only %d parameters are expected for each component",
+				len(expectedParameters),
+			)
+		}
+		for _, values := range parsedParameter {
+			values = strings.TrimSpace(values)
+			parsedValues := strings.Split(values, "=")
+			parameterName := strings.TrimSpace(parsedValues[0])
+			if !utils.Contains(expectedParameters, parameterName) {
+				return nil, fmt.Errorf(
+					"'%s' is not a valid parameter for a component route. Expected include %s",
+					parameterName,
+					utils.SliceToSortedString(expectedParameters),
+				)
+			}
+			parameterValue := strings.TrimSpace(parsedValues[1])
+			// TODO: use reflection, couldn't get it to work
+			if parameterName == hostnameParameter {
+				componentRouteBuilder.Hostname(parameterValue)
+			} else if parameterName == tlsSecretRefParameter {
+				componentRouteBuilder.TlsSecretRef(parameterValue)
+			}
+		}
+		result[componentName] = componentRouteBuilder
+	}
+	return result, nil
 }
 
 func GetExcludedNamespaces(excludedNamespaces string) []string {
