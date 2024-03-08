@@ -261,8 +261,8 @@ var _ = Describe("Table", func() {
 		// Check the generated text:
 		lines := strings.Split(buffer.String(), "\n")
 		Expect(lines).To(HaveLen(3))
-		Expect(lines[0]).To(Equal(`ID                                NAME                        `))
-		Expect(lines[1]).To(Equal(`123                               mycluster                   `))
+		Expect(lines[0]).To(Equal(`ID                                NAME                                                  `))
+		Expect(lines[1]).To(Equal(`123                               mycluster                                             `))
 	})
 
 	It("Honours learning limit", func() {
