@@ -20,7 +20,7 @@ columns:
   width: 32
 - name: name
   header: NAME
-  width: 28
+  width: 54
 - name: api.url
   header: API URL
   width: 58
