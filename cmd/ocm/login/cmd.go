@@ -152,7 +152,6 @@ func init() {
 		"Login using OAuth Authorization Code. This should be used for most cases where a "+
 			"browser is available.",
 	)
-	flags.MarkHidden("use-auth-code")
 	flags.BoolVar(
 		&args.useDeviceCode,
 		"use-device-code",
@@ -161,7 +160,6 @@ func init() {
 			"This should only be used for remote hosts and containers where browsers are "+
 			"not available. Use auth code for all other scenarios.",
 	)
-	flags.MarkHidden("use-device-code")
 }
 
 func run(cmd *cobra.Command, argv []string) error {
