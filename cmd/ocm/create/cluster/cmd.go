@@ -56,7 +56,8 @@ const (
 
 var args struct {
 	// positional args
-	clusterName string
+	clusterName  string
+	domainPrefix string
 
 	// flags
 	interactive bool
@@ -99,7 +100,8 @@ var args struct {
 	defaultIngressNamespaceOwnershipPolicy string
 }
 
-const clusterNameHelp = "will be used when generating a sub-domain for your cluster on openshiftapps.com."
+const clusterNameHelp = "The name can be used as the identifier of the cluster." +
+	" The maximum length is 54 characters. Once set, the cluster name cannot be changed"
 
 const subnetTemplate = "%s (%s)"
 
@@ -173,6 +175,19 @@ func init() {
 	)
 	arguments.SetQuestion(fs, "version", "OpenShift version:")
 	Cmd.RegisterFlagCompletionFunc("version", arguments.MakeCompleteFunc(getVersionOptions))
+
+	fs.StringVar(
+		&args.domainPrefix,
+		"domain-prefix",
+		"",
+		"An optional unique domain prefix of the cluster. If not provided, the cluster name will be "+
+			"used if it contains at most 15 characters, otherwise a generated value will be used. This "+
+			"will be used when generating a sub-domain for your cluster. It must be unique and consist "+
+			"of lowercase alphanumeric,characters or '-', start with an alphabetic character, and end with "+
+			"an alphanumeric character. The maximum length is 15 characters. Once set, the cluster domain "+
+			"prefix cannot be changed",
+	)
+	arguments.SetQuestion(fs, "domain-prefix", "Domain Prefix:")
 
 	fs.StringVar(
 		&args.channelGroup,
@@ -680,6 +695,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	err = arguments.PromptString(fs, "domain-prefix")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -710,6 +730,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	clusterConfig := c.Spec{
 		Name:               args.clusterName,
+		DomainPrefix:       args.domainPrefix,
 		Region:             args.region,
 		Provider:           args.provider,
 		CCS:                args.ccs,

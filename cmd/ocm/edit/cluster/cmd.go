@@ -16,6 +16,7 @@ package cluster
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -29,9 +30,9 @@ import (
 
 var args struct {
 	// Basic options
-	expirationTime     string
-	expirationDuration time.Duration
-
+	expirationTime         string
+	expirationDuration     time.Duration
+	enableDeleteProtection bool
 	// Networking options
 	private bool
 
@@ -47,6 +48,7 @@ var Cmd = &cobra.Command{
 	Example: `  # Edit a cluster named "mycluster" to make it private
   ocm edit cluster mycluster --private`,
 	RunE: run,
+	Args: cobra.MinimumNArgs(1),
 }
 
 func init() {
@@ -119,6 +121,12 @@ func init() {
 		"A file contains a PEM-encoded X.509 certificate bundle that will be "+
 			"added to the nodes' trusted certificate store.")
 
+	flags.BoolVar(
+		&args.enableDeleteProtection,
+		"enable-delete-protection",
+		false,
+		"Enable cluster delete protection against accidental cluster deletion.",
+	)
 }
 
 func isGCPNetworkEmpty(network *cmv1.GCPNetwork) bool {
@@ -132,7 +140,7 @@ func wasClusterWideProxyReceived(httpProxy, httpsProxy, noProxy, additionalTrust
 }
 
 func run(cmd *cobra.Command, argv []string) error {
-	// Check that there is exactly one cluster name, identifir or external identifier in the
+	// Check that there is exactly one cluster name, identifier or external identifier in the
 	// command line arguments:
 	if len(argv) != 1 {
 		return fmt.Errorf(
@@ -222,6 +230,15 @@ func run(cmd *cobra.Command, argv []string) error {
 		noProxy = args.clusterWideProxy.NoProxy
 	}
 
+	var enableDeleteProtection bool
+	if cmd.Flags().Changed("enable-delete-protection") {
+		enableDeleteProtection = args.enableDeleteProtection
+		err := c.UpdateDeleteProtection(clusterCollection, cluster.ID(), enableDeleteProtection)
+		if err != nil {
+			return err
+		}
+	}
+
 	var additionalTrustBundleFile *string
 	var additionalTrustBundleFileValue string
 	if cmd.Flags().Changed("additional-trust-bundle-file") {
@@ -268,9 +285,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	clusterConfig.ClusterWideProxy = clusterWideProxy
 
-	err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
-	if err != nil {
-		return fmt.Errorf("Failed to update cluster: %v", err)
+	if !reflect.ValueOf(clusterConfig).IsZero() {
+		err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
+		if err != nil {
+			return fmt.Errorf("Failed to update cluster: %v", err)
+		}
 	}
 
 	return nil

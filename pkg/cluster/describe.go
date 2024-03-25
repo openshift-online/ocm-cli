@@ -166,11 +166,13 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"ID:			%s\n"+
 		"External ID:		%s\n"+
 		"Name:			%s\n"+
+		"Domain Prefix:		%s\n"+
 		"Display Name:		%s\n"+
 		"State:			%s %s\n",
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
+		cluster.DomainPrefix(),
 		sub.DisplayName(),
 		cluster.State(),
 		provisioningStatus,

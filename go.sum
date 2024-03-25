@@ -312,8 +312,8 @@ github.com/onsi/ginkgo/v2 v2.11.0 h1:WgqUCUt/lT6yXoQ8Wef0fsNn5cAuMK7+KT9UFRz2tcU
 github.com/onsi/ginkgo/v2 v2.11.0/go.mod h1:ZhrRA5XmEE3x3rhlzamx/JJvujdZoJ2uvgI7kR0iZvM=
 github.com/onsi/gomega v1.27.8 h1:gegWiwZjBsf2DgiSbf5hpokZ98JVDMcWkUiigk6/KXc=
 github.com/onsi/gomega v1.27.8/go.mod h1:2J8vzI/s+2shY9XHRApDkdgPo1TKT7P2u6fXeJKFnNQ=
-github.com/openshift-online/ocm-sdk-go v0.1.398 h1:6C1mDcPxzG4jSduOaWixTTI5gSEO+Jm7OW/00jVoWGI=
-github.com/openshift-online/ocm-sdk-go v0.1.398/go.mod h1:tke8vKcE7eHKyRbkJv6qo4ljo919zhx04uyQTcgF5cQ=
+github.com/openshift-online/ocm-sdk-go v0.1.407 h1:KAeTfpG4I3QWiDThJD3VBAi4APuVwlnouBFAeWJ7tHI=
+github.com/openshift-online/ocm-sdk-go v0.1.407/go.mod h1:8ECJertR5BiblaX5f2siXHXpi+ydYZjoROlVMppmmV4=
 github.com/openshift/rosa v1.2.24 h1:vv0yYnWHx6CCPEAau/0rS54P2ksaf+uWXb1TQPWxiYE=
 github.com/openshift/rosa v1.2.24/go.mod h1:MVXB27O3PF8WoOic23I03mmq6/9kVxpFx6FKyLMCyrQ=
 github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 h1:KoWmjvw+nsYOo29YJK9vDA65RGE3NrOnUtO7a+RF9HU=
