@@ -3,6 +3,26 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.73 Apr 2 2024
+
+- 165b90e OCM-4783 | feat: display warnings after cluster creation
+- 0973f7b Display a cluster history URL in cluster describe
+- ad98440 Fix minor formatting issue with cluster describe
+- ea1c988 OCM-4962 | Feat | Add OAuth login using PKCE (#590)
+- 98944f7 OCM-5759 | feat: Add Device Code Flow (#591)
+- ff1c142 Display only platform-relevant field in cluster describe
+- fab7ccf OCM-5281 | Feat | Add region validation from ocm-shards and list regions command (#586)
+- f279dc7 Use Hostname() to set --hosted-domain
+- d0f8459 improving ocm login and ocm list rh-region url resolution to reuse the url saved in config before falling back to api.openshift.com
+- d894c2a OCM-6407 | edit option sends an empty payload
+- 9cf11ef OCM-6450 | No update cluster with empty config
+- 1caf2d0 OCM-5941 | add enable delete protection parameter
+- a056c70 OCM-6140 | feat: allow customization of the domain prefix when creating a cluster
+- 5aa159f OCM-6030 | chore: bump sdk to v0.1.407
+- 03500fe OCM-6140: make name width to be 54 chars to fix truncation issue in case of longer name > 28 chars
+- 6d1fd05 OCM-6030 | feat: allow to edit component routes of ingress
+- 383d362 Make auth and device code flags visible
+
 ## 0.1.72 Dec 11 2023
 
 - OCM-4960: Do not print expiration timestamp if not set
