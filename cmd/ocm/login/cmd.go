@@ -28,6 +28,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/authentication"
+	"github.com/openshift-online/ocm-sdk-go/authentication/securestore"
 	"github.com/spf13/cobra"
 )
 
@@ -150,7 +151,7 @@ func init() {
 		"use-auth-code",
 		false,
 		"Login using OAuth Authorization Code. This should be used for most cases where a "+
-			"browser is available.",
+			"browser is available. See --use-device-code for remote hosts and containers.",
 	)
 	flags.BoolVar(
 		&args.useDeviceCode,
@@ -158,20 +159,32 @@ func init() {
 		false,
 		"Login using OAuth Device Code. "+
 			"This should only be used for remote hosts and containers where browsers are "+
-			"not available. Use auth code for all other scenarios.",
+			"not available. See --use-auth-code for all other scenarios.",
 	)
 }
+
+var (
+	InitiateAuthCode = authentication.InitiateAuthCode
+)
 
 func run(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
 
 	var err error
 
+	// Fail fast if OCM_KEYRING is provided and invalid
+	if keyring, ok := config.IsKeyringManaged(); ok {
+		err := securestore.ValidateBackend(keyring)
+		if err != nil {
+			return err
+		}
+	}
+
 	if args.useAuthCode {
 		fmt.Println("You will now be redirected to Red Hat SSO login")
 		// Short wait for a less jarring experience
 		time.Sleep(2 * time.Second)
-		token, err := authentication.InitiateAuthCode(oauthClientID)
+		token, err := InitiateAuthCode(oauthClientID)
 		if err != nil {
 			return fmt.Errorf("an error occurred while retrieving the token : %v", err)
 		}
@@ -184,7 +197,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			ClientID: oauthClientID,
 		}
 		_, err = deviceAuthConfig.InitiateDeviceAuth(ctx)
-		if err != nil || deviceAuthConfig == nil {
+		if err != nil {
 			return fmt.Errorf("an error occurred while initiating device auth: %v", err)
 		}
 		deviceAuthResp := deviceAuthConfig.DeviceAuthResponse
@@ -201,9 +214,9 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Check that we have some kind of credentials:
 	havePassword := args.user != "" && args.password != ""
-	haveSecret := args.clientID != "" && args.clientSecret != ""
+	haveClientCreds := args.clientID != "" && args.clientSecret != ""
 	haveToken := args.token != ""
-	if !havePassword && !haveSecret && !haveToken {
+	if !havePassword && !haveClientCreds && !haveToken {
 		// Allow bare `ocm login` to suggest the token page without noise of full help.
 		fmt.Fprintf(
 			os.Stderr,
@@ -227,10 +240,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		)
 	}
 
-	// Load the configuration file:
+	// Load the configuration:
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("Can't load config: %v", err)
 	}
 	if cfg == nil {
 		cfg = new(config.Config)
@@ -331,7 +344,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	err = config.Save(cfg)
 	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
+		return fmt.Errorf("can't save config: %v", err)
 	}
 
 	if args.useAuthCode || args.useDeviceCode {
@@ -343,7 +356,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		fmt.Println("Login successful")
 		fmt.Printf("To switch accounts, logout from %s and run `ocm logout` "+
-			"before attempting to login again", ssoHost)
+			"before attempting to login again\n", ssoHost)
 	}
 
 	return nil

@@ -26,6 +26,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/config/get"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/config/set"
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/properties"
 )
 
 func configVarDocs() (ret string) {
@@ -60,7 +61,16 @@ The following variables are supported:
 
 Note that "ocm config get access_token" gives whatever the file contains - may be missing or expired;
 you probably want "ocm token" command instead which will obtain a fresh token if needed.
-`, loc, configVarDocs())
+
+If '%s' is set, the configuration file is ignored and the keyring is used instead. The 
+following backends are supported for the keyring:
+
+- macOS: keychain, pass
+- Linux: secret-service, pass
+- Windows: wincred
+
+Available Keyrings on your OS: %s
+`, loc, configVarDocs(), properties.KeyringEnvKey, strings.Join(config.GetKeyrings(), ", "))
 	return
 }
 

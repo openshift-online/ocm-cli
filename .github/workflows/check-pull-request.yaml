@@ -39,6 +39,12 @@ jobs:
     steps:
     - name: Checkout the source
       uses: actions/checkout@v3
+    - name: Install Keyrings (macOS-only)
+      if: ${{ contains(fromJSON('["macos-latest"]'), matrix.platform) }}
+      run: brew install pass gnupg
+    - name: Install Keyrings (linux)
+      if: ${{ contains(fromJSON('["ubuntu-latest"]'), matrix.platform) }}
+      run: sudo apt-get install pass
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
