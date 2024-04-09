@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-sdk-go/authentication/securestore"
 )
 
 var Cmd = &cobra.Command{
@@ -33,6 +34,15 @@ var Cmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+
+	if keyring, ok := config.IsKeyringManaged(); ok {
+		err := securestore.RemoveConfigFromKeyring(keyring)
+		if err != nil {
+			return fmt.Errorf("can't remove configuration from keyring: %w", err)
+		}
+		return nil
+	}
+
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {

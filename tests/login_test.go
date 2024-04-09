@@ -18,8 +18,10 @@ package tests
 
 import (
 	"context"
+	"os"
 	"time"
 
+	"github.com/openshift-online/ocm-cli/pkg/properties"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 
 	. "github.com/onsi/ginkgo/v2"    // nolint
@@ -32,6 +34,7 @@ import (
 var _ = Describe("Login", func() {
 	var ctx context.Context
 	var ssoServer *Server
+	invalidKeyring := "not-a-keyring"
 
 	BeforeEach(func() {
 		// Create the context:
@@ -47,6 +50,11 @@ var _ = Describe("Login", func() {
 	})
 
 	When("Using offline token", func() {
+		AfterEach(func() {
+			// reset keyring
+			os.Setenv(properties.KeyringEnvKey, "")
+		})
+
 		It("Creates the configuration file", func() {
 			// Create the tokens:
 			accessToken := MakeTokenString("Bearer", 15*time.Minute)
@@ -83,6 +91,24 @@ var _ = Describe("Login", func() {
 				"scopes", sdk.DefaultScopes,
 				"accessToken", accessToken,
 			))
+		})
+
+		It("Fails for an invalid keyring", func() {
+			os.Setenv(properties.KeyringEnvKey, invalidKeyring)
+			// Create the tokens:
+			accessToken := MakeTokenString("Bearer", 15*time.Minute)
+
+			// Run the command:
+			result := NewCommand().
+				Args(
+					"login",
+					"--token", accessToken,
+					"--token-url", ssoServer.URL(),
+				).
+				Run(ctx)
+
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("keyring is invalid"))
 		})
 	})
 
@@ -180,6 +206,50 @@ var _ = Describe("Login", func() {
 				"accessToken", accessToken,
 				"refreshToken", refreshToken,
 			))
+		})
+	})
+
+	When("Using auth code flow", func() {
+		AfterEach(func() {
+			// reset keyring
+			os.Setenv(properties.KeyringEnvKey, "")
+		})
+
+		It("Fails for an invalid keyring", func() {
+			os.Setenv(properties.KeyringEnvKey, invalidKeyring)
+
+			// Run the command:
+			result := NewCommand().
+				Args(
+					"login",
+					"--use-auth-code",
+				).
+				Run(ctx)
+
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("keyring is invalid"))
+		})
+	})
+
+	When("Using device code flow", func() {
+		AfterEach(func() {
+			// reset keyring
+			os.Setenv(properties.KeyringEnvKey, "")
+		})
+
+		It("Fails for an invalid keyring", func() {
+			os.Setenv(properties.KeyringEnvKey, invalidKeyring)
+
+			// Run the command:
+			result := NewCommand().
+				Args(
+					"login",
+					"--use-device-code",
+				).
+				Run(ctx)
+
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("keyring is invalid"))
 		})
 	})
 })
