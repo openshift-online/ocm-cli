@@ -1,43 +1,28 @@
-/*
-Copyright (c) 2020 Red Hat, Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-package cluster
+package ingress
 
 import (
 	"bytes"
 	"fmt"
 	"os"
 
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/spf13/cobra"
-
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
+	i "github.com/openshift-online/ocm-cli/pkg/ingress"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/spf13/cobra"
 )
 
 var args struct {
-	json   bool
-	output bool
+	json       bool
+	output     bool
+	ingressKey string
 }
 
 var Cmd = &cobra.Command{
-	Use:   "cluster [flags] {NAME|ID|EXTERNAL_ID}",
-	Short: "Show details of a cluster",
-	Long:  "Show details of a cluster identified by name, identifier or external identifier",
+	Use:   "ingress [flags] {CLUSTER_NAME|CLUSTER_ID|CLUSTER_EXTERNAL_ID} -i ingress_key",
+	Short: "Show details of an ingress",
+	Long:  "Show details of an ingress identified by name, or identifier",
 	RunE:  run,
 }
 
@@ -55,6 +40,13 @@ func init() {
 		"json",
 		false,
 		"Output the entire JSON structure",
+	)
+	flags.StringVarP(
+		&args.ingressKey,
+		"ingress",
+		"i",
+		"",
+		"Ingress identifier",
 	)
 }
 
@@ -82,6 +74,14 @@ func run(cmd *cobra.Command, argv []string) error {
 		)
 		os.Exit(1)
 	}
+	ingressKey := args.ingressKey
+	if ingressKey == "" {
+		fmt.Fprintf(
+			os.Stderr,
+			"Ingress identifier must be supplied\n",
+		)
+		os.Exit(1)
+	}
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
@@ -95,9 +95,36 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", key, err)
 	}
 
+	clusterId := cluster.ID()
+	response, err := connection.ClustersMgmt().V1().
+		Clusters().Cluster(clusterId).
+		Ingresses().
+		List().Page(1).Size(-1).
+		Send()
+	if err != nil {
+		return err
+	}
+
+	ingresses := response.Items().Slice()
+	var ingress *cmv1.Ingress
+	for _, item := range ingresses {
+		if ingressKey == "apps" && item.Default() {
+			ingress = item
+		}
+		if ingressKey == "apps2" && !item.Default() {
+			ingress = item
+		}
+		if item.ID() == ingressKey {
+			ingress = item
+		}
+	}
+	if ingress == nil {
+		return fmt.Errorf("Failed to get ingress '%s' for cluster '%s'", ingressKey, clusterId)
+	}
+
 	if args.output {
 		// Create a filename based on cluster name:
-		filename := fmt.Sprintf("cluster-%s.json", cluster.ID())
+		filename := fmt.Sprintf("ingress-%s-%s.json", cluster.ID(), ingress.ID())
 
 		// Attempt to create file:
 		myFile, err := os.Create(filename)
@@ -106,9 +133,9 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 
 		// Dump encoder content into file:
-		err = cmv1.MarshalCluster(cluster, myFile)
+		err = cmv1.MarshalIngress(ingress, myFile)
 		if err != nil {
-			return fmt.Errorf("Failed to Marshal cluster into file: %v", err)
+			return fmt.Errorf("Failed to Marshal ingress into file: %v", err)
 		}
 	}
 
@@ -119,9 +146,9 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Println()
 
 		// Convert cluster to JSON and dump to encoder:
-		err = cmv1.MarshalCluster(cluster, buf)
+		err = cmv1.MarshalIngress(ingress, buf)
 		if err != nil {
-			return fmt.Errorf("Failed to Marshal cluster into JSON encoder: %v", err)
+			return fmt.Errorf("Failed to Marshal ingress into JSON encoder: %v", err)
 		}
 
 		err = dump.Pretty(os.Stdout, buf.Bytes())
@@ -130,7 +157,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 
 	} else {
-		err = c.PrintClusterDescription(connection, cluster)
+		err = i.PrintIngressDescription(ingress, cluster)
 		if err != nil {
 			return err
 		}
