@@ -1,0 +1,36 @@
+schemaVersion: 2.2.0
+metadata:
+  name: go
+  displayName: Go Runtime
+  description: 'Go is an open source programming language that makes it easy to build simple, reliable, and efficient software.'
+  icon: https://raw.githubusercontent.com/devfile-samples/devfile-stack-icons/main/golang.svg
+  language: Go
+  projectType: Go
+  tags:
+    - Go
+  version: 1.1.0
+  provider: Red Hat
+  supportUrl: https://github.com/devfile-samples/devfile-support#support-information
+parent:
+  id: go
+  registryUrl: 'https://registry.devfile.io'
+  version: 1.2.0
+components:
+  - name: image-build
+    image:
+      imageName: ocmcli-image:latest
+      dockerfile:
+        uri: docker/Dockerfile
+        buildContext: .
+        rootRequired: false
+commands:
+  - id: build-image
+    apply:
+      component: image-build
+  - id: deploy
+    composite:
+      commands:
+        - build-image
+      group:
+        kind: deploy
+        isDefault: true
