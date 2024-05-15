@@ -1,10 +1,19 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.21.9-1.1714671022
+FROM registry.access.redhat.com/ubi9/go-toolset:latest AS builder
 
+WORKDIR /opt/app-root/src
 COPY . .
+
+
+#TODO Identify the  full set of supported arch
+#TODO Create a Make Target to build all supported release binaries
 RUN go mod download
+RUN go build -buildvcs=false -o ./releases/ocm ./cmd/ocm
 
 
-RUN go build -buildvcs=false -o ./ocm  ./cmd/ocm/main.go 
+FROM registry.access.redhat.com/ubi9/ubi-micro:latest
+LABEL name="ocm-cli"
+LABEL description="OCM CLI"
+LABEL vendor="Red Hat, Inc."
 
-
-CMD [ "./ocm --help" ]
+COPY LICENSE.txt /licenses
+COPY --from=builder /opt/app-root/src/releases /releases
