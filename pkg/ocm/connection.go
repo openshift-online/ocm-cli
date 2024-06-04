@@ -20,6 +20,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/debug"
 )
 
 // ConnectionBuilder contains the information and logic needed to build a connection to OCM. Don't
@@ -66,6 +67,11 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 
 	// overwrite the config URL if the environment variable is set
 	if overrideUrl := os.Getenv("OCM_URL"); overrideUrl != "" {
+		if debug.Enabled() {
+			fmt.Fprintln(os.Stderr, "INFO: OCM_URL is overridden via environment variable. This functionality is considered tech preview and may cause unexpected issues.")
+			fmt.Fprintln(os.Stderr, "      If you experience issues while OCM_URL is set, unset the OCM_URL environment variable and attempt to log in directly to the desired OCM environment.")
+			fmt.Fprintln(os.Stderr, "") // add a newline on purpose to separate from ocm sdk debug output
+		}
 		b.cfg.URL = overrideUrl
 	}
 
