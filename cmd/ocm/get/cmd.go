@@ -25,6 +25,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 )
 
@@ -69,20 +70,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
-	// Check that the configuration has credentials or tokens that don't have expired:
-	armed, reason, err := cfg.Armed()
+	// Create the client for the OCM API:
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return err
 	}
-	if !armed {
-		return fmt.Errorf("Not logged in, %s, run the 'login' command", reason)
-	}
-
-	// Create the connection:
-	connection, err := cfg.Connection()
-	if err != nil {
-		return fmt.Errorf("Can't create connection: %v", err)
-	}
+	defer connection.Close()
 
 	// Create and populate the request:
 	request := connection.Get()

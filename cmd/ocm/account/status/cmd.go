@@ -18,11 +18,13 @@ package status
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
 	acc_util "github.com/openshift-online/ocm-cli/pkg/account"
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
 
@@ -61,19 +63,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
-	// Check that the configuration has credentials or tokens that haven't have expired:
-	armed, reason, err := cfg.Armed()
+	// Create the client for the OCM API:
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return err
-	}
-	if !armed {
-		return fmt.Errorf("Not logged in, %s, run the 'login' command", reason)
-	}
-
-	// Create the connection, and remember to close it:
-	connection, err := cfg.Connection()
-	if err != nil {
-		return fmt.Errorf("Can't create connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -87,8 +80,12 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Display user and which server they are logged into
 	currAccount := response.Body()
 	currOrg := currAccount.Organization()
-	fmt.Printf("User %s on %s in org '%s' %s (external_id: %s)",
+	fmt.Printf("User %s on %s in org '%s' %s (external_id: %s) ",
 		currAccount.Username(), cfg.URL, currOrg.Name(), currOrg.ID(), currOrg.ExternalID())
+
+	if urlOverride := os.Getenv("OCM_URL"); urlOverride != "" {
+		fmt.Printf("- OCM_URL overridden via env to %s - ", urlOverride)
+	}
 
 	// Display roles currently assigned to the user
 	roleSlice, err := acc_util.GetRolesFromUsers([]*amv1.Account{currAccount}, connection)
