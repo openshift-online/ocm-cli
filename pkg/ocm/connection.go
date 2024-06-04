@@ -15,6 +15,7 @@ package ocm
 
 import (
 	"fmt"
+	"os"
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
 
@@ -61,6 +62,11 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 	if !armed {
 		err = fmt.Errorf("Not logged in, %s, run the 'login' command", reason)
 		return
+	}
+
+	// overwrite the config URL if the environment variable is set
+	if overrideUrl := os.Getenv("OCM_URL"); overrideUrl != "" {
+		b.cfg.URL = overrideUrl
 	}
 
 	result, err = b.cfg.Connection()
