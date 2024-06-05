@@ -16,4 +16,7 @@ limitations under the License.
 
 package properties
 
-const KeyringEnvKey = "OCM_KEYRING"
+const (
+	KeyringEnvKey = "OCM_KEYRING"
+	URLEnvKey     = "OCM_URL"
+)

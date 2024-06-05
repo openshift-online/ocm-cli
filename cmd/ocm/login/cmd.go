@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/properties"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/authentication"
@@ -313,8 +314,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		gatewayURL = fmt.Sprintf("https://%s", regValue.URL)
 	}
 
-	if overrideUrl := os.Getenv("OCM_URL"); overrideUrl != "" {
-		fmt.Fprintf(os.Stderr, "WARNING: the `OCM_URL` environment variable is set, but is not used for the login command. The `ocm login` command will only use the explicitly set flag's url, which is set as %s\n", gatewayURL)
+	if overrideUrl := os.Getenv(properties.URLEnvKey); overrideUrl != "" {
+		fmt.Fprintf(os.Stderr, "WARNING: the `%s` environment variable is set, but is not used for the login command. The `ocm login` command will only use the explicitly set flag's url, which is set as %s\n", properties.URLEnvKey, gatewayURL)
 	}
 
 	// Update the configuration with the values given in the command line:
