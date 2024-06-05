@@ -18,7 +18,6 @@ package status
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -82,10 +81,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	currOrg := currAccount.Organization()
 	fmt.Printf("User %s on %s in org '%s' %s (external_id: %s) ",
 		currAccount.Username(), cfg.URL, currOrg.Name(), currOrg.ID(), currOrg.ExternalID())
-
-	if urlOverride := os.Getenv("OCM_URL"); urlOverride != "" {
-		fmt.Printf("- OCM_URL overridden via env to %s - ", urlOverride)
-	}
 
 	// Display roles currently assigned to the user
 	roleSlice, err := acc_util.GetRolesFromUsers([]*amv1.Account{currAccount}, connection)
