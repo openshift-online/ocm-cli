@@ -69,8 +69,8 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 	// overwrite the config URL if the environment variable is set
 	if overrideUrl := os.Getenv(properties.URLEnvKey); overrideUrl != "" {
 		if debug.Enabled() {
-			fmt.Fprintf(os.Stderr, "INFO: %s is overridden via environment variable. This functionality is considered tech preview and may cause unexpected issues.\n", properties.URLEnvKey)
-			fmt.Fprintf(os.Stderr, "      If you experience issues while %s is set, unset the %s environment variable and attempt to log in directly to the desired OCM environment.\n\n", properties.URLEnvKey, properties.URLEnvKey)
+			fmt.Fprintf(os.Stderr, "INFO: %s is overridden via environment variable. This functionality is considered tech preview and may cause unexpected issues.\n", properties.URLEnvKey)                                          //nolint:lll
+			fmt.Fprintf(os.Stderr, "      If you experience issues while %s is set, unset the %s environment variable and attempt to log in directly to the desired OCM environment.\n\n", properties.URLEnvKey, properties.URLEnvKey) //nolint:lll
 		}
 		b.cfg.URL = overrideUrl
 	}

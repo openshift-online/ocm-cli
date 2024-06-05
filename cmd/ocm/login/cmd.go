@@ -315,7 +315,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	if overrideUrl := os.Getenv(properties.URLEnvKey); overrideUrl != "" {
-		fmt.Fprintf(os.Stderr, "WARNING: the `%s` environment variable is set, but is not used for the login command. The `ocm login` command will only use the explicitly set flag's url, which is set as %s\n", properties.URLEnvKey, gatewayURL)
+		fmt.Fprintf(os.Stderr, "WARNING: the `%s` environment variable is set, but is not used for the login command. The `ocm login` command will only use the explicitly set flag's url, which is set as %s\n", properties.URLEnvKey, gatewayURL) //nolint:lll
 	}
 
 	// Update the configuration with the values given in the command line:
