@@ -36,6 +36,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/describe"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/fail"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/gcp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/get"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/hibernate"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/list"
@@ -52,6 +53,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/tunnel"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/version"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/whoami"
+
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	plugin "github.com/openshift-online/ocm-cli/pkg/plugin"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
@@ -106,6 +108,7 @@ func init() {
 	root.AddCommand(tunnel.Cmd)
 	root.AddCommand(version.Cmd)
 	root.AddCommand(whoami.Cmd)
+	root.AddCommand(gcp.NewGcpCmd())
 }
 
 func main() {
