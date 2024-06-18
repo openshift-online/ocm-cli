@@ -83,6 +83,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.URL)
 	case "pager":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.Pager)
+	case "user":
+		fmt.Fprintf(os.Stdout, "%s\n", cfg.User)
 	default:
 		return fmt.Errorf("Unknown setting")
 	}
