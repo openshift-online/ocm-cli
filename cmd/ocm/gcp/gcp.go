@@ -29,6 +29,7 @@ func NewGcpCmd() *cobra.Command {
 	gcpCmd.AddCommand(NewGetCmd())
 	gcpCmd.AddCommand(NewListCmd())
 	gcpCmd.AddCommand(NewDescribeCmd())
+	gcpCmd.AddCommand(NewGenerateCommand())
 
 	return gcpCmd
 }

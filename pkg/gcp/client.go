@@ -31,7 +31,8 @@ type GcpClient interface {
 
 	DeleteServiceAccount(saName string, project string, allowMissing bool) error
 
-	BindRole(saId, projectId, roleResourceId string) error
+	GetProjectIamPolicy(projectName string, request *cloudresourcemanager.GetIamPolicyRequest) (*cloudresourcemanager.Policy, error)
+	SetProjectIamPolicy(svcAcctResource string, request *cloudresourcemanager.SetIamPolicyRequest) (*cloudresourcemanager.Policy, error)
 
 	AttachImpersonator(saId, projectId, impersonatorResourceId string) error
 	AttachWorkloadIdentityPool(sa ServiceAccount, poolId, projectId string) error
@@ -128,27 +129,6 @@ func (c *gcpClient) ListServiceAccounts(project string, filter func(string) bool
 		}
 	}
 	return out, nil
-}
-
-func (c *gcpClient) BindRole(saId, projectId, roleResourceId string) error {
-	getReq := c.cloudResourceManager.Projects.GetIamPolicy(projectId, &cloudresourcemanager.GetIamPolicyRequest{})
-	policy, err := getReq.Do()
-	if err != nil {
-		return err
-	}
-	for _, binding := range policy.Bindings {
-		if binding.Role == roleResourceId {
-			binding.Members = append(binding.Members, fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", saId, projectId))
-		}
-	}
-
-	setReq := c.cloudResourceManager.Projects.SetIamPolicy(projectId, &cloudresourcemanager.SetIamPolicyRequest{
-		Policy: policy,
-	})
-	if _, err := setReq.Do(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorId string) error {
@@ -319,4 +299,12 @@ func (c *gcpClient) ProjectNumberFromId(projectId string) (int64, error) {
 		return 0, err
 	}
 	return project.ProjectNumber, nil
+}
+
+func (c *gcpClient) GetProjectIamPolicy(projectName string, request *cloudresourcemanager.GetIamPolicyRequest) (*cloudresourcemanager.Policy, error) {
+	return c.cloudResourceManager.Projects.GetIamPolicy(projectName, request).Context(context.Background()).Do()
+}
+
+func (c *gcpClient) SetProjectIamPolicy(svcAcctResource string, request *cloudresourcemanager.SetIamPolicyRequest) (*cloudresourcemanager.Policy, error) {
+	return c.cloudResourceManager.Projects.SetIamPolicy(svcAcctResource, request).Context(context.Background()).Do()
 }

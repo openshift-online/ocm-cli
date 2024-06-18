@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/spf13/cobra"
+	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iam/v1"
 	iamv1 "google.golang.org/api/iam/v1"
@@ -32,6 +33,7 @@ var (
 	}
 
 	impersonatorServiceAccount = "projects/sda-ccs-3/serviceAccounts/osd-impersonator@sda-ccs-3.iam.gserviceaccount.com"
+	impersonatorEmail          = "osd-impersonator@sda-ccs-3.iam.gserviceaccount.com"
 )
 
 const (
@@ -84,20 +86,13 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 		PoolIdentityProviderId: wifConfig.Status.WorkloadIdentityPoolData.IdentityProviderId,
 	}
 
-	// TODO: implement scripting for dry run
 	if CreateWorkloadIdentityConfigurationOpts.DryRun {
-		log.Printf("Dry run option not yet available")
+		log.Printf("Writing script files to %s", CreateWorkloadIdentityConfigurationOpts.TargetDir)
 
-		// identityPoolContent := createIdentityPoolScriptContent(poolSpec)
-		// identityProviderContent := createIdentityProviderScriptContent(poolSpec)
-		// serviceAccountContent := createServiceAccountScriptContent(wifConfig)
-		// err = createScriptFile(CreateWorkloadIdentityConfigurationOpts.TargetDir,
-		// 	identityPoolContent,
-		// 	identityProviderContent,
-		// 	serviceAccountContent)
-		// if err != nil {
-		// 	log.Fatalf("Failed to create script files: %s", err)
-		// }
+		err := createScript(CreateWorkloadIdentityConfigurationOpts.TargetDir, wifConfig)
+		if err != nil {
+			log.Fatalf("Failed to create script files: %s", err)
+		}
 		return
 	}
 
@@ -258,15 +253,17 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 		serviceAccountID := serviceAccount.GetId()
 
 		fmt.Printf("\t\tBinding roles to %s\n", serviceAccount.Id)
+		roles := make([]string, 0, len(serviceAccount.Roles))
 		for _, role := range serviceAccount.Roles {
 			if !role.Predefined {
 				fmt.Printf("Skipping role %q for service account %q as custom roles are not yet supported.", role.Id, serviceAccount.Id)
 				continue
 			}
-			err := gcpClient.BindRole(serviceAccountID, projectId, fmtRoleResourceId(role))
-			if err != nil {
-				panic(err)
-			}
+			roles = append(roles, fmtRoleResourceId(role))
+		}
+		err := EnsurePolicyBindingsForProject(gcpClient, roles, fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountID, projectId), projectId)
+		if err != nil {
+			log.Fatalf("Failed to bind roles to service account %s: %s", serviceAccountID, err)
 		}
 		fmt.Printf("\t\tRoles bound to %s\n", serviceAccount.Id)
 
@@ -316,4 +313,79 @@ func generateServiceAccountID(serviceAccount models.ServiceAccount) string {
 		serviceAccountID = serviceAccountID[:30]
 	}
 	return serviceAccountID
+}
+
+// EnsurePolicyBindingsForProject ensures that given roles and member, appropriate binding is added to project
+func EnsurePolicyBindingsForProject(gcpClient gcp.GcpClient, roles []string, member string, projectName string) error {
+	needPolicyUpdate := false
+
+	policy, err := gcpClient.GetProjectIamPolicy(projectName, &cloudresourcemanager.GetIamPolicyRequest{})
+
+	if err != nil {
+		return fmt.Errorf("error fetching policy for project: %v", err)
+	}
+
+	// Validate that each role exists, and add the policy binding as needed
+	for _, definedRole := range roles {
+		// Earlier we've verified that the requested roles already exist.
+
+		// Add policy binding
+		modified := addPolicyBindingForProject(policy, definedRole, member)
+		if modified {
+			needPolicyUpdate = true
+		}
+
+	}
+
+	if needPolicyUpdate {
+		return setProjectIamPolicy(gcpClient, policy, projectName)
+	}
+
+	// If we made it this far there were no updates needed
+	return nil
+}
+
+func addPolicyBindingForProject(policy *cloudresourcemanager.Policy, roleName, memberName string) bool {
+	for i, binding := range policy.Bindings {
+		if binding.Role == roleName {
+			return addMemberToBindingForProject(memberName, policy.Bindings[i])
+		}
+	}
+
+	// if we didn't find an existing binding entry, then make one
+	createMemberRoleBindingForProject(policy, roleName, memberName)
+
+	return true
+}
+
+func createMemberRoleBindingForProject(policy *cloudresourcemanager.Policy, roleName, memberName string) {
+	policy.Bindings = append(policy.Bindings, &cloudresourcemanager.Binding{
+		Members: []string{memberName},
+		Role:    roleName,
+	})
+}
+
+// adds member to existing binding. returns bool indicating if an entry was made
+func addMemberToBindingForProject(memberName string, binding *cloudresourcemanager.Binding) bool {
+	for _, member := range binding.Members {
+		if member == memberName {
+			// already present
+			return false
+		}
+	}
+
+	binding.Members = append(binding.Members, memberName)
+	return true
+}
+
+func setProjectIamPolicy(gcpClient gcp.GcpClient, policy *cloudresourcemanager.Policy, projectName string) error {
+	policyRequest := &cloudresourcemanager.SetIamPolicyRequest{
+		Policy: policy,
+	}
+
+	_, err := gcpClient.SetProjectIamPolicy(projectName, policyRequest)
+	if err != nil {
+		return fmt.Errorf("error setting project policy: %v", err)
+	}
+	return nil
 }
