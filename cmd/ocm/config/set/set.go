@@ -84,6 +84,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		cfg.TokenURL = value
 	case "url":
 		cfg.URL = value
+	case "user":
+		cfg.User = value
 	case "pager":
 		cfg.Pager = value
 	default:
