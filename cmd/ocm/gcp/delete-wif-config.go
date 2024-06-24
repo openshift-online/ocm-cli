@@ -35,6 +35,9 @@ func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 		PersistentPreRun: validationForDeleteWorkloadIdentityConfigurationCmd,
 	}
 
+	deleteWorkloadIdentityPoolCmd.PersistentFlags().BoolVar(&DeleteWorkloadIdentityConfigurationOpts.DryRun, "dry-run", false, "Skip creating objects, and just save what would have been created into files")
+	deleteWorkloadIdentityPoolCmd.PersistentFlags().StringVar(&DeleteWorkloadIdentityConfigurationOpts.TargetDir, "output-dir", "", "Directory to place generated files (defaults to current directory)")
+
 	return deleteWorkloadIdentityPoolCmd
 }
 
@@ -61,12 +64,23 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	if err != nil {
 		log.Fatalf("failed to create backend client: %v", err)
 	}
-	gcpClient, err := gcp.NewGcpClient(context.Background())
+
+	wifConfig, err := ocmClient.GetWifConfig(wifConfigId)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	wifConfig, err := ocmClient.GetWifConfig(wifConfigId)
+	if DeleteWorkloadIdentityConfigurationOpts.DryRun {
+		log.Printf("Writing script files to %s", DeleteWorkloadIdentityConfigurationOpts.TargetDir)
+
+		err := createDeleteScript(DeleteWorkloadIdentityConfigurationOpts.TargetDir, &wifConfig)
+		if err != nil {
+			log.Fatalf("Failed to create script files: %s", err)
+		}
+		return
+	}
+
+	gcpClient, err := gcp.NewGcpClient(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}

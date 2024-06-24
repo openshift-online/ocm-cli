@@ -31,6 +31,48 @@ func createScript(targetDir string, wifConfig *models.WifConfigOutput) error {
 	return nil
 }
 
+func createDeleteScript(targetDir string, wifConfig *models.WifConfigOutput) error {
+	// Write the script content to the path
+	scriptContent := generateDeleteScriptContent(wifConfig)
+	err := os.WriteFile(filepath.Join(targetDir, "delete.sh"), []byte(scriptContent), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func generateDeleteScriptContent(wifConfig *models.WifConfigOutput) string {
+	scriptContent := "#!/bin/bash\n"
+
+	// Append the script to delete the service accounts
+	scriptContent += deleteServiceAccountScriptContent(wifConfig)
+
+	// Append the script to delete the workload identity pool
+	scriptContent += deleteIdentityPoolScriptContent(wifConfig)
+
+	return scriptContent
+}
+func deleteServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string {
+	var sb strings.Builder
+	sb.WriteString("\n# Delete service accounts:\n")
+	for _, sa := range wifConfig.Status.ServiceAccounts {
+		project := wifConfig.Spec.ProjectId
+		serviceAccountID := sa.GetId()
+		sb.WriteString(fmt.Sprintf("gcloud iam service-accounts delete %s --project=%s\n",
+			serviceAccountID, project))
+	}
+	return sb.String()
+}
+
+func deleteIdentityPoolScriptContent(wifConfig *models.WifConfigOutput) string {
+	pool := wifConfig.Status.WorkloadIdentityPoolData
+	// Delete the workload identity pool
+	return fmt.Sprintf(`
+# Delete the workload identity pool
+gcloud iam workload-identity-pools delete %s --project=%s --location=global
+`, pool.PoolId, pool.ProjectId)
+}
+
 func generateScriptContent(wifConfig *models.WifConfigOutput) string {
 	poolSpec := gcp.WorkloadIdentityPoolSpec{
 		PoolName:               wifConfig.Status.WorkloadIdentityPoolData.PoolId,
@@ -97,6 +139,20 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 		serviceAccountDesc := poolDescription + " for WIF config " + wifConfig.Spec.DisplayName
 		sb.WriteString(fmt.Sprintf("gcloud iam service-accounts create %s --display-name=%s --description=\"%s\" --project=%s\n",
 			serviceAccountID, serviceAccountName, serviceAccountDesc, project))
+	}
+	sb.WriteString("\n# Create roles:\n")
+	for _, sa := range wifConfig.Status.ServiceAccounts {
+		for _, role := range sa.Roles {
+			if !role.Predefined {
+				roleId := strings.ReplaceAll(role.Id, "-", "_")
+				project := wifConfig.Spec.ProjectId
+				permissions := strings.Join(role.Permissions, ",")
+				roleName := roleId
+				serviceAccountDesc := roleDescription + " for WIF config " + wifConfig.Spec.DisplayName
+				sb.WriteString(fmt.Sprintf("gcloud iam roles create %s --project=%s --title=%s --description=\"%s\" --stage=GA --permissions=%s\n",
+					roleId, project, roleName, serviceAccountDesc, permissions))
+			}
+		}
 	}
 	sb.WriteString("\n# Bind service account roles:\n")
 	for _, sa := range wifConfig.Status.ServiceAccounts {

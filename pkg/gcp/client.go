@@ -41,6 +41,13 @@ type GcpClient interface {
 	RetreiveSecret(secretId string, projectId string) ([]byte, error)
 
 	ProjectNumberFromId(projectId string) (int64, error)
+
+	GetRole(context.Context, *adminpb.GetRoleRequest) (*adminpb.Role, error)
+	CreateRole(context.Context, *adminpb.CreateRoleRequest) (*adminpb.Role, error)
+	UpdateRole(context.Context, *adminpb.UpdateRoleRequest) (*adminpb.Role, error)
+	DeleteRole(context.Context, *adminpb.DeleteRoleRequest) (*adminpb.Role, error)
+	UndeleteRole(context.Context, *adminpb.UndeleteRoleRequest) (*adminpb.Role, error)
+	ListRoles(context.Context, *adminpb.ListRolesRequest) (*adminpb.ListRolesResponse, error)
 }
 
 type ServiceAccount interface {
@@ -307,4 +314,28 @@ func (c *gcpClient) GetProjectIamPolicy(projectName string, request *cloudresour
 
 func (c *gcpClient) SetProjectIamPolicy(svcAcctResource string, request *cloudresourcemanager.SetIamPolicyRequest) (*cloudresourcemanager.Policy, error) {
 	return c.cloudResourceManager.Projects.SetIamPolicy(svcAcctResource, request).Context(context.Background()).Do()
+}
+
+func (c *gcpClient) GetRole(ctx context.Context, request *adminpb.GetRoleRequest) (*adminpb.Role, error) {
+	return c.iamClient.GetRole(ctx, request)
+}
+
+func (c *gcpClient) CreateRole(ctx context.Context, request *adminpb.CreateRoleRequest) (*adminpb.Role, error) {
+	return c.iamClient.CreateRole(ctx, request)
+}
+
+func (c *gcpClient) UpdateRole(ctx context.Context, request *adminpb.UpdateRoleRequest) (*adminpb.Role, error) {
+	return c.iamClient.UpdateRole(ctx, request)
+}
+
+func (c *gcpClient) DeleteRole(ctx context.Context, request *adminpb.DeleteRoleRequest) (*adminpb.Role, error) {
+	return c.iamClient.DeleteRole(ctx, request)
+}
+
+func (c *gcpClient) UndeleteRole(ctx context.Context, request *adminpb.UndeleteRoleRequest) (*adminpb.Role, error) {
+	return c.iamClient.UndeleteRole(ctx, request)
+}
+
+func (c *gcpClient) ListRoles(ctx context.Context, request *adminpb.ListRolesRequest) (*adminpb.ListRolesResponse, error) {
+	return c.iamClient.ListRoles(ctx, request)
 }

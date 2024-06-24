@@ -56,6 +56,9 @@ func generateCreateScriptCmd(cmd *cobra.Command, argv []string) {
 
 	log.Printf("Writing script files to %s", GenerateScriptOpts.TargetDir)
 	if err := createScript(GenerateScriptOpts.TargetDir, &wifConfig); err != nil {
-		log.Fatalf("failed to generate script: %v", err)
+		log.Fatalf("failed to generate create script: %v", err)
+	}
+	if err := createDeleteScript(GenerateScriptOpts.TargetDir, &wifConfig); err != nil {
+		log.Fatalf("failed to generate delete script: %v", err)
 	}
 }

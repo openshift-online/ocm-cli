@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/googleapis/gax-go/v2/apierror"
@@ -17,7 +18,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/spf13/cobra"
-	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iam/v1"
 	iamv1 "google.golang.org/api/iam/v1"
@@ -38,6 +38,7 @@ var (
 
 const (
 	poolDescription = "Created by the OLM CLI"
+	roleDescription = "Created by the OLM CLI"
 
 	openShiftAudience = "openshift"
 )
@@ -248,6 +249,39 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 		log.Printf("IAM service account %s created", serviceAccountID)
 	}
 
+	// Create roles that aren't predefined
+	for _, serviceAccount := range wifOutput.Status.ServiceAccounts {
+		for _, role := range serviceAccount.Roles {
+			if role.Predefined {
+				continue
+			}
+			roleID := role.Id
+			roleName := role.Id
+			permissions := role.Permissions
+			existingRole, err := GetRole(gcpClient, roleID, projectId)
+			if err != nil {
+				if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 && strings.Contains(gerr.Message, "Requested entity was not found") {
+					existingRole, err = CreateRole(gcpClient, permissions, roleName, roleID, roleDescription, projectId)
+					if err != nil {
+						return errors.Wrap(err, fmt.Sprintf("Failed to create %s", roleName))
+					}
+					log.Printf("Role %s created", roleID)
+				} else {
+					return errors.Wrap(err, "Failed to check if role exists")
+				}
+			}
+			// Update role if permissions have changed
+			if !reflect.DeepEqual(existingRole.IncludedPermissions, permissions) {
+				existingRole.IncludedPermissions = permissions
+				_, err := UpdateRole(gcpClient, existingRole, roleName)
+				if err != nil {
+					return errors.Wrap(err, fmt.Sprintf("Failed to update %s", roleName))
+				}
+				log.Printf("Role %s updated", roleID)
+			}
+		}
+	}
+
 	// Bind roles and grant access
 	for _, serviceAccount := range wifOutput.Status.ServiceAccounts {
 		serviceAccountID := serviceAccount.GetId()
@@ -313,79 +347,4 @@ func generateServiceAccountID(serviceAccount models.ServiceAccount) string {
 		serviceAccountID = serviceAccountID[:30]
 	}
 	return serviceAccountID
-}
-
-// EnsurePolicyBindingsForProject ensures that given roles and member, appropriate binding is added to project
-func EnsurePolicyBindingsForProject(gcpClient gcp.GcpClient, roles []string, member string, projectName string) error {
-	needPolicyUpdate := false
-
-	policy, err := gcpClient.GetProjectIamPolicy(projectName, &cloudresourcemanager.GetIamPolicyRequest{})
-
-	if err != nil {
-		return fmt.Errorf("error fetching policy for project: %v", err)
-	}
-
-	// Validate that each role exists, and add the policy binding as needed
-	for _, definedRole := range roles {
-		// Earlier we've verified that the requested roles already exist.
-
-		// Add policy binding
-		modified := addPolicyBindingForProject(policy, definedRole, member)
-		if modified {
-			needPolicyUpdate = true
-		}
-
-	}
-
-	if needPolicyUpdate {
-		return setProjectIamPolicy(gcpClient, policy, projectName)
-	}
-
-	// If we made it this far there were no updates needed
-	return nil
-}
-
-func addPolicyBindingForProject(policy *cloudresourcemanager.Policy, roleName, memberName string) bool {
-	for i, binding := range policy.Bindings {
-		if binding.Role == roleName {
-			return addMemberToBindingForProject(memberName, policy.Bindings[i])
-		}
-	}
-
-	// if we didn't find an existing binding entry, then make one
-	createMemberRoleBindingForProject(policy, roleName, memberName)
-
-	return true
-}
-
-func createMemberRoleBindingForProject(policy *cloudresourcemanager.Policy, roleName, memberName string) {
-	policy.Bindings = append(policy.Bindings, &cloudresourcemanager.Binding{
-		Members: []string{memberName},
-		Role:    roleName,
-	})
-}
-
-// adds member to existing binding. returns bool indicating if an entry was made
-func addMemberToBindingForProject(memberName string, binding *cloudresourcemanager.Binding) bool {
-	for _, member := range binding.Members {
-		if member == memberName {
-			// already present
-			return false
-		}
-	}
-
-	binding.Members = append(binding.Members, memberName)
-	return true
-}
-
-func setProjectIamPolicy(gcpClient gcp.GcpClient, policy *cloudresourcemanager.Policy, projectName string) error {
-	policyRequest := &cloudresourcemanager.SetIamPolicyRequest{
-		Policy: policy,
-	}
-
-	_, err := gcpClient.SetProjectIamPolicy(projectName, policyRequest)
-	if err != nil {
-		return fmt.Errorf("error setting project policy: %v", err)
-	}
-	return nil
 }
