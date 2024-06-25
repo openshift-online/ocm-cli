@@ -23,7 +23,8 @@ func NewGenerateCommand() *cobra.Command {
 		PersistentPreRun: validationForGenerateCreateScriptCmd,
 	}
 
-	generateScriptCmd.PersistentFlags().StringVar(&GenerateScriptOpts.TargetDir, "output-dir", "", "Directory to place generated files (defaults to current directory)")
+	generateScriptCmd.PersistentFlags().StringVar(&GenerateScriptOpts.TargetDir, "output-dir", "",
+		"Directory to place generated files (defaults to current directory)")
 
 	return generateScriptCmd
 }

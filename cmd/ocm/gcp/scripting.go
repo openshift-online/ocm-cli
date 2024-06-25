@@ -10,21 +10,16 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/models"
 )
 
-// const (
-// 	createServiceAccountCmd       = "gcloud iam service-accounts create %s --display-name=%s --project=%s"
-// 	addPolicyBindingForSvcAcctCmd = "gcloud iam service-accounts add-iam-policy-binding <POPULATE_SERVICE_ACCOUNT_EMAIL> --member=%s --role=%s"
-// )
-
 func createScript(targetDir string, wifConfig *models.WifConfigOutput) error {
 	// Write the script content to the path
 	scriptContent := generateScriptContent(wifConfig)
-	err := os.WriteFile(filepath.Join(targetDir, "script.sh"), []byte(scriptContent), 0644)
+	err := os.WriteFile(filepath.Join(targetDir, "script.sh"), []byte(scriptContent), 0600)
 	if err != nil {
 		return err
 	}
 	// Write jwk json file to the path
 	jwkPath := filepath.Join(targetDir, "jwk.json")
-	err = os.WriteFile(jwkPath, []byte(wifConfig.Status.WorkloadIdentityPoolData.Jwks), 0644)
+	err = os.WriteFile(jwkPath, []byte(wifConfig.Status.WorkloadIdentityPoolData.Jwks), 0600)
 	if err != nil {
 		return err
 	}
@@ -34,7 +29,7 @@ func createScript(targetDir string, wifConfig *models.WifConfigOutput) error {
 func createDeleteScript(targetDir string, wifConfig *models.WifConfigOutput) error {
 	// Write the script content to the path
 	scriptContent := generateDeleteScriptContent(wifConfig)
-	err := os.WriteFile(filepath.Join(targetDir, "delete.sh"), []byte(scriptContent), 0644)
+	err := os.WriteFile(filepath.Join(targetDir, "delete.sh"), []byte(scriptContent), 0600)
 	if err != nil {
 		return err
 	}
@@ -137,6 +132,7 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 		serviceAccountID := sa.GetId()
 		serviceAccountName := wifConfig.Spec.DisplayName + "-" + serviceAccountID
 		serviceAccountDesc := poolDescription + " for WIF config " + wifConfig.Spec.DisplayName
+		//nolint:lll
 		sb.WriteString(fmt.Sprintf("gcloud iam service-accounts create %s --display-name=%s --description=\"%s\" --project=%s\n",
 			serviceAccountID, serviceAccountName, serviceAccountDesc, project))
 	}
@@ -149,6 +145,7 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 				permissions := strings.Join(role.Permissions, ",")
 				roleName := roleId
 				serviceAccountDesc := roleDescription + " for WIF config " + wifConfig.Spec.DisplayName
+				//nolint:lll
 				sb.WriteString(fmt.Sprintf("gcloud iam roles create %s --project=%s --title=%s --description=\"%s\" --stage=GA --permissions=%s\n",
 					roleId, project, roleName, serviceAccountDesc, permissions))
 			}
@@ -168,20 +165,18 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 		if sa.AccessMethod == "wif" {
 			project := wifConfig.Spec.ProjectId
 			serviceAccount := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", sa.GetId(), project)
-			members := fmtMembers(sa, wifConfig.Status.WorkloadIdentityPoolData.ProjectNumber, wifConfig.Status.WorkloadIdentityPoolData.PoolId)
+			members := fmtMembers(sa, wifConfig.Status.WorkloadIdentityPoolData.ProjectNumber,
+				wifConfig.Status.WorkloadIdentityPoolData.PoolId)
 			for _, member := range members {
+				//nolint:lll
 				sb.WriteString(fmt.Sprintf("gcloud iam service-accounts add-iam-policy-binding %s --member=%s --role=roles/iam.workloadIdentityUser --project=%s\n",
 					serviceAccount, member, project))
 			}
 		} else if sa.AccessMethod == "impersonate" {
-			// gcloud iam service-accounts add-iam-policy-binding SERVICE_ACCOUNT_EMAIL \
-			// --member='serviceAccount:IMPERSONATOR_EMAIL' \
-			// --role='roles/iam.serviceAccountTokenCreator' \
-			// --project=PROJECT_ID
 			project := wifConfig.Spec.ProjectId
 			serviceAccount := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", sa.GetId(), project)
-			// saResource := fmt.Sprintf("projects/%s/serviceAccounts/%s@%s.iam.gserviceaccount.com", wifConfig.Spec.ProjectId, sa.Id, wifConfig.Spec.ProjectId)
 			impersonator := fmt.Sprintf("serviceAccount:%s", impersonatorEmail)
+			//nolint:lll
 			sb.WriteString(fmt.Sprintf("gcloud iam service-accounts add-iam-policy-binding %s --member=%s --role=roles/iam.serviceAccountTokenCreator --project=%s\n",
 				serviceAccount, impersonator, wifConfig.Spec.ProjectId))
 		}
@@ -192,6 +187,7 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 func fmtMembers(sa models.ServiceAccount, projectNum int64, poolId string) []string {
 	members := []string{}
 	for _, saName := range sa.GetServiceAccountNames() {
+		//nolint:lll
 		members = append(members, fmt.Sprintf(
 			"principal://iam.googleapis.com/projects/%d/locations/global/workloadIdentityPools/%s/subject/system:serviceaccount:%s:%s",
 			projectNum, poolId, sa.GetSecretNamespace(), saName))

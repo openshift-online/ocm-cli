@@ -1,5 +1,7 @@
 package alphaocm
 
+/* This package will be replaced with calls to the sdk once available */
+
 import (
 	"encoding/json"
 	"fmt"
@@ -27,25 +29,25 @@ func NewOcmClient() (OcmClient, error) {
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Errorf("Can't load config file: %v", err)
+		return nil, fmt.Errorf("can't load config file: %v", err)
 	}
 	if cfg == nil {
-		fmt.Errorf("Not logged in, run the 'login' command")
+		return nil, fmt.Errorf("not logged in, run the 'login' command")
 	}
 
 	// Check that the configuration has credentials or tokens that don't have expired:
 	armed, reason, err := cfg.Armed()
 	if err != nil {
-		fmt.Errorf(err.Error())
+		return nil, fmt.Errorf(err.Error())
 	}
 	if !armed {
-		fmt.Errorf("Not logged in, %s, run the 'login' command", reason)
+		return nil, fmt.Errorf("not logged in, %s, run the 'login' command", reason)
 	}
 
 	// Create the connection:
 	connection, err := cfg.Connection()
 	if err != nil {
-		fmt.Errorf("Can't create connection: %v", err)
+		return nil, fmt.Errorf("can't create connection: %v", err)
 	}
 	return &ocmClient{
 		connection: connection,

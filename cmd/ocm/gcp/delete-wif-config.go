@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	// DeleteWorkloadIdentityConfigurationOpts captures the options that affect creation of the workload identity pool
-	DeleteWorkloadIdentityConfigurationOpts = options{
+	// DeleteWifConfigOpts captures the options that affect creation of the workload identity pool
+	DeleteWifConfigOpts = options{
 		Name:      "",
 		Project:   "",
 		TargetDir: "",
@@ -28,17 +28,19 @@ var (
 
 // NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
 func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
-	deleteWorkloadIdentityPoolCmd := &cobra.Command{
+	deleteWifConfigCmd := &cobra.Command{
 		Use:              "wif-config [ID]",
 		Short:            "Delete workload identity configuration",
 		Run:              deleteWorkloadIdentityConfigurationCmd,
 		PersistentPreRun: validationForDeleteWorkloadIdentityConfigurationCmd,
 	}
 
-	deleteWorkloadIdentityPoolCmd.PersistentFlags().BoolVar(&DeleteWorkloadIdentityConfigurationOpts.DryRun, "dry-run", false, "Skip creating objects, and just save what would have been created into files")
-	deleteWorkloadIdentityPoolCmd.PersistentFlags().StringVar(&DeleteWorkloadIdentityConfigurationOpts.TargetDir, "output-dir", "", "Directory to place generated files (defaults to current directory)")
+	deleteWifConfigCmd.PersistentFlags().BoolVar(&DeleteWifConfigOpts.DryRun, "dry-run", false,
+		"Skip creating objects, and just save what would have been created into files")
+	deleteWifConfigCmd.PersistentFlags().StringVar(&DeleteWifConfigOpts.TargetDir, "output-dir", "",
+		"Directory to place generated files (defaults to current directory)")
 
-	return deleteWorkloadIdentityPoolCmd
+	return deleteWifConfigCmd
 }
 
 func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
@@ -70,10 +72,10 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 		log.Fatal(err)
 	}
 
-	if DeleteWorkloadIdentityConfigurationOpts.DryRun {
-		log.Printf("Writing script files to %s", DeleteWorkloadIdentityConfigurationOpts.TargetDir)
+	if DeleteWifConfigOpts.DryRun {
+		log.Printf("Writing script files to %s", DeleteWifConfigOpts.TargetDir)
 
-		err := createDeleteScript(DeleteWorkloadIdentityConfigurationOpts.TargetDir, &wifConfig)
+		err := createDeleteScript(DeleteWifConfigOpts.TargetDir, &wifConfig)
 		if err != nil {
 			log.Fatalf("Failed to create script files: %s", err)
 		}
@@ -99,7 +101,8 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	}
 }
 
-func deleteServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifConfig *models.WifConfigOutput, allowMissing bool) error {
+func deleteServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient,
+	wifConfig *models.WifConfigOutput, allowMissing bool) error {
 	log.Println("Deleting service accounts...")
 	projectId := wifConfig.Spec.ProjectId
 
@@ -115,7 +118,8 @@ func deleteServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifConf
 	return nil
 }
 
-func deleteWorkloadIdentityPool(ctx context.Context, gcpClient gcp.GcpClient, wifConfig *models.WifConfigOutput, allowMissing bool) error {
+func deleteWorkloadIdentityPool(ctx context.Context, gcpClient gcp.GcpClient,
+	wifConfig *models.WifConfigOutput, allowMissing bool) error {
 	log.Println("Deleting workload identity pool...")
 	projectId := wifConfig.Spec.ProjectId
 	poolName := wifConfig.Status.WorkloadIdentityPoolData.PoolId

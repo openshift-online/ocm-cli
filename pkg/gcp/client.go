@@ -10,29 +10,29 @@ import (
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"cloud.google.com/go/iam/apiv1/iampb"
 	"cloud.google.com/go/storage"
-	"google.golang.org/api/cloudresourcemanager/v1"
+	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 	iamv1 "google.golang.org/api/iam/v1"
 	"google.golang.org/api/iterator"
-	"google.golang.org/api/secretmanager/v1"
+	secretmanager "google.golang.org/api/secretmanager/v1"
 )
 
 type GcpClient interface {
-	ListServiceAccounts(project string, filter func(s string) bool) ([]string, error)
+	ListServiceAccounts(project string, filter func(s string) bool) ([]string, error) //nolint:lll
 
-	CreateServiceAccount(ctx context.Context, request *adminpb.CreateServiceAccountRequest) (*adminpb.ServiceAccount, error)
+	CreateServiceAccount(ctx context.Context, request *adminpb.CreateServiceAccountRequest) (*adminpb.ServiceAccount, error) //nolint:lll
 
-	CreateWorkloadIdentityPool(ctx context.Context, parent, poolID string, pool *iamv1.WorkloadIdentityPool) (*iamv1.Operation, error)
-	GetWorkloadIdentityPool(ctx context.Context, resource string) (*iamv1.WorkloadIdentityPool, error)
-	DeleteWorkloadIdentityPool(ctx context.Context, resource string) (*iamv1.Operation, error)
-	UndeleteWorkloadIdentityPool(ctx context.Context, resource string, request *iamv1.UndeleteWorkloadIdentityPoolRequest) (*iamv1.Operation, error)
+	CreateWorkloadIdentityPool(ctx context.Context, parent, poolID string, pool *iamv1.WorkloadIdentityPool) (*iamv1.Operation, error)               //nolint:lll
+	GetWorkloadIdentityPool(ctx context.Context, resource string) (*iamv1.WorkloadIdentityPool, error)                                               //nolint:lll
+	DeleteWorkloadIdentityPool(ctx context.Context, resource string) (*iamv1.Operation, error)                                                       //nolint:lll
+	UndeleteWorkloadIdentityPool(ctx context.Context, resource string, request *iamv1.UndeleteWorkloadIdentityPoolRequest) (*iamv1.Operation, error) //nolint:lll
 
-	CreateWorkloadIdentityProvider(ctx context.Context, parent, providerID string, provider *iamv1.WorkloadIdentityPoolProvider) (*iamv1.Operation, error)
-	GetWorkloadIdentityProvider(ctx context.Context, resource string) (*iamv1.WorkloadIdentityPoolProvider, error)
+	CreateWorkloadIdentityProvider(ctx context.Context, parent, providerID string, provider *iamv1.WorkloadIdentityPoolProvider) (*iamv1.Operation, error) //nolint:lll
+	GetWorkloadIdentityProvider(ctx context.Context, resource string) (*iamv1.WorkloadIdentityPoolProvider, error)                                         //nolint:lll
 
 	DeleteServiceAccount(saName string, project string, allowMissing bool) error
 
-	GetProjectIamPolicy(projectName string, request *cloudresourcemanager.GetIamPolicyRequest) (*cloudresourcemanager.Policy, error)
-	SetProjectIamPolicy(svcAcctResource string, request *cloudresourcemanager.SetIamPolicyRequest) (*cloudresourcemanager.Policy, error)
+	GetProjectIamPolicy(projectName string, request *cloudresourcemanager.GetIamPolicyRequest) (*cloudresourcemanager.Policy, error)     //nolint:lll
+	SetProjectIamPolicy(svcAcctResource string, request *cloudresourcemanager.SetIamPolicyRequest) (*cloudresourcemanager.Policy, error) //nolint:lll
 
 	AttachImpersonator(saId, projectId, impersonatorResourceId string) error
 	AttachWorkloadIdentityPool(sa ServiceAccount, poolId, projectId string) error
@@ -99,7 +99,8 @@ func NewGcpClient(ctx context.Context) (GcpClient, error) {
 	}, nil
 }
 
-func (c *gcpClient) CreateServiceAccount(ctx context.Context, request *adminpb.CreateServiceAccountRequest) (*adminpb.ServiceAccount, error) {
+func (c *gcpClient) CreateServiceAccount(ctx context.Context,
+	request *adminpb.CreateServiceAccountRequest) (*adminpb.ServiceAccount, error) {
 	svcAcct, err := c.iamClient.CreateServiceAccount(ctx, request)
 	return svcAcct, err
 }
@@ -139,7 +140,8 @@ func (c *gcpClient) ListServiceAccounts(project string, filter func(string) bool
 }
 
 func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorId string) error {
-	saResourceId := fmt.Sprintf("projects/%s/serviceAccounts/%s@%s.iam.gserviceaccount.com", projectId, saId, projectId)
+	saResourceId := fmt.Sprintf("projects/%s/serviceAccounts/%s@%s.iam.gserviceaccount.com",
+		projectId, saId, projectId)
 	policy, err := c.iamClient.GetIamPolicy(context.Background(), &iampb.GetIamPolicyRequest{
 		Resource: saResourceId,
 	})
@@ -175,6 +177,7 @@ func (c *gcpClient) AttachWorkloadIdentityPool(sa ServiceAccount, poolId, projec
 	}
 	for _, openshiftServiceAccount := range sa.GetServiceAccountNames() {
 		policy.Add(
+			//nolint:lll
 			fmt.Sprintf(
 				"principal://iam.googleapis.com/projects/%d/locations/global/workloadIdentityPools/%s/subject/system:serviceaccount:%s:%s",
 				projectNum, poolId, sa.GetSecretNamespace(), openshiftServiceAccount,
@@ -276,26 +279,32 @@ func (c *gcpClient) CreateWorkloadIdentityPool2(spec WorkloadIdentityPoolSpec) e
 	return nil
 }
 
+//nolint:lll
 func (c *gcpClient) CreateWorkloadIdentityPool(ctx context.Context, parent, poolID string, pool *iamv1.WorkloadIdentityPool) (*iamv1.Operation, error) {
 	return c.oldIamClient.Projects.Locations.WorkloadIdentityPools.Create(parent, pool).WorkloadIdentityPoolId(poolID).Context(ctx).Do()
 }
 
+//nolint:lll
 func (c *gcpClient) GetWorkloadIdentityPool(ctx context.Context, resource string) (*iamv1.WorkloadIdentityPool, error) {
 	return c.oldIamClient.Projects.Locations.WorkloadIdentityPools.Get(resource).Context(ctx).Do()
 }
 
+//nolint:lll
 func (c *gcpClient) DeleteWorkloadIdentityPool(ctx context.Context, resource string) (*iamv1.Operation, error) {
 	return c.oldIamClient.Projects.Locations.WorkloadIdentityPools.Delete(resource).Context(ctx).Do()
 }
 
+//nolint:lll
 func (c *gcpClient) UndeleteWorkloadIdentityPool(ctx context.Context, resource string, request *iamv1.UndeleteWorkloadIdentityPoolRequest) (*iamv1.Operation, error) {
 	return c.oldIamClient.Projects.Locations.WorkloadIdentityPools.Undelete(resource, request).Context(ctx).Do()
 }
 
+//nolint:lll
 func (c *gcpClient) CreateWorkloadIdentityProvider(ctx context.Context, parent, providerID string, provider *iamv1.WorkloadIdentityPoolProvider) (*iamv1.Operation, error) {
 	return c.oldIamClient.Projects.Locations.WorkloadIdentityPools.Providers.Create(parent, provider).WorkloadIdentityPoolProviderId(providerID).Context(ctx).Do()
 }
 
+//nolint:lll
 func (c *gcpClient) GetWorkloadIdentityProvider(ctx context.Context, resource string) (*iamv1.WorkloadIdentityPoolProvider, error) {
 	return c.oldIamClient.Projects.Locations.WorkloadIdentityPools.Providers.Get(resource).Context(ctx).Do()
 }
@@ -308,10 +317,12 @@ func (c *gcpClient) ProjectNumberFromId(projectId string) (int64, error) {
 	return project.ProjectNumber, nil
 }
 
+//nolint:lll
 func (c *gcpClient) GetProjectIamPolicy(projectName string, request *cloudresourcemanager.GetIamPolicyRequest) (*cloudresourcemanager.Policy, error) {
 	return c.cloudResourceManager.Projects.GetIamPolicy(projectName, request).Context(context.Background()).Do()
 }
 
+//nolint:lll
 func (c *gcpClient) SetProjectIamPolicy(svcAcctResource string, request *cloudresourcemanager.SetIamPolicyRequest) (*cloudresourcemanager.Policy, error) {
 	return c.cloudResourceManager.Projects.SetIamPolicy(svcAcctResource, request).Context(context.Background()).Do()
 }
@@ -336,6 +347,7 @@ func (c *gcpClient) UndeleteRole(ctx context.Context, request *adminpb.UndeleteR
 	return c.iamClient.UndeleteRole(ctx, request)
 }
 
+//nolint:lll
 func (c *gcpClient) ListRoles(ctx context.Context, request *adminpb.ListRolesRequest) (*adminpb.ListRolesResponse, error) {
 	return c.iamClient.ListRoles(ctx, request)
 }

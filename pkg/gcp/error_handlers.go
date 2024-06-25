@@ -9,14 +9,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (c *gcpClient) handleBindRoleError(err error) error {
-	pApiError, ok := err.(*apierror.APIError)
-	if !ok {
-		return fmt.Errorf("Unexpected error")
-	}
-	return fmt.Errorf(pApiError.Details().String())
-}
-
 func (c *gcpClient) handleAttachImpersonatorError(err error) error {
 	pApiError, ok := err.(*apierror.APIError)
 	if !ok {
@@ -40,17 +32,6 @@ func (c *gcpClient) handleListServiceAccountError(err error) error {
 		return fmt.Errorf("Unexpected error")
 	}
 	return fmt.Errorf(pApiError.Details().String())
-}
-
-func (c *gcpClient) handleCreateServiceAccountError(err error, allowExisting bool) error {
-	pApiError, ok := err.(*apierror.APIError)
-	if !ok {
-		return fmt.Errorf("Unexpected error")
-	}
-	if pApiError.GRPCStatus().Code() == codes.AlreadyExists && allowExisting {
-		return nil
-	}
-	return err
 }
 
 func (c *gcpClient) handleDeleteServiceAccountError(err error, allowMissing bool) error {

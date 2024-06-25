@@ -8,7 +8,7 @@ import (
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 
-	"google.golang.org/api/cloudresourcemanager/v1"
+	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 )
 
 // EnsurePolicyBindingsForProject ensures that given roles and member, appropriate binding is added to project
@@ -98,7 +98,8 @@ func GetRole(gcpClient gcp.GcpClient, roleID, projectName string) (*adminpb.Role
 }
 
 // CreateRole creates a new role given permissions
-func CreateRole(gcpClient gcp.GcpClient, permissions []string, roleName, roleID, roleDescription, projectName string) (*adminpb.Role, error) {
+func CreateRole(gcpClient gcp.GcpClient, permissions []string, roleName, roleID, roleDescription,
+	projectName string) (*adminpb.Role, error) {
 	role, err := gcpClient.CreateRole(context.TODO(), &adminpb.CreateRoleRequest{
 		Role: &adminpb.Role{
 			Title:               roleName,

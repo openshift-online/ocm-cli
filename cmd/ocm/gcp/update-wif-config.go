@@ -4,26 +4,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var UpdateWorkloadIdentityConfigurationOpts struct {
+var UpdateWifConfigOpts struct {
 	wifId      string
 	templateId string
 }
 
 // NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
 func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
-	updateWorkloadIdentityPoolCmd := &cobra.Command{
+	updateWifConfigCmd := &cobra.Command{
 		Use:              "wif-config",
 		Short:            "Update wif-config.",
 		Run:              updateWorkloadIdentityConfigurationCmd,
 		PersistentPreRun: validationForUpdateWorkloadIdentityConfigurationCmd,
 	}
 
-	updateWorkloadIdentityPoolCmd.PersistentFlags().StringVar(&UpdateWorkloadIdentityConfigurationOpts.wifId, "wif-id", "", "Workload Identity Federation ID")
-	updateWorkloadIdentityPoolCmd.MarkPersistentFlagRequired("wif-id")
-	updateWorkloadIdentityPoolCmd.PersistentFlags().StringVar(&UpdateWorkloadIdentityConfigurationOpts.templateId, "template-id", "", "Template ID")
-	updateWorkloadIdentityPoolCmd.MarkPersistentFlagRequired("template-id")
+	updateWifConfigCmd.PersistentFlags().StringVar(&UpdateWifConfigOpts.wifId, "wif-id", "",
+		"Workload Identity Federation ID")
+	updateWifConfigCmd.MarkPersistentFlagRequired("wif-id")
+	updateWifConfigCmd.PersistentFlags().StringVar(&UpdateWifConfigOpts.templateId, "template-id", "",
+		"Template ID")
+	updateWifConfigCmd.MarkPersistentFlagRequired("template-id")
 
-	return updateWorkloadIdentityPoolCmd
+	return updateWifConfigCmd
 }
 
 func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {

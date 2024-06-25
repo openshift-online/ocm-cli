@@ -19,19 +19,19 @@ import (
 
 	"github.com/spf13/cobra"
 	"google.golang.org/api/googleapi"
-	"google.golang.org/api/iam/v1"
 	iamv1 "google.golang.org/api/iam/v1"
 	"google.golang.org/grpc/codes"
 )
 
 var (
 	// CreateWorkloadIdentityPoolOpts captures the options that affect creation of the workload identity pool
-	CreateWorkloadIdentityConfigurationOpts = options{
+	CreateWifConfigOpts = options{
 		Name:      "",
 		Project:   "",
 		TargetDir: "",
 	}
 
+	//nolint:lll
 	impersonatorServiceAccount = "projects/sda-ccs-3/serviceAccounts/osd-impersonator@sda-ccs-3.iam.gserviceaccount.com"
 	impersonatorEmail          = "osd-impersonator@sda-ccs-3.iam.gserviceaccount.com"
 )
@@ -45,21 +45,25 @@ const (
 
 // NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
 func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
-	createWorkloadIdentityPoolCmd := &cobra.Command{
+	createWifConfigCmd := &cobra.Command{
 		Use:              "wif-config",
 		Short:            "Create workload identity configuration",
 		Run:              createWorkloadIdentityConfigurationCmd,
 		PersistentPreRun: validationForCreateWorkloadIdentityConfigurationCmd,
 	}
 
-	createWorkloadIdentityPoolCmd.PersistentFlags().StringVar(&CreateWorkloadIdentityConfigurationOpts.Name, "name", "", "User-defined name for all created Google cloud resources")
-	createWorkloadIdentityPoolCmd.MarkPersistentFlagRequired("name")
-	createWorkloadIdentityPoolCmd.PersistentFlags().StringVar(&CreateWorkloadIdentityConfigurationOpts.Project, "project", "", "ID of the Google cloud project")
-	createWorkloadIdentityPoolCmd.MarkPersistentFlagRequired("project")
-	createWorkloadIdentityPoolCmd.PersistentFlags().BoolVar(&CreateWorkloadIdentityConfigurationOpts.DryRun, "dry-run", false, "Skip creating objects, and just save what would have been created into files")
-	createWorkloadIdentityPoolCmd.PersistentFlags().StringVar(&CreateWorkloadIdentityConfigurationOpts.TargetDir, "output-dir", "", "Directory to place generated files (defaults to current directory)")
+	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.Name, "name", "",
+		"User-defined name for all created Google cloud resources")
+	createWifConfigCmd.MarkPersistentFlagRequired("name")
+	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.Project, "project", "",
+		"ID of the Google cloud project")
+	createWifConfigCmd.MarkPersistentFlagRequired("project")
+	createWifConfigCmd.PersistentFlags().BoolVar(&CreateWifConfigOpts.DryRun, "dry-run", false,
+		"Skip creating objects, and just save what would have been created into files")
+	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.TargetDir, "output-dir", "",
+		"Directory to place generated files (defaults to current directory)")
 
-	return createWorkloadIdentityPoolCmd
+	return createWifConfigCmd
 }
 
 func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
@@ -72,8 +76,8 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 
 	log.Println("Creating workload identity configuration...")
 	wifConfig, err := createWorkloadIdentityConfiguration(models.WifConfigInput{
-		DisplayName: CreateWorkloadIdentityConfigurationOpts.Name,
-		ProjectId:   CreateWorkloadIdentityConfigurationOpts.Project,
+		DisplayName: CreateWifConfigOpts.Name,
+		ProjectId:   CreateWifConfigOpts.Project,
 	})
 	if err != nil {
 		log.Fatalf("failed to create WIF config: %v", err)
@@ -87,10 +91,10 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 		PoolIdentityProviderId: wifConfig.Status.WorkloadIdentityPoolData.IdentityProviderId,
 	}
 
-	if CreateWorkloadIdentityConfigurationOpts.DryRun {
-		log.Printf("Writing script files to %s", CreateWorkloadIdentityConfigurationOpts.TargetDir)
+	if CreateWifConfigOpts.DryRun {
+		log.Printf("Writing script files to %s", CreateWifConfigOpts.TargetDir)
 
-		err := createScript(CreateWorkloadIdentityConfigurationOpts.TargetDir, wifConfig)
+		err := createScript(CreateWifConfigOpts.TargetDir, wifConfig)
 		if err != nil {
 			log.Fatalf("Failed to create script files: %s", err)
 		}
@@ -112,23 +116,23 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 }
 
 func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
-	if CreateWorkloadIdentityConfigurationOpts.Name == "" {
+	if CreateWifConfigOpts.Name == "" {
 		log.Fatal("Name is required")
 	}
-	if CreateWorkloadIdentityConfigurationOpts.Project == "" {
+	if CreateWifConfigOpts.Project == "" {
 		log.Fatal("Project is required")
 	}
 
-	if CreateWorkloadIdentityConfigurationOpts.TargetDir == "" {
+	if CreateWifConfigOpts.TargetDir == "" {
 		pwd, err := os.Getwd()
 		if err != nil {
 			log.Fatalf("Failed to get current directory: %s", err)
 		}
 
-		CreateWorkloadIdentityConfigurationOpts.TargetDir = pwd
+		CreateWifConfigOpts.TargetDir = pwd
 	}
 
-	fPath, err := filepath.Abs(CreateWorkloadIdentityConfigurationOpts.TargetDir)
+	fPath, err := filepath.Abs(CreateWifConfigOpts.TargetDir)
 	if err != nil {
 		log.Fatalf("Failed to resolve full path: %s", err)
 	}
@@ -155,7 +159,8 @@ func createWorkloadIdentityConfiguration(input models.WifConfigInput) (*models.W
 	return &output, nil
 }
 
-func createWorkloadIdentityPool(ctx context.Context, client gcp.GcpClient, spec gcp.WorkloadIdentityPoolSpec) error {
+func createWorkloadIdentityPool(ctx context.Context, client gcp.GcpClient,
+	spec gcp.WorkloadIdentityPoolSpec) error {
 	name := spec.PoolName
 	project := spec.ProjectId
 
@@ -169,7 +174,8 @@ func createWorkloadIdentityPool(ctx context.Context, client gcp.GcpClient, spec 
 			return errors.Wrapf(err, "failed to undelete workload identity pool %s", name)
 		}
 	} else if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 && strings.Contains(gerr.Message, "Requested entity was not found") {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
+			strings.Contains(gerr.Message, "Requested entity was not found") {
 			pool := &iamv1.WorkloadIdentityPool{
 				Name:        name,
 				DisplayName: name,
@@ -193,18 +199,21 @@ func createWorkloadIdentityPool(ctx context.Context, client gcp.GcpClient, spec 
 	return nil
 }
 
-func createWorkloadIdentityProvider(ctx context.Context, client gcp.GcpClient, spec gcp.WorkloadIdentityPoolSpec) error {
+func createWorkloadIdentityProvider(ctx context.Context, client gcp.GcpClient,
+	spec gcp.WorkloadIdentityPoolSpec) error {
+	//nolint:lll
 	providerResource := fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s/providers/%s", spec.ProjectId, spec.PoolName, spec.PoolName)
 	_, err := client.GetWorkloadIdentityProvider(ctx, providerResource)
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 && strings.Contains(gerr.Message, "Requested entity was not found") {
-			provider := &iam.WorkloadIdentityPoolProvider{
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
+			strings.Contains(gerr.Message, "Requested entity was not found") {
+			provider := &iamv1.WorkloadIdentityPoolProvider{
 				Name:        spec.PoolName,
 				DisplayName: spec.PoolName,
 				Description: poolDescription,
 				State:       "ACTIVE",
 				Disabled:    false,
-				Oidc: &iam.Oidc{
+				Oidc: &iamv1.Oidc{
 					AllowedAudiences: []string{openShiftAudience},
 					IssuerUri:        spec.IssuerUrl,
 					JwksJson:         spec.Jwks,
@@ -214,13 +223,16 @@ func createWorkloadIdentityProvider(ctx context.Context, client gcp.GcpClient, s
 				},
 			}
 
-			_, err := client.CreateWorkloadIdentityProvider(ctx, fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s", spec.ProjectId, spec.PoolName), spec.PoolName, provider)
+			parent := fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s",
+				spec.ProjectId, spec.PoolName)
+			_, err := client.CreateWorkloadIdentityProvider(ctx, parent, spec.PoolName, provider)
 			if err != nil {
 				return errors.Wrapf(err, "failed to create workload identity provider %s", spec.PoolName)
 			}
 			log.Printf("workload identity provider created with name %s", spec.PoolName)
 		} else {
-			return errors.Wrapf(err, "failed to check if there is existing workload identity provider %s in pool %s", spec.PoolName, spec.PoolName)
+			return errors.Wrapf(err, "failed to check if there is existing workload identity provider %s in pool %s",
+				spec.PoolName, spec.PoolName)
 		}
 	} else {
 		log.Printf("Workload identity provider %s already exists in pool %s", spec.PoolName, spec.PoolName)
@@ -260,8 +272,10 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 			permissions := role.Permissions
 			existingRole, err := GetRole(gcpClient, roleID, projectId)
 			if err != nil {
-				if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 && strings.Contains(gerr.Message, "Requested entity was not found") {
-					existingRole, err = CreateRole(gcpClient, permissions, roleName, roleID, roleDescription, projectId)
+				if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
+					strings.Contains(gerr.Message, "Requested entity was not found") {
+					existingRole, err = CreateRole(gcpClient, permissions, roleName,
+						roleID, roleDescription, projectId)
 					if err != nil {
 						return errors.Wrap(err, fmt.Sprintf("Failed to create %s", roleName))
 					}
@@ -290,12 +304,14 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 		roles := make([]string, 0, len(serviceAccount.Roles))
 		for _, role := range serviceAccount.Roles {
 			if !role.Predefined {
-				fmt.Printf("Skipping role %q for service account %q as custom roles are not yet supported.", role.Id, serviceAccount.Id)
+				fmt.Printf("Skipping role %q for service account %q as custom roles are not yet supported.",
+					role.Id, serviceAccount.Id)
 				continue
 			}
 			roles = append(roles, fmtRoleResourceId(role))
 		}
-		err := EnsurePolicyBindingsForProject(gcpClient, roles, fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountID, projectId), projectId)
+		member := fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountID, projectId)
+		err := EnsurePolicyBindingsForProject(gcpClient, roles, member, projectId)
 		if err != nil {
 			log.Fatalf("Failed to bind roles to service account %s: %s", serviceAccountID, err)
 		}
@@ -304,11 +320,13 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 		fmt.Printf("\t\tGranting access to %s...\n", serviceAccount.Id)
 		switch serviceAccount.AccessMethod {
 		case "impersonate":
-			if err := gcpClient.AttachImpersonator(serviceAccount.Id, projectId, impersonatorServiceAccount); err != nil {
+			if err := gcpClient.AttachImpersonator(serviceAccount.Id, projectId,
+				impersonatorServiceAccount); err != nil {
 				panic(err)
 			}
 		case "wif":
-			if err := gcpClient.AttachWorkloadIdentityPool(serviceAccount, wifOutput.Status.WorkloadIdentityPoolData.PoolId, projectId); err != nil {
+			if err := gcpClient.AttachWorkloadIdentityPool(serviceAccount,
+				wifOutput.Status.WorkloadIdentityPoolData.PoolId, projectId); err != nil {
 				panic(err)
 			}
 		default:
@@ -320,7 +338,8 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 	return nil
 }
 
-func CreateServiceAccount(gcpClient gcp.GcpClient, svcAcctID, svcAcctName, svcAcctDescription, projectName string, allowExisting bool) (*adminpb.ServiceAccount, error) {
+func CreateServiceAccount(gcpClient gcp.GcpClient, svcAcctID, svcAcctName, svcAcctDescription,
+	projectName string, allowExisting bool) (*adminpb.ServiceAccount, error) {
 	request := &adminpb.CreateServiceAccountRequest{
 		Name:      fmt.Sprintf("projects/%s", projectName),
 		AccountId: svcAcctID,
