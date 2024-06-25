@@ -46,9 +46,9 @@ jobs:
       if: ${{ contains(fromJSON('["ubuntu-latest"]'), matrix.platform) }}
       run: sudo apt-get install pass
     - name: Setup Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.18
+        go-version: 1.22
     - name: Setup dependency cache
       uses: actions/cache@v3
       with:
@@ -61,7 +61,7 @@ jobs:
     - name: Ensure dependencies are downloaded
       run: go mod download
     - name: Setup Ginkgo
-      run: go install github.com/onsi/ginkgo/v2/ginkgo@v2.9
+      run: go install github.com/onsi/ginkgo/v2/ginkgo@v2.19
     - name: Run the tests
       run: make tests
 
@@ -72,9 +72,9 @@ jobs:
     - name: Checkout the source
       uses: actions/checkout@v3
     - name: Setup Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.18
+        go-version: 1.22
     - name: Setup dependency cache
       uses: actions/cache@v3
       with:
@@ -87,6 +87,6 @@ jobs:
     - name: Ensure dependencies are downloaded
       run: go mod download
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.52
+        version: v1.59

@@ -1,5 +1,5 @@
 run:
-  deadline: 15m
+  timeout: 15m
   issues-exit-code: 1
   modules-download-mode: readonly
 issues:
@@ -8,19 +8,19 @@ issues:
 linters:
   disable-all: true
   enable:
-    - gas
+    - gosec
     - goconst
     - gofmt
     - govet
     - ineffassign
     - lll
-    - megacheck
+    - gosimple
+    - staticcheck
+    - unused
     - misspell
     - staticcheck
     - unconvert
     - unused
 linters-settings:
-  staticcheck:
-    go: "1.18"
   goconst:
     min-len: 4 # ignore "gcp" and "aws"
