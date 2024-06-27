@@ -19,7 +19,7 @@ var ListWorkloadIdentityConfigurationOpts struct {
 // NewListWorkloadIdentityConfiguration provides the "gcp list wif-config" subcommand
 func NewListWorkloadIdentityConfiguration() *cobra.Command {
 	listWorkloadIdentityPoolCmd := &cobra.Command{
-		Use:              "wif-config [ID]",
+		Use:              "wif-config",
 		Aliases:          []string{"wif-configs"},
 		Short:            "List wif-configs.",
 		Run:              listWorkloadIdentityConfigurationCmd,

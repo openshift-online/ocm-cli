@@ -310,19 +310,19 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 		member := fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountID, projectId)
 		err := EnsurePolicyBindingsForProject(gcpClient, roles, member, projectId)
 		if err != nil {
-			log.Fatalf("Failed to bind roles to service account %s: %s", serviceAccountID, err)
+			return errors.Errorf("Failed to bind roles to service account %s: %s", serviceAccountID, err)
 		}
 
 		switch serviceAccount.AccessMethod {
 		case "impersonate":
 			if err := gcpClient.AttachImpersonator(serviceAccount.Id, projectId,
 				impersonatorServiceAccount); err != nil {
-				panic(err)
+				return errors.Wrapf(err, "Failed to attach impersonator to service account %s", serviceAccount.Id)
 			}
 		case "wif":
 			if err := gcpClient.AttachWorkloadIdentityPool(serviceAccount,
 				wifOutput.Status.WorkloadIdentityPoolData.PoolId, projectId); err != nil {
-				panic(err)
+				return errors.Wrapf(err, "Failed to attach workload identity pool to service account %s", serviceAccount.Id)
 			}
 		default:
 			log.Printf("Warning: %s is not a supported access type\n", serviceAccount.AccessMethod)
