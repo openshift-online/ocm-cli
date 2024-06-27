@@ -16,7 +16,7 @@ var ListWorkloadIdentityConfigurationOpts struct {
 	noHeaders bool
 }
 
-// NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
+// NewListWorkloadIdentityConfiguration provides the "gcp list wif-config" subcommand
 func NewListWorkloadIdentityConfiguration() *cobra.Command {
 	listWorkloadIdentityPoolCmd := &cobra.Command{
 		Use:              "wif-config [ID]",

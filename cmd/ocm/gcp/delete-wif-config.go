@@ -18,15 +18,14 @@ import (
 )
 
 var (
-	// DeleteWifConfigOpts captures the options that affect creation of the workload identity pool
+	// DeleteWifConfigOpts captures the options that affect creation of the workload identity configuration
 	DeleteWifConfigOpts = options{
-		Name:      "",
-		Project:   "",
+		DryRun:    false,
 		TargetDir: "",
 	}
 )
 
-// NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
+// NewDeleteWorkloadIdentityConfiguration provides the "gcp delete wif-config" subcommand
 func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 	deleteWifConfigCmd := &cobra.Command{
 		Use:              "wif-config [ID]",
@@ -54,7 +53,6 @@ func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 
 func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	ctx := context.Background()
-	fmt.Println("Deleting wif-config...")
 
 	wifConfigId := argv[0]
 	if wifConfigId == "" {
@@ -107,11 +105,11 @@ func deleteServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient,
 	projectId := wifConfig.Spec.ProjectId
 
 	for _, serviceAccount := range wifConfig.Status.ServiceAccounts {
-		serviceAccountID := generateServiceAccountID(serviceAccount)
+		serviceAccountID := serviceAccount.Id
 		log.Println("Deleting service account", serviceAccountID)
 		err := gcpClient.DeleteServiceAccount(serviceAccountID, projectId, allowMissing)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}
 

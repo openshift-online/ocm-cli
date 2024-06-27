@@ -9,7 +9,7 @@ var UpdateWifConfigOpts struct {
 	templateId string
 }
 
-// NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
+// NewUpdateWorkloadIdentityConfiguration provides the "gcp update wif-config" subcommand
 func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 	updateWifConfigCmd := &cobra.Command{
 		Use:              "wif-config",

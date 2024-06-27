@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewDescribeWorkloadIdentityConfiguration provides the "describe-wif-config" subcommand
+// NewDescribeWorkloadIdentityConfiguration provides the "gcp describe wif-config" subcommand
 func NewDescribeWorkloadIdentityConfiguration() *cobra.Command {
 	describeWorkloadIdentityPoolCmd := &cobra.Command{
 		Use:              "wif-config [ID]",

@@ -20,11 +20,7 @@ type SecretRef struct {
 }
 
 func (s ServiceAccount) GetId() string {
-	serviceAccountID := "z-" + s.Id
-	if len(serviceAccountID) > 30 {
-		serviceAccountID = serviceAccountID[:30]
-	}
-	return serviceAccountID
+	return s.Id
 }
 
 func (s ServiceAccount) GetSecretName() string {

@@ -52,7 +52,7 @@ func deleteServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 	sb.WriteString("\n# Delete service accounts:\n")
 	for _, sa := range wifConfig.Status.ServiceAccounts {
 		project := wifConfig.Spec.ProjectId
-		serviceAccountID := sa.GetId()
+		serviceAccountID := sa.Id
 		sb.WriteString(fmt.Sprintf("gcloud iam service-accounts delete %s --project=%s\n",
 			serviceAccountID, project))
 	}
@@ -129,7 +129,7 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 	sb.WriteString("\n# Create service accounts:\n")
 	for _, sa := range wifConfig.Status.ServiceAccounts {
 		project := wifConfig.Spec.ProjectId
-		serviceAccountID := sa.GetId()
+		serviceAccountID := sa.Id
 		serviceAccountName := wifConfig.Spec.DisplayName + "-" + serviceAccountID
 		serviceAccountDesc := poolDescription + " for WIF config " + wifConfig.Spec.DisplayName
 		//nolint:lll
@@ -155,7 +155,7 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 	for _, sa := range wifConfig.Status.ServiceAccounts {
 		for _, role := range sa.Roles {
 			project := wifConfig.Spec.ProjectId
-			member := fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", sa.GetId(), project)
+			member := fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", sa.Id, project)
 			sb.WriteString(fmt.Sprintf("gcloud projects add-iam-policy-binding %s --member=%s --role=roles/%s\n",
 				project, member, role.Id))
 		}
@@ -164,7 +164,7 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 	for _, sa := range wifConfig.Status.ServiceAccounts {
 		if sa.AccessMethod == "wif" {
 			project := wifConfig.Spec.ProjectId
-			serviceAccount := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", sa.GetId(), project)
+			serviceAccount := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", sa.Id, project)
 			members := fmtMembers(sa, wifConfig.Status.WorkloadIdentityPoolData.ProjectNumber,
 				wifConfig.Status.WorkloadIdentityPoolData.PoolId)
 			for _, member := range members {
@@ -174,7 +174,7 @@ func createServiceAccountScriptContent(wifConfig *models.WifConfigOutput) string
 			}
 		} else if sa.AccessMethod == "impersonate" {
 			project := wifConfig.Spec.ProjectId
-			serviceAccount := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", sa.GetId(), project)
+			serviceAccount := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", sa.Id, project)
 			impersonator := fmt.Sprintf("serviceAccount:%s", impersonatorEmail)
 			//nolint:lll
 			sb.WriteString(fmt.Sprintf("gcloud iam service-accounts add-iam-policy-binding %s --member=%s --role=roles/iam.serviceAccountTokenCreator --project=%s\n",

@@ -24,8 +24,9 @@ import (
 )
 
 var (
-	// CreateWorkloadIdentityPoolOpts captures the options that affect creation of the workload identity pool
+	// CreateWifConfigOpts captures the options that affect creation of the workload identity configuration
 	CreateWifConfigOpts = options{
+		DryRun:    false,
 		Name:      "",
 		Project:   "",
 		TargetDir: "",
@@ -43,7 +44,7 @@ const (
 	openShiftAudience = "openshift"
 )
 
-// NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
+// NewCreateWorkloadIdentityConfiguration provides the "gcp create wif-config" subcommand
 func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 	createWifConfigCmd := &cobra.Command{
 		Use:              "wif-config",
@@ -102,15 +103,18 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	}
 
 	if err = createWorkloadIdentityPool(ctx, gcpClient, poolSpec); err != nil {
-		log.Fatalf("Failed to create workload identity pool: %s", err)
+		log.Printf("Failed to create workload identity pool: %s", err)
+		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.Metadata.Id)
 	}
 
 	if err = createWorkloadIdentityProvider(ctx, gcpClient, poolSpec); err != nil {
-		log.Fatalf("Failed to create workload identity provider: %s", err)
+		log.Printf("Failed to create workload identity provider: %s", err)
+		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.Metadata.Id)
 	}
 
 	if err = createServiceAccounts(ctx, gcpClient, wifConfig); err != nil {
-		log.Fatalf("Failed to create IAM service accounts: %s", err)
+		log.Printf("Failed to create IAM service accounts: %s", err)
+		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.Metadata.Id)
 	}
 
 }
@@ -235,7 +239,7 @@ func createWorkloadIdentityProvider(ctx context.Context, client gcp.GcpClient,
 				spec.PoolName, spec.PoolName)
 		}
 	} else {
-		log.Printf("Workload identity provider %s already exists in pool %s", spec.PoolName, spec.PoolName)
+		return errors.Errorf("workload identity provider %s already exists in pool %s", spec.PoolName, spec.PoolName)
 	}
 
 	return nil
@@ -249,12 +253,11 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 
 	// Create service accounts
 	for _, serviceAccount := range wifOutput.Status.ServiceAccounts {
-		serviceAccountID := serviceAccount.GetId()
+		serviceAccountID := serviceAccount.Id
 		serviceAccountName := wifOutput.Spec.DisplayName + "-" + serviceAccountID
 		serviceAccountDesc := poolDescription + " for WIF config " + wifOutput.Spec.DisplayName
 
-		fmt.Println("Creating service account", serviceAccountID)
-		_, err := CreateServiceAccount(gcpClient, serviceAccountID, serviceAccountName, serviceAccountDesc, projectId, true)
+		_, err := createServiceAccount(gcpClient, serviceAccountID, serviceAccountName, serviceAccountDesc, projectId, true)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create IAM service account")
 		}
@@ -298,16 +301,10 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 
 	// Bind roles and grant access
 	for _, serviceAccount := range wifOutput.Status.ServiceAccounts {
-		serviceAccountID := serviceAccount.GetId()
+		serviceAccountID := serviceAccount.Id
 
-		fmt.Printf("\t\tBinding roles to %s\n", serviceAccount.Id)
 		roles := make([]string, 0, len(serviceAccount.Roles))
 		for _, role := range serviceAccount.Roles {
-			if !role.Predefined {
-				fmt.Printf("Skipping role %q for service account %q as custom roles are not yet supported.",
-					role.Id, serviceAccount.Id)
-				continue
-			}
 			roles = append(roles, fmtRoleResourceId(role))
 		}
 		member := fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountID, projectId)
@@ -315,9 +312,7 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 		if err != nil {
 			log.Fatalf("Failed to bind roles to service account %s: %s", serviceAccountID, err)
 		}
-		fmt.Printf("\t\tRoles bound to %s\n", serviceAccount.Id)
 
-		fmt.Printf("\t\tGranting access to %s...\n", serviceAccount.Id)
 		switch serviceAccount.AccessMethod {
 		case "impersonate":
 			if err := gcpClient.AttachImpersonator(serviceAccount.Id, projectId,
@@ -330,15 +325,14 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 				panic(err)
 			}
 		default:
-			fmt.Printf("Warning: %s is not a supported access type\n", serviceAccount.AccessMethod)
+			log.Printf("Warning: %s is not a supported access type\n", serviceAccount.AccessMethod)
 		}
-		fmt.Printf("\t\tAccess granted to %s\n", serviceAccount.Id)
 	}
 
 	return nil
 }
 
-func CreateServiceAccount(gcpClient gcp.GcpClient, svcAcctID, svcAcctName, svcAcctDescription,
+func createServiceAccount(gcpClient gcp.GcpClient, svcAcctID, svcAcctName, svcAcctDescription,
 	projectName string, allowExisting bool) (*adminpb.ServiceAccount, error) {
 	request := &adminpb.CreateServiceAccountRequest{
 		Name:      fmt.Sprintf("projects/%s", projectName),
@@ -358,12 +352,4 @@ func CreateServiceAccount(gcpClient gcp.GcpClient, svcAcctID, svcAcctName, svcAc
 		}
 	}
 	return svcAcct, err
-}
-
-func generateServiceAccountID(serviceAccount models.ServiceAccount) string {
-	serviceAccountID := "z-" + serviceAccount.Id
-	if len(serviceAccountID) > 30 {
-		serviceAccountID = serviceAccountID[:30]
-	}
-	return serviceAccountID
 }

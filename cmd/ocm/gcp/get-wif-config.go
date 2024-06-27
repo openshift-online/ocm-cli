@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
@@ -13,9 +12,7 @@ import (
 )
 
 var GetWorkloadIdentityConfigurationOpts struct {
-	parameter []string
-	header    []string
-	single    bool
+	single bool
 }
 
 // NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
@@ -28,8 +25,6 @@ func NewGetWorkloadIdentityConfiguration() *cobra.Command {
 	}
 
 	fs := getWorkloadIdentityPoolCmd.Flags()
-	arguments.AddParameterFlag(fs, &GetWorkloadIdentityConfigurationOpts.parameter)
-	arguments.AddHeaderFlag(fs, &GetWorkloadIdentityConfigurationOpts.header)
 	fs.BoolVar(
 		&GetWorkloadIdentityConfigurationOpts.single,
 		"single",
@@ -97,6 +92,6 @@ func getWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 
 func validationForGetWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	if len(argv) != 1 {
-		log.Fatalf("Expected exactly one command line parameters containing the id of the WIF config.")
+		log.Fatalf("Expected exactly one command line parameter containing the id of the WIF config.")
 	}
 }
