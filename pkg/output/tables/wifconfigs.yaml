@@ -1,0 +1,7 @@
+columns:
+- name: metadata.id
+  header: ID
+- name: metadata.displayName
+  header: NAME
+- name: status.state
+  header: STATE
