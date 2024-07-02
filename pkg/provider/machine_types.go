@@ -31,7 +31,7 @@ func getMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1
 		var response *cmv1.MachineTypesListResponse
 		response, err = collection.List().
 			Search(fmt.Sprintf("cloud_provider.id = '%s'", provider)).
-			Order("size desc").
+			Order("size desc, category desc").
 			Page(page).
 			Size(size).
 			Send()
