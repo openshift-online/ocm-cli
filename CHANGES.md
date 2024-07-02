@@ -3,6 +3,22 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.74 Jul 2 2024
+
+- 3423d52 OCM-1888: Add docs for ocm delete account subcommands and arguments
+- 42a6c63 OCM-4965: Keyring configuration storage (#600)
+- 01c0241 OCM-6528 | feat: add describe ingress cmd
+- debb035 OCM-8013| feat: Dockerfile for Konflux builds
+- 79d7322 konflux-tekton build pipelines
+- e79a4bf Red Hat Konflux update ocm-cli
+- 5ea7344 Trigger pipeline only if event title starts with Konflux
+- edd560c Bump ocm-sdk-go to v0.1.422 (#620)
+- 5e4c99b Adds ability to change api url via env var (#621)
+- 2a1f92e OCM-1398: support 'user' as variable for ocm config
+- a248a57 Update Konflux references (#617)
+- 8448029 Update Konflux references to fa168cd (#623)
+- 441189f Red Hat Konflux purge ocm-cli (#624)
+
 ## 0.1.73 Apr 2 2024
 
 - 165b90e OCM-4783 | feat: display warnings after cluster creation
