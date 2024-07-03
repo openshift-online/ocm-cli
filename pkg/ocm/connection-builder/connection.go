@@ -178,12 +178,3 @@ func (b *ConnectionBuilder) getAgent() string {
 	}
 	return "OCM-CLI/" + info.Version
 }
-
-// Returns the configured API URL or the one defined in the config file, otherwise
-// return an empty string and let the sdk handle it
-func (b *ConnectionBuilder) getApiUrl() string {
-	if b.apiUrlOverride != "" {
-		return b.apiUrlOverride
-	}
-	return ""
-}
