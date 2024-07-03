@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 	"github.com/spf13/cobra"
 )
@@ -60,7 +61,7 @@ func getWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create the connection:
-	connection, err := cfg.Connection()
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		log.Fatalf("Can't create connection: %v", err)
 	}
