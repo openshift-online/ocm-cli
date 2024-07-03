@@ -26,13 +26,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/golang/glog"
 	homedir "github.com/mitchellh/go-homedir"
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/authentication/securestore"
 
-	"github.com/openshift-online/ocm-cli/pkg/debug"
-	"github.com/openshift-online/ocm-cli/pkg/info"
 	"github.com/openshift-online/ocm-cli/pkg/properties"
 )
 
@@ -263,63 +259,6 @@ func (c *Config) Disarm() {
 	c.TokenURL = ""
 	c.URL = ""
 	c.User = ""
-}
-
-// Connection creates a connection using this configuration.
-func (c *Config) Connection() (connection *sdk.Connection, err error) {
-	// Create the logger:
-	level := glog.Level(1)
-	if debug.Enabled() {
-		level = glog.Level(0)
-	}
-	logger, err := sdk.NewGlogLoggerBuilder().
-		DebugV(level).
-		InfoV(level).
-		WarnV(level).
-		Build()
-	if err != nil {
-		return
-	}
-
-	// Prepare the builder for the connection adding only the properties that have explicit
-	// values in the configuration, so that default values won't be overridden:
-	builder := sdk.NewConnectionBuilder()
-	builder.Logger(logger)
-	builder.Agent("OCM-CLI/" + info.Version)
-	if c.TokenURL != "" {
-		builder.TokenURL(c.TokenURL)
-	}
-	if c.ClientID != "" || c.ClientSecret != "" {
-		builder.Client(c.ClientID, c.ClientSecret)
-	}
-	if c.Scopes != nil {
-		builder.Scopes(c.Scopes...)
-	}
-	if c.URL != "" {
-		builder.URL(c.URL)
-	}
-	if c.User != "" || c.Password != "" {
-		builder.User(c.User, c.Password)
-	}
-	tokens := make([]string, 0, 2)
-	if c.AccessToken != "" {
-		tokens = append(tokens, c.AccessToken)
-	}
-	if c.RefreshToken != "" {
-		tokens = append(tokens, c.RefreshToken)
-	}
-	if len(tokens) > 0 {
-		builder.Tokens(tokens...)
-	}
-	builder.Insecure(c.Insecure)
-
-	// Create the connection:
-	connection, err = builder.Build()
-	if err != nil {
-		return
-	}
-
-	return
 }
 
 // IsKeyringManaged returns the keyring name and a boolean indicating if the config is managed by the keyring.

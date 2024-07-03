@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/properties"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -329,7 +330,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.Insecure = args.insecure
 
 	// Create a connection and get the token to verify that the crendentials are correct:
-	connection, err := cfg.Connection()
+	connection, err := ocm.NewConnection().Config(cfg).WithApiUrl(gatewayURL).Build()
 	if err != nil {
 		return fmt.Errorf("Can't create connection: %v", err)
 	}
