@@ -206,7 +206,8 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		"Provider:		%s\n"+
 		"Version:		%s\n"+
 		"Region:			%s\n"+
-		"Multi-az:		%t\n",
+		"Multi-az:		%t\n"+
+		"CNI Type:		%s\n",
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
@@ -221,6 +222,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.OpenshiftVersion(),
 		cluster.Region().ID(),
 		cluster.MultiAZ(),
+		cluster.Network().Type(),
 	)
 
 	// AWS-specific info
