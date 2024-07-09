@@ -63,3 +63,7 @@ clean:
 		*-windows-amd64 \
 		*.sha256 \
 		$(NULL)
+
+.PHONY: build_release_images
+build_release_images:
+	bash ./hack/build_release_images.sh
