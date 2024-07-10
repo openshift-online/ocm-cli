@@ -6,8 +6,9 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && 
+    ((target_branch == "main" && "Dockerfile".pathChanged()) ||
+    target_branch.startsWith("refs/tags/v"))
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: ocm-test
@@ -91,11 +92,15 @@ spec:
       description: Skip checks against built image
       name: skip-checks
       type: string
-    - default: "false"
+    - default: "true"
+      description: Skip optional checks, set false if you want to run optional checks
+      name: skip-optional
+      type: string
+    - default: "true"
       description: Execute the build with network isolation
       name: hermetic
       type: string
-    - default: ""
+    - default: "gomod"
       description: Build dependencies to be prefetched by Cachi2
       name: prefetch-input
       type: string
@@ -144,6 +149,8 @@ spec:
         value: $(params.rebuild)
       - name: skip-checks
         value: $(params.skip-checks)
+      - name: skip-optional
+        value: $(params.skip-optional)
       taskRef:
         params:
         - name: name
@@ -166,7 +173,7 @@ spec:
         - name: name
           value: git-clone
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:de0ca8872c791944c479231e21d68379b54877aaf42e5f766ef4a8728970f8b3
+          value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:07b21ee2a46298d28edf561451f8550c3ae8024c546316765988d02c602827a4
         - name: kind
           value: task
         resolver: bundles
@@ -196,17 +203,15 @@ spec:
           value: task
         resolver: bundles
       when:
-      - input: $(params.prefetch-input)
-        operator: notin
+      - input: $(params.hermetic)
+        operator: in
         values:
-        - ""
+        - "true"
       workspaces:
       - name: source
         workspace: workspace
       - name: git-basic-auth
         workspace: git-auth
-      - name: netrc
-        workspace: netrc
     - name: build-container
       params:
       - name: IMAGE
@@ -429,8 +434,6 @@ spec:
     workspaces:
     - name: workspace
     - name: git-auth
-      optional: true
-    - name: netrc
       optional: true
   taskRunTemplate: {}
   workspaces:
