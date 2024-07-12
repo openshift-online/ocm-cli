@@ -8,7 +8,9 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: | 
       event == "push" && 
-      ((target_branch == "main" && "docker/Dockerfile".pathChanged()) || target_branch.startsWith("release_"))
+      ((target_branch == "main" && "docker/Dockerfile".pathChanged()) || 
+      target_branch.startsWith("release_") ||
+      event_title.startsWith("[KONFLUX_RELEASE]"))
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: ocm-test
