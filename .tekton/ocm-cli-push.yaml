@@ -93,11 +93,15 @@ spec:
       description: Skip checks against built image
       name: skip-checks
       type: string
-    - default: "false"
+    - default: "true"
+      description: Skip optional checks, set false if you want to run optional checks
+      name: skip-optional
+      type: string
+    - default: "true"
       description: Execute the build with network isolation
       name: hermetic
       type: string
-    - default: ""
+    - default: "gomod"
       description: Build dependencies to be prefetched by Cachi2
       name: prefetch-input
       type: string
@@ -146,6 +150,8 @@ spec:
         value: $(params.rebuild)
       - name: skip-checks
         value: $(params.skip-checks)
+      - name: skip-optional
+        value: $(params.skip-optional)
       taskRef:
         params:
         - name: name
@@ -198,10 +204,10 @@ spec:
           value: task
         resolver: bundles
       when:
-      - input: $(params.prefetch-input)
-        operator: notin
+      - input: $(params.hermetic)
+        operator: in
         values:
-        - ""
+        - "true"
       workspaces:
       - name: source
         workspace: workspace
