@@ -8,8 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: | 
       event == "push" && 
-      (target_branch.startsWith("refs/tags/v") ||
-      (target_branch == "main" && event_title.startsWith("[KONFLUX_RELEASE]")))
+      (target_branch.startsWith("refs/tags/v") || target_branch.startsWith("konflux_release"))
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: ocm-cli
