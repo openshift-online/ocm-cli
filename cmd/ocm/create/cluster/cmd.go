@@ -77,6 +77,8 @@ var args struct {
 	clusterWideProxy      c.ClusterWideProxy
 	gcpServiceAccountFile arguments.FilePath
 	gcpSecureBoot         c.GcpSecurity
+	gcpAuthentication     c.GcpAuthentication
+	gcpWifConfig          string
 	etcdEncryption        bool
 	subscriptionType      string
 	marketplaceGcpTerms   bool
@@ -123,6 +125,14 @@ func setSubscriptionTypeOption(id, description string) string {
 
 func parseSubscriptionType(subscriptionTypeOption string) string {
 	return strings.Split(subscriptionTypeOption, " ")[0]
+}
+
+func setWifConfigOption(id, name string) string {
+	return fmt.Sprintf("%s (%s)", name, id)
+}
+
+func parseWifConfigOption(wifConfigOption string) string {
+	return strings.Split(wifConfigOption, " ")[0]
 }
 
 // Cmd Constant:
@@ -364,12 +374,37 @@ func init() {
 		"Secure Boot enables the use of Shielded VMs in the Google Cloud Platform.",
 	)
 	arguments.SetQuestion(fs, "secure-boot-for-shielded-vms", "Secure boot support for Shielded VMs:")
+
+	fs.StringVar(
+		&args.gcpAuthentication.Type,
+		"gcp-auth-type",
+		c.AuthenticationWif,
+		"Method of authenticating GCP cluster",
+	)
+	arguments.SetQuestion(fs, "gcp-auth-type", "Authentication method:")
+	fs.MarkHidden("gcp-auth-type")
+
+	fs.StringVar(
+		&args.gcpWifConfig,
+		"wif-config",
+		"",
+		"Specifies the GCP Workload Identity Federation config used to authenticate.",
+	)
+	arguments.SetQuestion(fs, "wif-config", "WIF Configuration:")
+	Cmd.RegisterFlagCompletionFunc("wif-config", arguments.MakeCompleteFunc(getWifConfigNameOptions))
 }
 
 func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
 	return []arguments.Option{
 		{Value: c.ProviderAWS, Description: ""},
 		{Value: c.ProviderGCP, Description: ""},
+	}, nil
+}
+
+func gcpAuthenticationOptions(_ *sdk.Connection) ([]arguments.Option, error) {
+	return []arguments.Option{
+		{Value: c.AuthenticationWif, Description: ""},
+		{Value: c.AuthenticationKey, Description: ""},
 	}, nil
 }
 
@@ -499,6 +534,27 @@ func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, erro
 		args.provider, args.ccs.Enabled)
 }
 
+func getWifConfigOptions(wifConfigs []*cmv1.WifConfig) ([]arguments.Option, error) {
+	options := []arguments.Option{}
+	for _, wc := range wifConfigs {
+		option := wifConfigOption(wc.ID(), wc.DisplayName())
+		options = append(options, option)
+	}
+	return options, nil
+}
+
+func wifConfigOption(id string, name string) arguments.Option {
+	return arguments.Option{
+		Value: setWifConfigOption(id, name),
+	}
+}
+
+// getWifConfigNameOptions returns the wif config options for the cluster
+// with display name as the value
+func getWifConfigNameOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+	return provider.GetWifConfigNameOptions(connection.ClustersMgmt().V1())
+}
+
 func networkTypeCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return []string{c.NetworkTypeSDN, c.NetworkTypeOVN}, cobra.ShellCompDirectiveDefault
 }
@@ -585,6 +641,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	}
 
 	err = promptCCS(fs, args.ccs.Enabled)
+	if err != nil {
+		return err
+	}
+
+	err = promptAuthentication(fs, connection)
 	if err != nil {
 		return err
 	}
@@ -754,6 +815,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		DefaultIngress:     defaultIngress,
 		SubscriptionType:   args.subscriptionType,
 		GcpSecurity:        args.gcpSecureBoot,
+		GcpAuthentication:  args.gcpAuthentication,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
@@ -1258,43 +1320,114 @@ func promptCCS(fs *pflag.FlagSet, presetCCS bool) error {
 	if err != nil {
 		return err
 	}
-	if args.ccs.Enabled {
-		switch args.provider {
-		case c.ProviderAWS:
-			err = arguments.PromptString(fs, "aws-account-id")
-			if err != nil {
-				return err
-			}
 
-			err = arguments.PromptString(fs, "aws-access-key-id")
-			if err != nil {
-				return err
-			}
-
-			err = arguments.PromptPassword(fs, "aws-secret-access-key")
-			if err != nil {
-				return err
-			}
-		case c.ProviderGCP:
-			// TODO: re-prompt when selected file is not readable / invalid JSON
-			err = arguments.PromptFilePath(fs, "service-account-file", true)
-			if err != nil {
-				return err
-			}
-
-			if args.gcpServiceAccountFile == "" {
-				return fmt.Errorf("A valid GCP service account file must be specified for CCS clusters")
-			}
-			err = constructGCPCredentials(args.gcpServiceAccountFile, &args.ccs)
-			if err != nil {
-				return err
-			}
-		}
-	}
 	err = arguments.CheckIgnoredCCSFlags(args.ccs)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func promptAuthentication(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	var err error
+	if !args.ccs.Enabled {
+		return nil
+	}
+	switch args.provider {
+	case c.ProviderAWS:
+		err = arguments.PromptString(fs, "aws-account-id")
+		if err != nil {
+			return err
+		}
+
+		err = arguments.PromptString(fs, "aws-access-key-id")
+		if err != nil {
+			return err
+		}
+
+		err = arguments.PromptPassword(fs, "aws-secret-access-key")
+		if err != nil {
+			return err
+		}
+	case c.ProviderGCP:
+		err = promptGcpAuth(fs, connection)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	var err error
+
+	isWif := fs.Changed("wif-config")
+	isNonWif := fs.Changed("service-account-file")
+	if isWif && isNonWif {
+		return fmt.Errorf("can't use both wif-config and GCP service account file at the same time")
+	}
+
+	if !isWif && !isNonWif {
+		options, _ := gcpAuthenticationOptions(connection)
+		err = arguments.PromptOneOf(fs, "gcp-auth-type", options)
+		if err != nil {
+			return err
+		}
+	}
+	if isWif {
+		args.gcpAuthentication.Type = c.AuthenticationWif
+	} else if isNonWif {
+		args.gcpAuthentication.Type = c.AuthenticationKey
+	}
+
+	switch args.gcpAuthentication.Type {
+	case c.AuthenticationWif:
+		err = promptWifConfig(fs, connection)
+		if err != nil {
+			return err
+		}
+	case c.AuthenticationKey:
+		// TODO: re-prompt when selected file is not readable / invalid JSON
+		err = arguments.PromptFilePath(fs, "service-account-file", true)
+		if err != nil {
+			return err
+		}
+
+		if args.gcpServiceAccountFile == "" {
+			return fmt.Errorf("a valid GCP service account file must be specified for CCS clusters")
+		}
+		err = constructGCPCredentials(args.gcpServiceAccountFile, &args.ccs)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func promptWifConfig(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	wifConfigs, err := provider.GetWifConfigs(connection.ClustersMgmt().V1())
+	if err != nil {
+		return err
+	}
+	options, err := getWifConfigOptions(wifConfigs)
+	if err != nil {
+		return err
+	}
+	err = arguments.PromptOneOf(fs, "wif-config", options)
+	if err != nil {
+		return err
+	}
+	if args.interactive {
+		args.gcpWifConfig = parseWifConfigOption(args.gcpWifConfig)
+	}
+
+	// map wif name to wif id
+	wifMapping := map[string]string{}
+	for _, wc := range wifConfigs {
+		wifMapping[wc.DisplayName()] = wc.ID()
+	}
+
+	args.gcpAuthentication.Id = wifMapping[args.gcpWifConfig]
 	return nil
 }
 

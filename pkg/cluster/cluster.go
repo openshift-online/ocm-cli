@@ -37,6 +37,9 @@ const (
 
 	NetworkTypeSDN = "OpenShiftSDN"
 	NetworkTypeOVN = "OVNKubernetes"
+
+	AuthenticationWif = "Workload Identity Federation (WIF)"
+	AuthenticationKey = "Service account"
 )
 
 type DefaultIngressSpec struct {
@@ -92,6 +95,9 @@ type Spec struct {
 
 	// Gcp-specific settings
 	GcpSecurity GcpSecurity
+
+	// GCP Authentication settings
+	GcpAuthentication GcpAuthentication
 }
 
 type Autoscaling struct {
@@ -149,6 +155,11 @@ type GCPCredentials struct {
 
 type GcpSecurity struct {
 	SecureBoot bool `json:"secure_boot,omitempty"`
+}
+
+type GcpAuthentication struct {
+	Type string
+	Id   string
 }
 
 type AddOnItem struct {
@@ -404,21 +415,34 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 			}
 			clusterBuilder = clusterBuilder.AWS(awsBuilder)
 		case ProviderGCP:
-			if config.CCS.GCP.Type == "" || config.CCS.GCP.ClientEmail == "" ||
-				config.CCS.GCP.ProjectID == "" {
-				return nil, fmt.Errorf("Missing credentials for GCP CCS cluster")
+			switch config.GcpAuthentication.Type {
+			case AuthenticationWif:
+				if config.GcpAuthentication.Id == "" {
+					return nil, fmt.Errorf("missing WIF config ID")
+				}
+				gcpAuth := cmv1.NewGcpAuthentication().
+					Kind(cmv1.WifConfigKind).
+					Id(config.GcpAuthentication.Id)
+				gcpBuilder.Authentication(gcpAuth)
+			case AuthenticationKey:
+				if config.CCS.GCP.Type == "" || config.CCS.GCP.ClientEmail == "" ||
+					config.CCS.GCP.ProjectID == "" {
+					return nil, fmt.Errorf("missing credentials for GCP CCS cluster")
+				}
+				gcpBuilder.
+					Type(config.CCS.GCP.Type).
+					ProjectID(config.CCS.GCP.ProjectID).
+					PrivateKeyID(config.CCS.GCP.PrivateKeyID).
+					PrivateKey(config.CCS.GCP.PrivateKey).
+					ClientEmail(config.CCS.GCP.ClientEmail).
+					ClientID(config.CCS.GCP.ClientID).
+					AuthURI(config.CCS.GCP.AuthURI).
+					TokenURI(config.CCS.GCP.TokenURI).
+					AuthProviderX509CertURL(config.CCS.GCP.AuthProviderX509CertURL).
+					ClientX509CertURL(config.CCS.GCP.ClientX509CertURL)
+			default:
+				return nil, fmt.Errorf("unexpected GCP authentication method %q", config.GcpAuthentication.Type)
 			}
-			gcpBuilder.
-				Type(config.CCS.GCP.Type).
-				ProjectID(config.CCS.GCP.ProjectID).
-				PrivateKeyID(config.CCS.GCP.PrivateKeyID).
-				PrivateKey(config.CCS.GCP.PrivateKey).
-				ClientEmail(config.CCS.GCP.ClientEmail).
-				ClientID(config.CCS.GCP.ClientID).
-				AuthURI(config.CCS.GCP.AuthURI).
-				TokenURI(config.CCS.GCP.TokenURI).
-				AuthProviderX509CertURL(config.CCS.GCP.AuthProviderX509CertURL).
-				ClientX509CertURL(config.CCS.GCP.ClientX509CertURL)
 
 			if isGCPNetworkExists(config.ExistingVPC) {
 				gcpNetwork := cmv1.NewGCPNetwork().VPCName(config.ExistingVPC.VPCName).
