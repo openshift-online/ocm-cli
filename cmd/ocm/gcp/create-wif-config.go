@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/googleapis/gax-go/v2/apierror"
-	alphaocm "github.com/openshift-online/ocm-cli/pkg/alpha_ocm"
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
-	"github.com/openshift-online/ocm-cli/pkg/models"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 
 	"github.com/spf13/cobra"
@@ -76,26 +76,27 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	}
 
 	log.Println("Creating workload identity configuration...")
-	wifConfig, err := createWorkloadIdentityConfiguration(models.WifConfigInput{
-		DisplayName: CreateWifConfigOpts.Name,
-		ProjectId:   CreateWifConfigOpts.Project,
-	})
+	wifConfig, err := createWorkloadIdentityConfiguration(CreateWifConfigOpts.Name, CreateWifConfigOpts.Project)
 	if err != nil {
 		log.Fatalf("failed to create WIF config: %v", err)
 	}
 
 	poolSpec := gcp.WorkloadIdentityPoolSpec{
-		PoolName:               wifConfig.Status.WorkloadIdentityPoolData.PoolId,
-		ProjectId:              wifConfig.Status.WorkloadIdentityPoolData.ProjectId,
-		Jwks:                   wifConfig.Status.WorkloadIdentityPoolData.Jwks,
-		IssuerUrl:              wifConfig.Status.WorkloadIdentityPoolData.IssuerUrl,
-		PoolIdentityProviderId: wifConfig.Status.WorkloadIdentityPoolData.IdentityProviderId,
+		PoolName:               wifConfig.Gcp().WorkloadIdentityPool().PoolId(),
+		ProjectId:              wifConfig.Gcp().ProjectId(),
+		Jwks:                   wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().Jwks(),
+		IssuerUrl:              wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl(),
+		PoolIdentityProviderId: wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IdentityProviderId(),
 	}
 
 	if CreateWifConfigOpts.DryRun {
 		log.Printf("Writing script files to %s", CreateWifConfigOpts.TargetDir)
 
-		err := createScript(CreateWifConfigOpts.TargetDir, wifConfig)
+		projectNum, err := gcpClient.ProjectNumberFromId(wifConfig.Gcp().ProjectId())
+		if err != nil {
+			log.Fatalf("failed to get project number from id: %v", err)
+		}
+		err = createScript(CreateWifConfigOpts.TargetDir, wifConfig, projectNum)
 		if err != nil {
 			log.Fatalf("Failed to create script files: %s", err)
 		}
@@ -104,17 +105,17 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 
 	if err = createWorkloadIdentityPool(ctx, gcpClient, poolSpec); err != nil {
 		log.Printf("Failed to create workload identity pool: %s", err)
-		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.Metadata.Id)
+		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 	if err = createWorkloadIdentityProvider(ctx, gcpClient, poolSpec); err != nil {
 		log.Printf("Failed to create workload identity provider: %s", err)
-		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.Metadata.Id)
+		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 	if err = createServiceAccounts(ctx, gcpClient, wifConfig); err != nil {
 		log.Printf("Failed to create IAM service accounts: %s", err)
-		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.Metadata.Id)
+		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 }
@@ -151,16 +152,34 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 
 }
 
-func createWorkloadIdentityConfiguration(input models.WifConfigInput) (*models.WifConfigOutput, error) {
-	ocmClient, err := alphaocm.NewOcmClient()
+func createWorkloadIdentityConfiguration(displayName, projectId string) (*cmv1.WifConfig, error) {
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create backend client")
+		log.Fatal(err)
 	}
-	output, err := ocmClient.CreateWifConfig(input)
+	defer connection.Close()
+
+	wifBuilder := cmv1.NewWifConfig()
+	gcpBuilder := cmv1.NewWifGcp().ProjectId(projectId)
+
+	wifBuilder.DisplayName(displayName)
+	wifBuilder.Gcp(gcpBuilder)
+
+	wifConfigInput, err := wifBuilder.Build()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create wif config")
+		return nil, errors.Wrap(err, "failed to build WIF config")
 	}
-	return &output, nil
+
+	response, err := connection.ClustersMgmt().V1().
+		WifConfigs().
+		Add().
+		Body(wifConfigInput).
+		Send()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create WIF config")
+	}
+
+	return response.Body(), nil
 }
 
 func createWorkloadIdentityPool(ctx context.Context, client gcp.GcpClient,
@@ -245,17 +264,17 @@ func createWorkloadIdentityProvider(ctx context.Context, client gcp.GcpClient,
 	return nil
 }
 
-func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutput *models.WifConfigOutput) error {
-	projectId := wifOutput.Spec.ProjectId
-	fmtRoleResourceId := func(role models.Role) string {
-		return fmt.Sprintf("roles/%s", role.Id)
+func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifConfig *cmv1.WifConfig) error {
+	projectId := wifConfig.Gcp().ProjectId()
+	fmtRoleResourceId := func(role *cmv1.WifRole) string {
+		return fmt.Sprintf("roles/%s", role.RoleId())
 	}
 
 	// Create service accounts
-	for _, serviceAccount := range wifOutput.Status.ServiceAccounts {
-		serviceAccountID := serviceAccount.Id
-		serviceAccountName := wifOutput.Spec.DisplayName + "-" + serviceAccountID
-		serviceAccountDesc := poolDescription + " for WIF config " + wifOutput.Spec.DisplayName
+	for _, serviceAccount := range wifConfig.Gcp().ServiceAccounts() {
+		serviceAccountID := serviceAccount.ServiceAccountId()
+		serviceAccountName := wifConfig.DisplayName() + "-" + serviceAccountID
+		serviceAccountDesc := poolDescription + " for WIF config " + wifConfig.DisplayName()
 
 		_, err := createServiceAccount(gcpClient, serviceAccountID, serviceAccountName, serviceAccountDesc, projectId, true)
 		if err != nil {
@@ -265,14 +284,14 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 	}
 
 	// Create roles that aren't predefined
-	for _, serviceAccount := range wifOutput.Status.ServiceAccounts {
-		for _, role := range serviceAccount.Roles {
-			if role.Predefined {
+	for _, serviceAccount := range wifConfig.Gcp().ServiceAccounts() {
+		for _, role := range serviceAccount.Roles() {
+			if role.Predefined() {
 				continue
 			}
-			roleID := role.Id
-			roleName := role.Id
-			permissions := role.Permissions
+			roleID := role.RoleId()
+			roleName := role.RoleId()
+			permissions := role.Permissions()
 			existingRole, err := GetRole(gcpClient, roleID, projectId)
 			if err != nil {
 				if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
@@ -300,11 +319,11 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 	}
 
 	// Bind roles and grant access
-	for _, serviceAccount := range wifOutput.Status.ServiceAccounts {
-		serviceAccountID := serviceAccount.Id
+	for _, serviceAccount := range wifConfig.Gcp().ServiceAccounts() {
+		serviceAccountID := serviceAccount.ServiceAccountId()
 
-		roles := make([]string, 0, len(serviceAccount.Roles))
-		for _, role := range serviceAccount.Roles {
+		roles := make([]string, 0, len(serviceAccount.Roles()))
+		for _, role := range serviceAccount.Roles() {
 			roles = append(roles, fmtRoleResourceId(role))
 		}
 		member := fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountID, projectId)
@@ -313,19 +332,21 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifOutp
 			return errors.Errorf("Failed to bind roles to service account %s: %s", serviceAccountID, err)
 		}
 
-		switch serviceAccount.AccessMethod {
-		case "impersonate":
-			if err := gcpClient.AttachImpersonator(serviceAccount.Id, projectId,
+		switch serviceAccount.AccessMethod() {
+		case cmv1.WifAccessMethodImpersonate:
+			if err := gcpClient.AttachImpersonator(serviceAccount.ServiceAccountId(), projectId,
 				impersonatorServiceAccount); err != nil {
-				return errors.Wrapf(err, "Failed to attach impersonator to service account %s", serviceAccount.Id)
+				return errors.Wrapf(err, "Failed to attach impersonator to service account %s",
+					serviceAccount.ServiceAccountId())
 			}
-		case "wif":
+		case cmv1.WifAccessMethodWif:
 			if err := gcpClient.AttachWorkloadIdentityPool(serviceAccount,
-				wifOutput.Status.WorkloadIdentityPoolData.PoolId, projectId); err != nil {
-				return errors.Wrapf(err, "Failed to attach workload identity pool to service account %s", serviceAccount.Id)
+				wifConfig.Gcp().WorkloadIdentityPool().PoolId(), projectId); err != nil {
+				return errors.Wrapf(err, "Failed to attach workload identity pool to service account %s",
+					serviceAccount.ServiceAccountId())
 			}
 		default:
-			log.Printf("Warning: %s is not a supported access type\n", serviceAccount.AccessMethod)
+			log.Printf("Warning: %s is not a supported access type\n", serviceAccount.AccessMethod())
 		}
 	}
 

@@ -5,9 +5,10 @@ import (
 	"log"
 	"os"
 
-	alphaocm "github.com/openshift-online/ocm-cli/pkg/alpha_ocm"
 	"github.com/openshift-online/ocm-cli/pkg/config"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/output"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -58,10 +59,11 @@ func listWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create the client for the OCM API:
-	ocmClient, err := alphaocm.NewOcmClient()
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		log.Fatalf("failed to create backend client: %v", err)
+		log.Fatal(err)
 	}
+	defer connection.Close()
 
 	// Create the output printer:
 	printer, err := output.NewPrinter().
@@ -72,12 +74,6 @@ func listWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 		log.Fatal(err)
 	}
 	defer printer.Close()
-
-	// Get the wif-configs:
-	wifconfigs, err := ocmClient.ListWifConfigs()
-	if err != nil {
-		log.Fatalf("failed to get wif-configs: %v", err)
-	}
 
 	// Create the output table:
 	table, err := printer.NewTable().
@@ -94,14 +90,34 @@ func listWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 		table.WriteHeaders()
 	}
 
-	// Write the rows:
-	for _, wc := range wifconfigs {
-		err = table.WriteObject(wc)
+	// Create the request
+	request := connection.ClustersMgmt().V1().WifConfigs().List()
+
+	size := 100
+	index := 1
+	for {
+		// Fetch the next page:
+		request.Size(size)
+		request.Page(index)
+		response, err := request.Send()
 		if err != nil {
+			log.Fatalf("Can't retrieve wif configs: %v", err)
+		}
+
+		// Display the items of the fetched page:
+		response.Items().Each(func(wc *cmv1.WifConfig) bool {
+			err = table.WriteObject(wc)
+			return err == nil
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// If the number of fetched items is less than requested, then this was the last
+		// page, otherwise process the next one:
+		if response.Size() < size {
 			break
 		}
-	}
-	if err != nil {
-		log.Fatal(err)
+		index++
 	}
 }

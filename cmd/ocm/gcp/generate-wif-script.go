@@ -1,9 +1,11 @@
 package gcp
 
 import (
+	"context"
 	"log"
 
-	alphaocm "github.com/openshift-online/ocm-cli/pkg/alpha_ocm"
+	"github.com/openshift-online/ocm-cli/pkg/gcp"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/spf13/cobra"
 )
 
@@ -39,27 +41,40 @@ func validationForGenerateCreateScriptCmd(cmd *cobra.Command, argv []string) {
 }
 
 func generateCreateScriptCmd(cmd *cobra.Command, argv []string) {
-	// Create the client for the OCM API:
-	ocmClient, err := alphaocm.NewOcmClient()
+	ctx := context.Background()
+
+	gcpClient, err := gcp.NewGcpClient(ctx)
 	if err != nil {
-		log.Fatalf("failed to create backend client: %v", err)
+		log.Fatalf("failed to initiate GCP client: %v", err)
 	}
+
+	connection, err := ocm.NewConnection().Build()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer connection.Close()
 
 	wifConfigId := argv[0]
 	if wifConfigId == "" {
 		log.Fatal("WIF config ID is required")
 	}
 
-	wifConfig, err := ocmClient.GetWifConfig(wifConfigId)
+	response, err := connection.ClustersMgmt().V1().WifConfigs().WifConfig(wifConfigId).Get().Send()
 	if err != nil {
 		log.Fatalf("failed to get wif-config: %v", err)
 	}
+	wifConfig := response.Body()
+
+	projectNum, err := gcpClient.ProjectNumberFromId(wifConfig.Gcp().ProjectId())
+	if err != nil {
+		log.Fatalf("failed to get project number from id: %v", err)
+	}
 
 	log.Printf("Writing script files to %s", GenerateScriptOpts.TargetDir)
-	if err := createScript(GenerateScriptOpts.TargetDir, &wifConfig); err != nil {
+	if err := createScript(GenerateScriptOpts.TargetDir, wifConfig, projectNum); err != nil {
 		log.Fatalf("failed to generate create script: %v", err)
 	}
-	if err := createDeleteScript(GenerateScriptOpts.TargetDir, &wifConfig); err != nil {
+	if err := createDeleteScript(GenerateScriptOpts.TargetDir, wifConfig); err != nil {
 		log.Fatalf("failed to generate delete script: %v", err)
 	}
 }

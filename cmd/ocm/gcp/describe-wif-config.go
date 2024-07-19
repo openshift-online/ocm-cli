@@ -6,7 +6,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	alphaocm "github.com/openshift-online/ocm-cli/pkg/alpha_ocm"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 	"github.com/spf13/cobra"
 )
@@ -30,25 +30,25 @@ func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string)
 	}
 
 	// Create the client for the OCM API:
-	ocmClient, err := alphaocm.NewOcmClient()
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		log.Fatalf("failed to create backend client: %v", err)
+		log.Fatal(err)
 	}
+	defer connection.Close()
 
-	wifconfig, err := ocmClient.GetWifConfig(id)
+	response, err := connection.ClustersMgmt().V1().WifConfigs().WifConfig(id).Get().Send()
 	if err != nil {
 		log.Fatalf("failed to get wif-config: %v", err)
 	}
+	wifConfig := response.Body()
 
 	// Print output
 	w := tabwriter.NewWriter(os.Stdout, 8, 0, 2, ' ', 0)
 
-	fmt.Fprintf(w, "ID:\t%s\n", wifconfig.Metadata.Id)
-	fmt.Fprintf(w, "Display Name:\t%s\n", wifconfig.Metadata.DisplayName)
-	fmt.Fprintf(w, "Project:\t%s\n", wifconfig.Spec.ProjectId)
-	fmt.Fprintf(w, "State:\t%s\n", wifconfig.Status.State)
-	fmt.Fprintf(w, "Summary:\t%s\n", wifconfig.Status.Summary)
-	fmt.Fprintf(w, "Issuer URL:\t%s\n", wifconfig.Status.WorkloadIdentityPoolData.IssuerUrl)
+	fmt.Fprintf(w, "ID:\t%s\n", wifConfig.ID())
+	fmt.Fprintf(w, "Display Name:\t%s\n", wifConfig.DisplayName())
+	fmt.Fprintf(w, "Project:\t%s\n", wifConfig.Gcp().ProjectId())
+	fmt.Fprintf(w, "Issuer URL:\t%s\n", wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl())
 
 	w.Flush()
 }
