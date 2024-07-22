@@ -31,7 +31,7 @@ func NewListWorkloadIdentityConfiguration() *cobra.Command {
 	fs.StringVar(
 		&ListWorkloadIdentityConfigurationOpts.columns,
 		"columns",
-		"metadata.id, metadata.displayName, status.state",
+		"metadata.id, metadata.displayName",
 		"Specify which columns to display separated by commas, path is based on wif-config struct",
 	)
 	fs.BoolVar(
