@@ -9,9 +9,9 @@ import (
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
 
-	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 	"github.com/openshift-online/ocm-cli/pkg/models"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 )
 
 type OcmClient interface {
@@ -26,26 +26,8 @@ type ocmClient struct {
 }
 
 func NewOcmClient() (OcmClient, error) {
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, fmt.Errorf("can't load config file: %v", err)
-	}
-	if cfg == nil {
-		return nil, fmt.Errorf("not logged in, run the 'login' command")
-	}
-
-	// Check that the configuration has credentials or tokens that don't have expired:
-	armed, reason, err := cfg.Armed()
-	if err != nil {
-		return nil, fmt.Errorf(err.Error())
-	}
-	if !armed {
-		return nil, fmt.Errorf("not logged in, %s, run the 'login' command", reason)
-	}
-
 	// Create the connection:
-	connection, err := cfg.Connection()
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return nil, fmt.Errorf("can't create connection: %v", err)
 	}
