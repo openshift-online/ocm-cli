@@ -117,7 +117,7 @@ gcloud iam workload-identity-pools providers create-oidc %s \
 	--allowed-audiences="%s" \
 	--attribute-mapping="google.subject=assertion.sub" \
 	--workload-identity-pool=%s
-`, spec.PoolName, spec.PoolName, poolDescription, spec.IssuerUrl, openShiftAudience, spec.PoolName)
+`, spec.PoolName, spec.PoolName, poolDescription, spec.IssuerUrl, strings.Join(spec.Audience, ","), spec.PoolName)
 }
 
 // This returns the gcloud commands to create a service account, bind roles, and grant access
@@ -175,7 +175,7 @@ func createServiceAccountScriptContent(wifConfig *cmv1.WifConfig, projectNum int
 		} else if sa.AccessMethod() == "impersonate" {
 			project := wifConfig.Gcp().ProjectId()
 			serviceAccount := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", sa.ServiceAccountId(), project)
-			impersonator := fmt.Sprintf("serviceAccount:%s", impersonatorEmail)
+			impersonator := fmt.Sprintf("serviceAccount:%s", wifConfig.Gcp().ImpersonatorEmail())
 			//nolint:lll
 			sb.WriteString(fmt.Sprintf("gcloud iam service-accounts add-iam-policy-binding %s --member=%s --role=roles/iam.serviceAccountTokenCreator --project=%s\n",
 				serviceAccount, impersonator, wifConfig.Gcp().ProjectId()))

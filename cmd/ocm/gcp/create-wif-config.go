@@ -31,17 +31,11 @@ var (
 		Project:   "",
 		TargetDir: "",
 	}
-
-	//nolint:lll
-	impersonatorServiceAccount = "projects/sda-ccs-3/serviceAccounts/osd-impersonator@sda-ccs-3.iam.gserviceaccount.com"
-	impersonatorEmail          = "osd-impersonator@sda-ccs-3.iam.gserviceaccount.com"
 )
 
 const (
 	poolDescription = "Created by the OLM CLI"
 	roleDescription = "Created by the OLM CLI"
-
-	openShiftAudience = "openshift"
 )
 
 // NewCreateWorkloadIdentityConfiguration provides the "gcp create wif-config" subcommand
@@ -237,7 +231,7 @@ func createWorkloadIdentityProvider(ctx context.Context, client gcp.GcpClient,
 				State:       "ACTIVE",
 				Disabled:    false,
 				Oidc: &iamv1.Oidc{
-					AllowedAudiences: []string{openShiftAudience},
+					AllowedAudiences: spec.Audience,
 					IssuerUri:        spec.IssuerUrl,
 					JwksJson:         spec.Jwks,
 				},
@@ -335,7 +329,7 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifConf
 		switch serviceAccount.AccessMethod() {
 		case cmv1.WifAccessMethodImpersonate:
 			if err := gcpClient.AttachImpersonator(serviceAccount.ServiceAccountId(), projectId,
-				impersonatorServiceAccount); err != nil {
+				wifConfig.Gcp().ImpersonatorEmail()); err != nil {
 				return errors.Wrapf(err, "Failed to attach impersonator to service account %s",
 					serviceAccount.ServiceAccountId())
 			}

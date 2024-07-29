@@ -135,7 +135,7 @@ func (c *gcpClient) ListServiceAccounts(project string, filter func(string) bool
 	return out, nil
 }
 
-func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorId string) error {
+func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorEmail string) error {
 	saResourceId := fmt.Sprintf("projects/%s/serviceAccounts/%s@%s.iam.gserviceaccount.com",
 		projectId, saId, projectId)
 	policy, err := c.iamClient.GetIamPolicy(context.Background(), &iampb.GetIamPolicyRequest{
@@ -145,7 +145,7 @@ func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorId st
 		return c.handleAttachImpersonatorError(err)
 	}
 	policy.Add(
-		fmt.Sprintf("serviceAccount:%s", c.extractEmail(impersonatorId)),
+		fmt.Sprintf("serviceAccount:%s", impersonatorEmail),
 		iam.RoleName("roles/iam.serviceAccountTokenCreator"))
 	_, err = c.iamClient.SetIamPolicy(context.Background(), &iamadmin.SetIamPolicyRequest{
 		Resource: saResourceId,
