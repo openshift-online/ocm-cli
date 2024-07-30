@@ -41,10 +41,10 @@ const (
 // NewCreateWorkloadIdentityConfiguration provides the "gcp create wif-config" subcommand
 func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 	createWifConfigCmd := &cobra.Command{
-		Use:              "wif-config",
-		Short:            "Create workload identity configuration",
-		Run:              createWorkloadIdentityConfigurationCmd,
-		PersistentPreRun: validationForCreateWorkloadIdentityConfigurationCmd,
+		Use:     "wif-config",
+		Short:   "Create workload identity configuration",
+		RunE:    createWorkloadIdentityConfigurationCmd,
+		PreRunE: validationForCreateWorkloadIdentityConfigurationCmd,
 	}
 
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.Name, "name", "",
@@ -61,18 +61,18 @@ func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 	return createWifConfigCmd
 }
 
-func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
 
 	gcpClient, err := gcp.NewGcpClient(ctx)
 	if err != nil {
-		log.Fatalf("failed to initiate GCP client: %v", err)
+		return errors.Wrapf(err, "failed to initiate GCP client")
 	}
 
 	log.Println("Creating workload identity configuration...")
 	wifConfig, err := createWorkloadIdentityConfiguration(CreateWifConfigOpts.Name, CreateWifConfigOpts.Project)
 	if err != nil {
-		log.Fatalf("failed to create WIF config: %v", err)
+		return errors.Wrapf(err, "failed to create WIF config")
 	}
 
 	if CreateWifConfigOpts.DryRun {
@@ -80,44 +80,44 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 
 		projectNum, err := gcpClient.ProjectNumberFromId(wifConfig.Gcp().ProjectId())
 		if err != nil {
-			log.Fatalf("failed to get project number from id: %v", err)
+			return errors.Wrapf(err, "failed to get project number from id")
 		}
 		err = createScript(CreateWifConfigOpts.TargetDir, wifConfig, projectNum)
 		if err != nil {
-			log.Fatalf("Failed to create script files: %s", err)
+			return errors.Wrapf(err, "Failed to create script files")
 		}
-		return
+		return nil
 	}
 
 	if err = createWorkloadIdentityPool(ctx, gcpClient, wifConfig); err != nil {
 		log.Printf("Failed to create workload identity pool: %s", err)
-		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
+		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 	if err = createWorkloadIdentityProvider(ctx, gcpClient, wifConfig); err != nil {
 		log.Printf("Failed to create workload identity provider: %s", err)
-		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
+		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 	if err = createServiceAccounts(ctx, gcpClient, wifConfig); err != nil {
 		log.Printf("Failed to create IAM service accounts: %s", err)
-		log.Fatalf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
+		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
-
+	return nil
 }
 
-func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	if CreateWifConfigOpts.Name == "" {
-		log.Fatal("Name is required")
+		return fmt.Errorf("Name is required")
 	}
 	if CreateWifConfigOpts.Project == "" {
-		log.Fatal("Project is required")
+		return fmt.Errorf("Project is required")
 	}
 
 	if CreateWifConfigOpts.TargetDir == "" {
 		pwd, err := os.Getwd()
 		if err != nil {
-			log.Fatalf("Failed to get current directory: %s", err)
+			return errors.Wrapf(err, "failed to get current directory")
 		}
 
 		CreateWifConfigOpts.TargetDir = pwd
@@ -125,23 +125,23 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 
 	fPath, err := filepath.Abs(CreateWifConfigOpts.TargetDir)
 	if err != nil {
-		log.Fatalf("Failed to resolve full path: %s", err)
+		return errors.Wrapf(err, "failed to resolve full path")
 	}
 
 	sResult, err := os.Stat(fPath)
 	if os.IsNotExist(err) {
-		log.Fatalf("Directory %s does not exist", fPath)
+		return fmt.Errorf("directory %s does not exist", fPath)
 	}
 	if !sResult.IsDir() {
-		log.Fatalf("file %s exists and is not a directory", fPath)
+		return fmt.Errorf("file %s exists and is not a directory", fPath)
 	}
-
+	return nil
 }
 
 func createWorkloadIdentityConfiguration(displayName, projectId string) (*cmv1.WifConfig, error) {
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrapf(err, "Failed to create OCM connection")
 	}
 	defer connection.Close()
 
