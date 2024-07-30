@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -52,9 +51,9 @@ func deleteServiceAccountScriptContent(wifConfig *cmv1.WifConfig) string {
 	sb.WriteString("\n# Delete service accounts:\n")
 	for _, sa := range wifConfig.Gcp().ServiceAccounts() {
 		project := wifConfig.Gcp().ProjectId()
-		serviceAccountID := sa.ServiceAccountId()
+		serviceAccountEmail := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", sa.ServiceAccountId(), project)
 		sb.WriteString(fmt.Sprintf("gcloud iam service-accounts delete %s --project=%s\n",
-			serviceAccountID, project))
+			serviceAccountEmail, project))
 	}
 	return sb.String()
 }
@@ -69,21 +68,13 @@ gcloud iam workload-identity-pools delete %s --project=%s --location=global
 }
 
 func generateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
-	poolSpec := gcp.WorkloadIdentityPoolSpec{
-		PoolName:               wifConfig.Gcp().WorkloadIdentityPool().PoolId(),
-		ProjectId:              wifConfig.Gcp().ProjectId(),
-		Jwks:                   wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().Jwks(),
-		IssuerUrl:              wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl(),
-		PoolIdentityProviderId: wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IdentityProviderId(),
-	}
-
 	scriptContent := "#!/bin/bash\n"
 
 	// Create a script to create the workload identity pool
-	scriptContent += createIdentityPoolScriptContent(poolSpec)
+	scriptContent += createIdentityPoolScriptContent(wifConfig)
 
 	// Append the script to create the identity provider
-	scriptContent += createIdentityProviderScriptContent(poolSpec)
+	scriptContent += createIdentityProviderScriptContent(wifConfig)
 
 	// Append the script to create the service accounts
 	scriptContent += createServiceAccountScriptContent(wifConfig, projectNum)
@@ -91,9 +82,9 @@ func generateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
 	return scriptContent
 }
 
-func createIdentityPoolScriptContent(spec gcp.WorkloadIdentityPoolSpec) string {
-	name := spec.PoolName
-	project := spec.ProjectId
+func createIdentityPoolScriptContent(wifConfig *cmv1.WifConfig) string {
+	name := wifConfig.Gcp().WorkloadIdentityPool().PoolId()
+	project := wifConfig.Gcp().ProjectId()
 
 	return fmt.Sprintf(`
 # Create a workload identity pool
@@ -105,7 +96,12 @@ gcloud iam workload-identity-pools create %s \
 `, name, project, poolDescription, name)
 }
 
-func createIdentityProviderScriptContent(spec gcp.WorkloadIdentityPoolSpec) string {
+func createIdentityProviderScriptContent(wifConfig *cmv1.WifConfig) string {
+	poolId := wifConfig.Gcp().WorkloadIdentityPool().PoolId()
+	audiences := wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().AllowedAudiences()
+	issuerUrl := wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl()
+	providerId := wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IdentityProviderId()
+
 	return fmt.Sprintf(`
 # Create a workload identity provider
 gcloud iam workload-identity-pools providers create-oidc %s \
@@ -117,7 +113,7 @@ gcloud iam workload-identity-pools providers create-oidc %s \
 	--allowed-audiences="%s" \
 	--attribute-mapping="google.subject=assertion.sub" \
 	--workload-identity-pool=%s
-`, spec.PoolName, spec.PoolName, poolDescription, spec.IssuerUrl, strings.Join(spec.Audience, ","), spec.PoolName)
+`, providerId, providerId, poolDescription, issuerUrl, strings.Join(audiences, ","), poolId)
 }
 
 // This returns the gcloud commands to create a service account, bind roles, and grant access
@@ -156,8 +152,14 @@ func createServiceAccountScriptContent(wifConfig *cmv1.WifConfig, projectNum int
 		for _, role := range sa.Roles() {
 			project := wifConfig.Gcp().ProjectId()
 			member := fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", sa.ServiceAccountId(), project)
-			sb.WriteString(fmt.Sprintf("gcloud projects add-iam-policy-binding %s --member=%s --role=roles/%s\n",
-				project, member, role.RoleId()))
+			var roleResource string
+			if role.Predefined() {
+				roleResource = fmt.Sprintf("roles/%s", role.RoleId())
+			} else {
+				roleResource = fmt.Sprintf("projects/%s/roles/%s", project, role.RoleId())
+			}
+			sb.WriteString(fmt.Sprintf("gcloud projects add-iam-policy-binding %s --member=%s --role=%s\n",
+				project, member, roleResource))
 		}
 	}
 	sb.WriteString("\n# Grant access:\n")

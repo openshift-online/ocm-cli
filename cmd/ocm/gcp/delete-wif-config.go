@@ -3,16 +3,15 @@ package gcp
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"log"
-
-	"github.com/googleapis/gax-go/v2/apierror"
-	"google.golang.org/grpc/codes"
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
+	"google.golang.org/api/googleapi"
 
 	"github.com/spf13/cobra"
 )
@@ -66,7 +65,7 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	}
 	defer connection.Close()
 
-	response, err := connection.ClustersMgmt().V1().WifConfigs().WifConfig(wifConfigId).Get().Send()
+	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(wifConfigId).Get().Send()
 	if err != nil {
 		log.Fatalf("failed to get wif-config: %v", err)
 	}
@@ -95,7 +94,7 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 		log.Fatal(err)
 	}
 
-	_, err = connection.ClustersMgmt().V1().WifConfigs().
+	_, err = connection.ClustersMgmt().V1().GCP().WifConfigs().
 		WifConfig(wifConfigId).
 		Delete().
 		Send()
@@ -130,12 +129,10 @@ func deleteWorkloadIdentityPool(ctx context.Context, gcpClient gcp.GcpClient,
 
 	_, err := gcpClient.DeleteWorkloadIdentityPool(ctx, poolResource)
 	if err != nil {
-		pApiError, ok := err.(*apierror.APIError)
-		if ok {
-			if pApiError.GRPCStatus().Code() == codes.NotFound && allowMissing {
-				log.Printf("Workload identity pool %s not found", poolName)
-				return nil
-			}
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
+			strings.Contains(gerr.Message, "Requested entity was not found") && allowMissing {
+			log.Printf("Workload identity pool %s not found", poolName)
+			return nil
 		}
 		return errors.Wrapf(err, "Failed to delete workload identity pool %s", poolName)
 	}

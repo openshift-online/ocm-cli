@@ -36,7 +36,7 @@ func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string)
 	}
 	defer connection.Close()
 
-	response, err := connection.ClustersMgmt().V1().WifConfigs().WifConfig(id).Get().Send()
+	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(id).Get().Send()
 	if err != nil {
 		log.Fatalf("failed to get wif-config: %v", err)
 	}

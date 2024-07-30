@@ -31,7 +31,7 @@ func NewListWorkloadIdentityConfiguration() *cobra.Command {
 	fs.StringVar(
 		&ListWorkloadIdentityConfigurationOpts.columns,
 		"columns",
-		"metadata.id, metadata.displayName",
+		"id, display_name",
 		"Specify which columns to display separated by commas, path is based on wif-config struct",
 	)
 	fs.BoolVar(
@@ -91,7 +91,7 @@ func listWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 	}
 
 	// Create the request
-	request := connection.ClustersMgmt().V1().WifConfigs().List()
+	request := connection.ClustersMgmt().V1().GCP().WifConfigs().List()
 
 	size := 100
 	index := 1

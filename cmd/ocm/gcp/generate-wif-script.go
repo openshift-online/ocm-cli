@@ -59,7 +59,7 @@ func generateCreateScriptCmd(cmd *cobra.Command, argv []string) {
 		log.Fatal("WIF config ID is required")
 	}
 
-	response, err := connection.ClustersMgmt().V1().WifConfigs().WifConfig(wifConfigId).Get().Send()
+	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(wifConfigId).Get().Send()
 	if err != nil {
 		log.Fatalf("failed to get wif-config: %v", err)
 	}
