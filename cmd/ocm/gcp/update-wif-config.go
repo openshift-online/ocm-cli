@@ -12,10 +12,10 @@ var UpdateWifConfigOpts struct {
 // NewUpdateWorkloadIdentityConfiguration provides the "gcp update wif-config" subcommand
 func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 	updateWifConfigCmd := &cobra.Command{
-		Use:              "wif-config",
-		Short:            "Update wif-config.",
-		Run:              updateWorkloadIdentityConfigurationCmd,
-		PersistentPreRun: validationForUpdateWorkloadIdentityConfigurationCmd,
+		Use:     "wif-config",
+		Short:   "Update wif-config.",
+		RunE:    updateWorkloadIdentityConfigurationCmd,
+		PreRunE: validationForUpdateWorkloadIdentityConfigurationCmd,
 	}
 
 	updateWifConfigCmd.PersistentFlags().StringVar(&UpdateWifConfigOpts.wifId, "wif-id", "",
@@ -28,10 +28,12 @@ func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 	return updateWifConfigCmd
 }
 
-func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	// No validation needed
+	return nil
 }
 
-func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	// No implementation yet
+	return nil
 }

@@ -2,12 +2,12 @@ package gcp
 
 import (
 	"fmt"
-	"log"
 	"os"
 
-	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -18,10 +18,10 @@ var GetWorkloadIdentityConfigurationOpts struct {
 // NewCreateWorkloadIdentityConfiguration provides the "create-wif-config" subcommand
 func NewGetWorkloadIdentityConfiguration() *cobra.Command {
 	getWorkloadIdentityPoolCmd := &cobra.Command{
-		Use:              "wif-config [ID]",
-		Short:            "Send a GET request for wif-config.",
-		Run:              getWorkloadIdentityConfigurationCmd,
-		PersistentPreRun: validationForGetWorkloadIdentityConfigurationCmd,
+		Use:     "wif-config [ID]",
+		Short:   "Send a GET request for wif-config.",
+		RunE:    getWorkloadIdentityConfigurationCmd,
+		PreRunE: validationForGetWorkloadIdentityConfigurationCmd,
 	}
 
 	fs := getWorkloadIdentityPoolCmd.Flags()
@@ -35,40 +35,21 @@ func NewGetWorkloadIdentityConfiguration() *cobra.Command {
 	return getWorkloadIdentityPoolCmd
 }
 
-func getWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func getWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	id, err := urls.Expand(argv)
 	if err != nil {
-		log.Fatalf("could not create URI: %v", err)
+		return errors.Wrapf(err, "could not create URI")
 	}
 
-	// Load the configuration file:
-	cfg, err := config.Load()
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		log.Fatalf("Can't load config file: %v", err)
-	}
-	if cfg == nil {
-		log.Fatalf("Not logged in, run the 'login' command")
-	}
-
-	// Check that the configuration has credentials or tokens that don't have expired:
-	armed, reason, err := cfg.Armed()
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-	if !armed {
-		log.Fatalf("Not logged in, %s, run the 'login' command", reason)
-	}
-
-	// Create the connection:
-	connection, err := cfg.Connection()
-	if err != nil {
-		log.Fatalf("Can't create connection: %v", err)
+		return errors.Wrapf(err, "Failed to create OCM connection")
 	}
 	defer connection.Close()
 
 	resp, err := connection.Get().Path(fmt.Sprintf("/api/clusters_mgmt/v1/gcp/wif_configs/%s", id)).Send()
 	if err != nil {
-		log.Fatalf("can't send request: %v", err)
+		return errors.Wrapf(err, "can't send request")
 	}
 	status := resp.Status()
 	body := resp.Bytes()
@@ -86,12 +67,14 @@ func getWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
 		}
 	}
 	if err != nil {
-		log.Fatalf("Can't print body: %v", err)
+		return errors.Wrapf(err, "can't print body")
 	}
+	return nil
 }
 
-func validationForGetWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func validationForGetWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	if len(argv) != 1 {
-		log.Fatalf("Expected exactly one command line parameter containing the id of the WIF config.")
+		return fmt.Errorf("Expected exactly one command line parameter containing the id of the WIF config.")
 	}
+	return nil
 }

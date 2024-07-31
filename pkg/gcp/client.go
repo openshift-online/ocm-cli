@@ -10,7 +10,9 @@ import (
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"cloud.google.com/go/iam/apiv1/iampb"
 	"cloud.google.com/go/storage"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
+
 	iamv1 "google.golang.org/api/iam/v1"
 	"google.golang.org/api/iterator"
 	secretmanager "google.golang.org/api/secretmanager/v1"
@@ -35,7 +37,7 @@ type GcpClient interface {
 	SetProjectIamPolicy(svcAcctResource string, request *cloudresourcemanager.SetIamPolicyRequest) (*cloudresourcemanager.Policy, error) //nolint:lll
 
 	AttachImpersonator(saId, projectId, impersonatorResourceId string) error
-	AttachWorkloadIdentityPool(sa ServiceAccount, poolId, projectId string) error
+	AttachWorkloadIdentityPool(sa *cmv1.WifServiceAccount, poolId, projectId string) error
 
 	SaveSecret(secretId, projectId string, secretData []byte) error
 	RetreiveSecret(secretId string, projectId string) ([]byte, error)
@@ -48,12 +50,6 @@ type GcpClient interface {
 	DeleteRole(context.Context, *adminpb.DeleteRoleRequest) (*adminpb.Role, error)
 	UndeleteRole(context.Context, *adminpb.UndeleteRoleRequest) (*adminpb.Role, error)
 	ListRoles(context.Context, *adminpb.ListRolesRequest) (*adminpb.ListRolesResponse, error)
-}
-
-type ServiceAccount interface {
-	GetId() string
-	GetSecretNamespace() string
-	GetServiceAccountNames() []string
 }
 
 type gcpClient struct {
@@ -139,7 +135,7 @@ func (c *gcpClient) ListServiceAccounts(project string, filter func(string) bool
 	return out, nil
 }
 
-func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorId string) error {
+func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorEmail string) error {
 	saResourceId := fmt.Sprintf("projects/%s/serviceAccounts/%s@%s.iam.gserviceaccount.com",
 		projectId, saId, projectId)
 	policy, err := c.iamClient.GetIamPolicy(context.Background(), &iampb.GetIamPolicyRequest{
@@ -149,7 +145,7 @@ func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorId st
 		return c.handleAttachImpersonatorError(err)
 	}
 	policy.Add(
-		fmt.Sprintf("serviceAccount:%s", c.extractEmail(impersonatorId)),
+		fmt.Sprintf("serviceAccount:%s", impersonatorEmail),
 		iam.RoleName("roles/iam.serviceAccountTokenCreator"))
 	_, err = c.iamClient.SetIamPolicy(context.Background(), &iamadmin.SetIamPolicyRequest{
 		Resource: saResourceId,
@@ -161,8 +157,8 @@ func (c *gcpClient) AttachImpersonator(saId, projectId string, impersonatorId st
 	return nil
 }
 
-func (c *gcpClient) AttachWorkloadIdentityPool(sa ServiceAccount, poolId, projectId string) error {
-	saResourceId := c.fmtSaResourceId(sa.GetId(), projectId)
+func (c *gcpClient) AttachWorkloadIdentityPool(sa *cmv1.WifServiceAccount, poolId, projectId string) error {
+	saResourceId := c.fmtSaResourceId(sa.ServiceAccountId(), projectId)
 
 	projectNum, err := c.ProjectNumberFromId(projectId)
 	if err != nil {
@@ -175,12 +171,12 @@ func (c *gcpClient) AttachWorkloadIdentityPool(sa ServiceAccount, poolId, projec
 	if err != nil {
 		return c.handleAttachWorkloadIdentityPoolError(err)
 	}
-	for _, openshiftServiceAccount := range sa.GetServiceAccountNames() {
+	for _, openshiftServiceAccount := range sa.CredentialRequest().ServiceAccountNames() {
 		policy.Add(
 			//nolint:lll
 			fmt.Sprintf(
 				"principal://iam.googleapis.com/projects/%d/locations/global/workloadIdentityPools/%s/subject/system:serviceaccount:%s:%s",
-				projectNum, poolId, sa.GetSecretNamespace(), openshiftServiceAccount,
+				projectNum, poolId, sa.CredentialRequest().SecretRef().Namespace(), openshiftServiceAccount,
 			),
 			iam.RoleName("roles/iam.workloadIdentityUser"))
 	}

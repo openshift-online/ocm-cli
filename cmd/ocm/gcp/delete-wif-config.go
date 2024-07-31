@@ -3,16 +3,15 @@ package gcp
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"log"
 
-	"github.com/googleapis/gax-go/v2/apierror"
-	"google.golang.org/grpc/codes"
-
-	alphaocm "github.com/openshift-online/ocm-cli/pkg/alpha_ocm"
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
-	"github.com/openshift-online/ocm-cli/pkg/models"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
+	"google.golang.org/api/googleapi"
 
 	"github.com/spf13/cobra"
 )
@@ -28,10 +27,10 @@ var (
 // NewDeleteWorkloadIdentityConfiguration provides the "gcp delete wif-config" subcommand
 func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 	deleteWifConfigCmd := &cobra.Command{
-		Use:              "wif-config [ID]",
-		Short:            "Delete workload identity configuration",
-		Run:              deleteWorkloadIdentityConfigurationCmd,
-		PersistentPreRun: validationForDeleteWorkloadIdentityConfigurationCmd,
+		Use:     "wif-config [ID]",
+		Short:   "Delete workload identity configuration",
+		RunE:    deleteWorkloadIdentityConfigurationCmd,
+		PreRunE: validationForDeleteWorkloadIdentityConfigurationCmd,
 	}
 
 	deleteWifConfigCmd.PersistentFlags().BoolVar(&DeleteWifConfigOpts.DryRun, "dry-run", false,
@@ -42,74 +41,81 @@ func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 	return deleteWifConfigCmd
 }
 
-func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	if len(argv) != 1 {
-		log.Fatal(
-			"Expected exactly one command line parameters containing the id " +
-				"of the WIF config.",
+		return fmt.Errorf(
+			"expected exactly one command line parameters containing the id " +
+				"of the WIF config",
 		)
 	}
+	return nil
 }
 
-func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
 
 	wifConfigId := argv[0]
 	if wifConfigId == "" {
-		log.Fatal("WIF config ID is required")
+		return fmt.Errorf("WIF config ID is required")
 	}
 
-	// Create clients
-	ocmClient, err := alphaocm.NewOcmClient()
+	// Create the client for the OCM API:
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		log.Fatalf("failed to create backend client: %v", err)
+		return errors.Wrapf(err, "Failed to create OCM connection")
 	}
+	defer connection.Close()
 
-	wifConfig, err := ocmClient.GetWifConfig(wifConfigId)
+	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(wifConfigId).Get().Send()
 	if err != nil {
-		log.Fatal(err)
+		return errors.Wrapf(err, "failed to get wif-config")
 	}
+	wifConfig := response.Body()
 
 	if DeleteWifConfigOpts.DryRun {
 		log.Printf("Writing script files to %s", DeleteWifConfigOpts.TargetDir)
 
-		err := createDeleteScript(DeleteWifConfigOpts.TargetDir, &wifConfig)
+		err := createDeleteScript(DeleteWifConfigOpts.TargetDir, wifConfig)
 		if err != nil {
-			log.Fatalf("Failed to create script files: %s", err)
+			return errors.Wrapf(err, "failed to create script files")
 		}
-		return
+		return nil
 	}
 
 	gcpClient, err := gcp.NewGcpClient(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	if err := deleteServiceAccounts(ctx, gcpClient, &wifConfig, true); err != nil {
-		log.Fatal(err)
+	if err := deleteServiceAccounts(ctx, gcpClient, wifConfig, true); err != nil {
+		return err
 	}
 
-	if err := deleteWorkloadIdentityPool(ctx, gcpClient, &wifConfig, true); err != nil {
-		log.Fatal(err)
+	if err := deleteWorkloadIdentityPool(ctx, gcpClient, wifConfig, true); err != nil {
+		return err
 	}
 
-	err = ocmClient.DeleteWifConfig(wifConfigId)
+	_, err = connection.ClustersMgmt().V1().GCP().WifConfigs().
+		WifConfig(wifConfigId).
+		Delete().
+		Send()
 	if err != nil {
-		log.Fatal(err)
+		return errors.Wrapf(err, "failed to delete wif config %q", wifConfigId)
 	}
+	return nil
 }
 
 func deleteServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient,
-	wifConfig *models.WifConfigOutput, allowMissing bool) error {
+	wifConfig *cmv1.WifConfig, allowMissing bool) error {
 	log.Println("Deleting service accounts...")
-	projectId := wifConfig.Spec.ProjectId
+	projectId := wifConfig.Gcp().ProjectId()
 
-	for _, serviceAccount := range wifConfig.Status.ServiceAccounts {
-		serviceAccountID := serviceAccount.Id
+	for _, serviceAccount := range wifConfig.Gcp().ServiceAccounts() {
+		serviceAccountID := serviceAccount.ServiceAccountId()
 		log.Println("Deleting service account", serviceAccountID)
 		err := gcpClient.DeleteServiceAccount(serviceAccountID, projectId, allowMissing)
 		if err != nil {
-			return errors.Wrapf(err, "Failed to delete service account %s", serviceAccountID)
+			return errors.Wrapf(err, "Failed to delete service account %q", serviceAccountID)
 		}
 	}
 
@@ -117,24 +123,22 @@ func deleteServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient,
 }
 
 func deleteWorkloadIdentityPool(ctx context.Context, gcpClient gcp.GcpClient,
-	wifConfig *models.WifConfigOutput, allowMissing bool) error {
+	wifConfig *cmv1.WifConfig, allowMissing bool) error {
 	log.Println("Deleting workload identity pool...")
-	projectId := wifConfig.Spec.ProjectId
-	poolName := wifConfig.Status.WorkloadIdentityPoolData.PoolId
+	projectId := wifConfig.Gcp().ProjectId()
+	poolName := wifConfig.Gcp().WorkloadIdentityPool().PoolId()
 	poolResource := fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s", projectId, poolName)
 
 	_, err := gcpClient.DeleteWorkloadIdentityPool(ctx, poolResource)
 	if err != nil {
-		pApiError, ok := err.(*apierror.APIError)
-		if ok {
-			if pApiError.GRPCStatus().Code() == codes.NotFound && allowMissing {
-				log.Printf("Workload identity pool %s not found", poolName)
-				return nil
-			}
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
+			strings.Contains(gerr.Message, "Requested entity was not found") && allowMissing {
+			log.Printf("Workload identity pool %q not found", poolName)
+			return nil
 		}
-		return errors.Wrapf(err, "Failed to delete workload identity pool %s", poolName)
+		return errors.Wrapf(err, "Failed to delete workload identity pool %q", poolName)
 	}
 
-	log.Printf("Workload identity pool %s deleted", poolName)
+	log.Printf("Workload identity pool %q deleted", poolName)
 	return nil
 }

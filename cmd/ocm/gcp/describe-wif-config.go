@@ -2,59 +2,60 @@ package gcp
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"text/tabwriter"
 
-	alphaocm "github.com/openshift-online/ocm-cli/pkg/alpha_ocm"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 // NewDescribeWorkloadIdentityConfiguration provides the "gcp describe wif-config" subcommand
 func NewDescribeWorkloadIdentityConfiguration() *cobra.Command {
 	describeWorkloadIdentityPoolCmd := &cobra.Command{
-		Use:              "wif-config [ID]",
-		Short:            "Show details of a wif-config.",
-		Run:              describeWorkloadIdentityConfigurationCmd,
-		PersistentPreRun: validationForDescribeWorkloadIdentityConfigurationCmd,
+		Use:     "wif-config [ID]",
+		Short:   "Show details of a wif-config.",
+		RunE:    describeWorkloadIdentityConfigurationCmd,
+		PreRunE: validationForDescribeWorkloadIdentityConfigurationCmd,
 	}
 
 	return describeWorkloadIdentityPoolCmd
 }
 
-func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	id, err := urls.Expand(argv)
 	if err != nil {
-		log.Fatalf("could not create URI: %v", err)
+		return errors.Wrapf(err, "could not create URI")
 	}
 
 	// Create the client for the OCM API:
-	ocmClient, err := alphaocm.NewOcmClient()
+	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		log.Fatalf("failed to create backend client: %v", err)
+		return errors.Wrapf(err, "Failed to create OCM connection")
 	}
+	defer connection.Close()
 
-	wifconfig, err := ocmClient.GetWifConfig(id)
+	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(id).Get().Send()
 	if err != nil {
-		log.Fatalf("failed to get wif-config: %v", err)
+		return errors.Wrapf(err, "failed to get wif-config")
 	}
+	wifConfig := response.Body()
 
 	// Print output
 	w := tabwriter.NewWriter(os.Stdout, 8, 0, 2, ' ', 0)
 
-	fmt.Fprintf(w, "ID:\t%s\n", wifconfig.Metadata.Id)
-	fmt.Fprintf(w, "Display Name:\t%s\n", wifconfig.Metadata.DisplayName)
-	fmt.Fprintf(w, "Project:\t%s\n", wifconfig.Spec.ProjectId)
-	fmt.Fprintf(w, "State:\t%s\n", wifconfig.Status.State)
-	fmt.Fprintf(w, "Summary:\t%s\n", wifconfig.Status.Summary)
-	fmt.Fprintf(w, "Issuer URL:\t%s\n", wifconfig.Status.WorkloadIdentityPoolData.IssuerUrl)
+	fmt.Fprintf(w, "ID:\t%s\n", wifConfig.ID())
+	fmt.Fprintf(w, "Display Name:\t%s\n", wifConfig.DisplayName())
+	fmt.Fprintf(w, "Project:\t%s\n", wifConfig.Gcp().ProjectId())
+	fmt.Fprintf(w, "Issuer URL:\t%s\n", wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl())
 
-	w.Flush()
+	return w.Flush()
 }
 
-func validationForDescribeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) {
+func validationForDescribeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	if len(argv) != 1 {
-		log.Fatalf("Expected exactly one command line parameters containing the id of the WIF config.")
+		return fmt.Errorf("Expected exactly one command line parameters containing the id of the WIF config")
 	}
+	return nil
 }

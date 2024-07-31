@@ -3,7 +3,6 @@ package gcp
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
@@ -11,7 +10,9 @@ import (
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 )
 
-// EnsurePolicyBindingsForProject ensures that given roles and member, appropriate binding is added to project
+// EnsurePolicyBindingsForProject ensures that given roles and member, appropriate binding is added to project.
+// Roles should be in the format projects/{project}/roles/{role_id} for custom roles and roles/{role_id}
+// for predefined roles.
 func EnsurePolicyBindingsForProject(gcpClient gcp.GcpClient, roles []string, member string, projectName string) error {
 	needPolicyUpdate := false
 
@@ -88,27 +89,27 @@ func setProjectIamPolicy(gcpClient gcp.GcpClient, policy *cloudresourcemanager.P
 
 /* Custom Role Creation */
 
-// GetRole fetches the role created to satisfy a credentials request
-func GetRole(gcpClient gcp.GcpClient, roleID, projectName string) (*adminpb.Role, error) {
-	log.Printf("role id %v", roleID)
+// GetRole fetches the role created to satisfy a credentials request.
+// Custom roles should follow the format projects/{project}/roles/{role_id}.
+func GetRole(gcpClient gcp.GcpClient, roleName string) (*adminpb.Role, error) {
 	role, err := gcpClient.GetRole(context.TODO(), &adminpb.GetRoleRequest{
-		Name: fmt.Sprintf("projects/%s/roles/%s", projectName, roleID),
+		Name: roleName,
 	})
 	return role, err
 }
 
 // CreateRole creates a new role given permissions
-func CreateRole(gcpClient gcp.GcpClient, permissions []string, roleName, roleID, roleDescription,
+func CreateRole(gcpClient gcp.GcpClient, permissions []string, roleTitle, roleId, roleDescription,
 	projectName string) (*adminpb.Role, error) {
 	role, err := gcpClient.CreateRole(context.TODO(), &adminpb.CreateRoleRequest{
 		Role: &adminpb.Role{
-			Title:               roleName,
+			Title:               roleTitle,
 			Description:         roleDescription,
 			IncludedPermissions: permissions,
 			Stage:               adminpb.Role_GA,
 		},
 		Parent: fmt.Sprintf("projects/%s", projectName),
-		RoleId: roleID,
+		RoleId: roleId,
 	})
 	if err != nil {
 		return nil, err
@@ -116,16 +117,17 @@ func CreateRole(gcpClient gcp.GcpClient, permissions []string, roleName, roleID,
 	return role, nil
 }
 
-// UpdateRole updates an existing role given permissions
+// UpdateRole updates an existing role given permissions.
+// Custom roles should follow the format projects/{project}/roles/{role_id}.
 func UpdateRole(gcpClient gcp.GcpClient, role *adminpb.Role, roleName string) (*adminpb.Role, error) {
-	role, err := gcpClient.UpdateRole(context.TODO(), &adminpb.UpdateRoleRequest{
+	updated, err := gcpClient.UpdateRole(context.TODO(), &adminpb.UpdateRoleRequest{
 		Name: roleName,
 		Role: role,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return role, nil
+	return updated, nil
 }
 
 // DeleteRole deletes the role created to satisfy a credentials request
