@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/googleapis/gax-go/v2/apierror"
@@ -70,7 +71,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	}
 
 	log.Println("Creating workload identity configuration...")
-	wifConfig, err := createWorkloadIdentityConfiguration(CreateWifConfigOpts.Name, CreateWifConfigOpts.Project)
+	wifConfig, err := createWorkloadIdentityConfiguration(gcpClient, CreateWifConfigOpts.Name, CreateWifConfigOpts.Project)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create WIF config")
 	}
@@ -138,7 +139,13 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 	return nil
 }
 
-func createWorkloadIdentityConfiguration(displayName, projectId string) (*cmv1.WifConfig, error) {
+func createWorkloadIdentityConfiguration(client gcp.GcpClient, displayName, projectId string) (*cmv1.WifConfig, error) {
+
+	projectNum, err := client.ProjectNumberFromId(projectId)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get GCP project number from project id")
+	}
+
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create OCM connection")
@@ -146,7 +153,9 @@ func createWorkloadIdentityConfiguration(displayName, projectId string) (*cmv1.W
 	defer connection.Close()
 
 	wifBuilder := cmv1.NewWifConfig()
-	gcpBuilder := cmv1.NewWifGcp().ProjectId(projectId)
+	gcpBuilder := cmv1.NewWifGcp().
+		ProjectId(projectId).
+		ProjectNumber(strconv.FormatInt(projectNum, 10))
 
 	wifBuilder.DisplayName(displayName)
 	wifBuilder.Gcp(gcpBuilder)
