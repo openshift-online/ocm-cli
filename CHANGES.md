@@ -3,6 +3,33 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.75 Aug 8 2024
+
+-416843e OSD-24332 Adding CNI Type to the printed output.
+-ca71863 Introduce gcp WIF sub-commands to manage wif-configs (#619)
+-5f9697b multi arch release images (#631)
+-951d7cd Red Hat Konflux update ocm-cli (#633)
+-2604647 Limit Konflux Pipeline Runs (#634)
+-9645301 Update Konflux references (#635)
+-c797dfb Update Konflux references to 0dc3087
+-28b521d support hermetic build (#636)
+-3117d6b Update Konflux references to 9eee3cf
+-d228140 Update Konflux references to 71270c3
+-0ff233b update konflux pipeline (#641)
+-ae2093b Update Konflux references
+-2ae4aa0 Update Konflux references
+-bdd172b Update Konflux references to f93024e
+-d750acc Red Hat Konflux update ocm-cli Signed-off-by: red-hat-konflux <konflux@no-reply.konflux-ci.dev>
+-0bbcf6e Update Konflux references
+-21ff6b8 Replace wif models and client with sdk (#643)
+-c3d52e2 Update Konflux build (#651)
+-8073ef8 release_version (#652)
+-e9a014d Update Konflux references
+-78317e9 Add 'wif-config' flag as cluster create option
+-49f4e41 Set project number on wif config creation
+-e441c1b Update Konflux references
+-ca8d9db Support listing and parameters in 'gcp get wif-config' (#656)
+
 ## 0.1.74 Jul 2 2024
 
 - 3423d52 OCM-1888: Add docs for ocm delete account subcommands and arguments
