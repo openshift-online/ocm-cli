@@ -131,6 +131,7 @@ func setWifConfigOption(id, name string) string {
 	return fmt.Sprintf("%s (%s)", name, id)
 }
 
+// Returns the name of the WIF config from the option
 func parseWifConfigOption(wifConfigOption string) string {
 	return strings.Split(wifConfigOption, " ")[0]
 }
@@ -1405,7 +1406,21 @@ func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
 }
 
 func promptWifConfig(fs *pflag.FlagSet, connection *sdk.Connection) error {
-	wifConfigs, err := provider.GetWifConfigs(connection.ClustersMgmt().V1())
+	flag := fs.Lookup("wif-config")
+
+	// if the flag was set, validate the value
+	if flag.Changed {
+		wifKey := flag.Value.String()
+		wifConfig, err := provider.GetWifConfig(connection.ClustersMgmt().V1(), wifKey)
+		if err != nil {
+			return err
+		}
+		args.gcpAuthentication.Id = wifConfig.ID()
+		return nil
+	}
+
+	// if the flag was not set, prompt the user
+	wifConfigs, err := provider.GetUnusedWifConfigs(connection.ClustersMgmt().V1())
 	if err != nil {
 		return err
 	}
@@ -1417,16 +1432,13 @@ func promptWifConfig(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	if err != nil {
 		return err
 	}
-	if args.interactive {
-		args.gcpWifConfig = parseWifConfigOption(args.gcpWifConfig)
-	}
+	args.gcpWifConfig = parseWifConfigOption(args.gcpWifConfig)
 
 	// map wif name to wif id
 	wifMapping := map[string]string{}
 	for _, wc := range wifConfigs {
 		wifMapping[wc.DisplayName()] = wc.ID()
 	}
-
 	args.gcpAuthentication.Id = wifMapping[args.gcpWifConfig]
 	return nil
 }
