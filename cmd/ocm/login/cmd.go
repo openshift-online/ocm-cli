@@ -330,7 +330,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.Insecure = args.insecure
 
 	// Create a connection and get the token to verify that the crendentials are correct:
-	connection, err := ocm.NewConnection().Config(cfg).WithApiUrl(gatewayURL).Build()
+	connection, err := ocm.NewConnection().Config(cfg).Build()
 	if err != nil {
 		return fmt.Errorf("Can't create connection: %v", err)
 	}
