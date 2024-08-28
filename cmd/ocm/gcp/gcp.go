@@ -9,6 +9,7 @@ type options struct {
 	Region                   string
 	Name                     string
 	Project                  string
+	RolePrefix               string
 	WorkloadIdentityPool     string
 	WorkloadIdentityProvider string
 	DryRun                   bool

@@ -27,10 +27,11 @@ import (
 var (
 	// CreateWifConfigOpts captures the options that affect creation of the workload identity configuration
 	CreateWifConfigOpts = options{
-		DryRun:    false,
-		Name:      "",
-		Project:   "",
-		TargetDir: "",
+		DryRun:     false,
+		Name:       "",
+		Project:    "",
+		RolePrefix: "",
+		TargetDir:  "",
 	}
 )
 
@@ -54,6 +55,8 @@ func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.Project, "project", "",
 		"ID of the Google cloud project")
 	createWifConfigCmd.MarkPersistentFlagRequired("project")
+	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.RolePrefix, "role-prefix", "",
+		"Prefix for naming custom roles")
 	createWifConfigCmd.PersistentFlags().BoolVar(&CreateWifConfigOpts.DryRun, "dry-run", false,
 		"Skip creating objects, and just save what would have been created into files")
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.TargetDir, "output-dir", "",
@@ -157,9 +160,12 @@ func createWorkloadIdentityConfiguration(client gcp.GcpClient, displayName, proj
 		ProjectId(projectId).
 		ProjectNumber(strconv.FormatInt(projectNum, 10))
 
-	wifBuilder.DisplayName(displayName)
+	if CreateWifConfigOpts.RolePrefix != "" {
+		gcpBuilder.RolePrefix(CreateWifConfigOpts.RolePrefix)
+	}
 	wifBuilder.Gcp(gcpBuilder)
 
+	wifBuilder.DisplayName(displayName)
 	wifConfigInput, err := wifBuilder.Build()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build WIF config")
