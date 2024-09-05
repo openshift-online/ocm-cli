@@ -367,6 +367,9 @@ func createServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient, wifConf
 				return errors.Wrapf(err, "Failed to attach workload identity pool to service account %s",
 					serviceAccount.ServiceAccountId())
 			}
+		case cmv1.WifAccessMethodVm:
+			// Service accounts with the "vm" access method require no external access
+			continue
 		default:
 			log.Printf("Warning: %s is not a supported access type\n", serviceAccount.AccessMethod())
 		}
