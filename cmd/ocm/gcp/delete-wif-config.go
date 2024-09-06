@@ -113,7 +113,7 @@ func deleteServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient,
 	for _, serviceAccount := range wifConfig.Gcp().ServiceAccounts() {
 		serviceAccountID := serviceAccount.ServiceAccountId()
 		log.Println("Deleting service account", serviceAccountID)
-		err := gcpClient.DeleteServiceAccount(serviceAccountID, projectId, allowMissing)
+		err := gcpClient.DeleteServiceAccount(ctx, serviceAccountID, projectId, allowMissing)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to delete service account %q", serviceAccountID)
 		}
