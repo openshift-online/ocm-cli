@@ -68,7 +68,7 @@ func generateCreateScriptCmd(cmd *cobra.Command, argv []string) error {
 	}
 	wifConfig := response.Body()
 
-	projectNum, err := gcpClient.ProjectNumberFromId(ctx, wifConfig.Gcp().ProjectId())
+	projectNum, err := gcpClient.ProjectNumberFromId(wifConfig.Gcp().ProjectId())
 	if err != nil {
 		return errors.Wrapf(err, "failed to get project number from id")
 	}
