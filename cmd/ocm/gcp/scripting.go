@@ -79,6 +79,8 @@ func generateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
 	// Append the script to create the service accounts
 	scriptContent += createServiceAccountScriptContent(wifConfig, projectNum)
 
+	scriptContent += grantSupportAccessScriptContent(wifConfig)
+
 	return scriptContent
 }
 
@@ -181,6 +183,40 @@ func createServiceAccountScriptContent(wifConfig *cmv1.WifConfig, projectNum int
 			//nolint:lll
 			sb.WriteString(fmt.Sprintf("gcloud iam service-accounts add-iam-policy-binding %s --member=%s --role=roles/iam.serviceAccountTokenCreator --project=%s\n",
 				serviceAccount, impersonator, wifConfig.Gcp().ProjectId()))
+		}
+	}
+	return sb.String()
+}
+
+func grantSupportAccessScriptContent(wifConfig *cmv1.WifConfig) string {
+	var sb strings.Builder
+
+	sb.WriteString("\n# Create roles:\n")
+	for _, role := range wifConfig.Gcp().Support().Roles() {
+		if !role.Predefined() {
+			roleId := strings.ReplaceAll(role.RoleId(), "-", "_")
+			project := wifConfig.Gcp().ProjectId()
+			permissions := strings.Join(role.Permissions(), ",")
+			roleName := roleId
+			roleDesc := roleDescription + " for WIF config " + wifConfig.DisplayName()
+			//nolint:lll
+			sb.WriteString(fmt.Sprintf("gcloud iam roles create %s --project=%s --title=%s --description=\"%s\" --stage=GA --permissions=%s\n",
+				roleId, project, roleName, roleDesc, permissions))
+		}
+	}
+	sb.WriteString("\n# Bind support roles:\n")
+	for _, sa := range wifConfig.Gcp().ServiceAccounts() {
+		for _, role := range sa.Roles() {
+			project := wifConfig.Gcp().ProjectId()
+			member := fmt.Sprintf("group:%s@%s.iam.gserviceaccount.com", wifConfig.Gcp().Support().Principal(), project)
+			var roleResource string
+			if role.Predefined() {
+				roleResource = fmt.Sprintf("roles/%s", role.RoleId())
+			} else {
+				roleResource = fmt.Sprintf("projects/%s/roles/%s", project, role.RoleId())
+			}
+			sb.WriteString(fmt.Sprintf("gcloud projects add-iam-policy-binding %s --member=%s --role=%s\n",
+				project, member, roleResource))
 		}
 	}
 	return sb.String()
