@@ -17,11 +17,6 @@ import (
 )
 
 type GcpClient interface {
-	/*
-		ListServiceAccounts(ctx context.Context, project string, filter func(s string) bool) ([]string, error) //nolint:lll
-		DeleteRole(context.Context, *adminpb.DeleteRoleRequest) (*adminpb.Role, error)
-		ListRoles(context.Context, *adminpb.ListRolesRequest) (*adminpb.ListRolesResponse, error)
-	*/
 	AttachImpersonator(ctx context.Context, saId, projectId, impersonatorResourceId string) error
 	AttachWorkloadIdentityPool(ctx context.Context, sa *cmv1.WifServiceAccount, poolId, projectId string) error
 	CreateRole(context.Context, *adminpb.CreateRoleRequest) (*adminpb.Role, error)
@@ -32,6 +27,7 @@ type GcpClient interface {
 	DeleteWorkloadIdentityPool(ctx context.Context, resource string) (*iamv1.Operation, error)                                                            //nolint:lll
 	GetProjectIamPolicy(ctx context.Context, projectName string, request *cloudresourcemanager.GetIamPolicyRequest) (*cloudresourcemanager.Policy, error) //nolint:lll
 	GetRole(context.Context, *adminpb.GetRoleRequest) (*adminpb.Role, error)
+	GetServiceAccount(ctx context.Context, request *adminpb.GetServiceAccountRequest) (*adminpb.ServiceAccount, error)
 	GetWorkloadIdentityPool(ctx context.Context, resource string) (*iamv1.WorkloadIdentityPool, error)             //nolint:lll
 	GetWorkloadIdentityProvider(ctx context.Context, resource string) (*iamv1.WorkloadIdentityPoolProvider, error) //nolint:lll
 	ProjectNumberFromId(ctx context.Context, projectId string) (int64, error)
@@ -193,6 +189,13 @@ func (c *gcpClient) GetProjectIamPolicy(
 
 func (c *gcpClient) GetRole(ctx context.Context, request *adminpb.GetRoleRequest) (*adminpb.Role, error) {
 	return c.iamClient.GetRole(ctx, request)
+}
+
+func (c *gcpClient) GetServiceAccount(
+	ctx context.Context,
+	request *adminpb.GetServiceAccountRequest,
+) (*adminpb.ServiceAccount, error) {
+	return c.iamClient.GetServiceAccount(ctx, request)
 }
 
 //nolint:lll

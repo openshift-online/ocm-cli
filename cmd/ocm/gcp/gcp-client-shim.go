@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"github.com/googleapis/gax-go/v2/apierror"
@@ -16,6 +17,12 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
+	"github.com/openshift-online/ocm-cli/pkg/utils"
+)
+
+const (
+	maxRetries   = 10
+	retryDelayMs = 500
 )
 
 type GcpClientWifConfigShim interface {
@@ -287,11 +294,17 @@ func (c *shim) bindRolesToServiceAccount(
 	serviceAccountId := serviceAccount.ServiceAccountId()
 	roles := serviceAccount.Roles()
 
-	return c.bindRolesToPrincipal(
-		ctx,
-		fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountId, c.wifConfig.Gcp().ProjectId()),
-		roles,
-	)
+	// It was found that there is a window of time between when a service
+	// account creation call is made that the service account is not available
+	// in adjacent API calls. The call is therefore wrapped in retry logic to
+	// be robust to these types of synchronization issues.
+	return utils.DelayedRetry(func() error {
+		return c.bindRolesToPrincipal(
+			ctx,
+			fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountId, c.wifConfig.Gcp().ProjectId()),
+			roles,
+		)
+	}, maxRetries, retryDelayMs*time.Millisecond)
 }
 
 func (c *shim) bindRolesToGroup(
