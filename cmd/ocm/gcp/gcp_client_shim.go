@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"github.com/googleapis/gax-go/v2/apierror"
@@ -17,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
+	"github.com/openshift-online/ocm-cli/pkg/utils"
 )
 
 type GcpClientWifConfigShim interface {
@@ -142,7 +144,7 @@ func (c *shim) CreateServiceAccounts(
 	log *log.Logger,
 ) error {
 	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
-		if err := c.createServiceAccount(ctx, log, serviceAccount, c.wifConfig); err != nil {
+		if err := c.createServiceAccount(ctx, log, serviceAccount); err != nil {
 			return err
 		}
 		if err := c.createOrUpdateRoles(ctx, log, serviceAccount.Roles()); err != nil {
@@ -177,11 +179,10 @@ func (c *shim) createServiceAccount(
 	ctx context.Context,
 	log *log.Logger,
 	serviceAccount *cmv1.WifServiceAccount,
-	wifConfig *cmv1.WifConfig,
 ) error {
 	serviceAccountId := serviceAccount.ServiceAccountId()
-	serviceAccountName := wifConfig.DisplayName() + "-" + serviceAccountId
-	serviceAccountDesc := poolDescription + " for WIF config " + wifConfig.DisplayName()
+	serviceAccountName := c.wifConfig.DisplayName() + "-" + serviceAccountId
+	serviceAccountDesc := poolDescription + " for WIF config " + c.wifConfig.DisplayName()
 
 	request := &adminpb.CreateServiceAccountRequest{
 		Name:      fmt.Sprintf("projects/%s", c.wifConfig.Gcp().ProjectId()),
@@ -191,7 +192,7 @@ func (c *shim) createServiceAccount(
 			Description: serviceAccountDesc,
 		},
 	}
-	_, err := c.gcpClient.CreateServiceAccount(ctx, request)
+	createdServiceAccount, err := c.gcpClient.CreateServiceAccount(ctx, request)
 	if err != nil {
 		pApiError, ok := err.(*apierror.APIError)
 		if ok {
@@ -204,7 +205,21 @@ func (c *shim) createServiceAccount(
 		return errors.Wrap(err, "Failed to create IAM service account")
 	}
 	log.Printf("IAM service account %s created", serviceAccountId)
-	return nil
+
+	// It was found that there is a window of time between when a service
+	// account creation call is made that the service account is not
+	// available in API calls. This call waits until the service account is
+	// available before contiuing.
+	getRequest := &adminpb.GetServiceAccountRequest{
+		Name: fmt.Sprintf("projects/%s/serviceAccounts/%s",
+			c.wifConfig.Gcp().ProjectId(),
+			createdServiceAccount.UniqueId,
+		),
+	}
+	return utils.DelayedRetry(func() error {
+		_, err := c.gcpClient.GetServiceAccount(ctx, getRequest)
+		return err
+	}, 10, 500*time.Millisecond)
 }
 
 func (c *shim) createOrUpdateRoles(ctx context.Context, log *log.Logger, roles []*cmv1.WifRole) error {

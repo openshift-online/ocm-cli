@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"time"
 )
 
 // the following regex defines four different patterns:
@@ -89,4 +90,16 @@ func HasDuplicates(valSlice []string) (string, bool) {
 		visited[v] = true
 	}
 	return "", false
+}
+
+func DelayedRetry(f func() error, maxRetries int, delay time.Duration) error {
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		err = f()
+		if err == nil {
+			return nil
+		}
+		time.Sleep(delay)
+	}
+	return fmt.Errorf("Reached max retries. Last error: %s", err.Error())
 }
