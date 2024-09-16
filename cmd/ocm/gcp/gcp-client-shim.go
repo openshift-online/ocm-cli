@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
@@ -250,7 +249,7 @@ func (c *shim) createOrUpdateRoles(
 		}
 
 		// Update role if permissions have changed
-		if !reflect.DeepEqual(existingRole.IncludedPermissions, permissions) {
+		if c.roleRequiresUpdate(permissions, existingRole.IncludedPermissions) {
 			existingRole.IncludedPermissions = permissions
 			_, err := c.updateRole(ctx, existingRole, c.fmtRoleResourceId(role))
 			if err != nil {
@@ -260,6 +259,25 @@ func (c *shim) createOrUpdateRoles(
 		}
 	}
 	return nil
+}
+
+func (c *shim) roleRequiresUpdate(
+	newPermissions []string,
+	existingPermissions []string,
+) bool {
+	permissionMap := map[string]bool{}
+	for _, permission := range existingPermissions {
+		permissionMap[permission] = true
+	}
+	if len(permissionMap) != len(newPermissions) {
+		return true
+	}
+	for _, permission := range newPermissions {
+		if !permissionMap[permission] {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *shim) bindRolesToServiceAccount(
