@@ -87,7 +87,7 @@ func (c *shim) CreateWorkloadIdentityPool(
 			return errors.Wrapf(err, "failed to check if there is existing workload identity pool %s", poolId)
 		}
 	} else {
-		log.Printf("Workload identity pool %s already exists", poolId)
+		log.Printf("Workload identity pool %s exists", poolId)
 	}
 
 	return nil
@@ -137,7 +137,7 @@ func (c *shim) CreateWorkloadIdentityProvider(
 				providerId, poolId)
 		}
 	} else {
-		return errors.Errorf("workload identity provider %s already exists in pool %s", providerId, poolId)
+		log.Printf("Workload identity provider %s exists", providerId)
 	}
 
 	return nil
