@@ -6,7 +6,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	"github.com/openshift-online/ocm-cli/pkg/urls"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -14,7 +13,7 @@ import (
 // NewDescribeWorkloadIdentityConfiguration provides the "gcp describe wif-config" subcommand
 func NewDescribeWorkloadIdentityConfiguration() *cobra.Command {
 	describeWorkloadIdentityPoolCmd := &cobra.Command{
-		Use:     "wif-config [ID]",
+		Use:     "wif-config [ID|Name]",
 		Short:   "Show details of a wif-config.",
 		RunE:    describeWorkloadIdentityConfigurationCmd,
 		PreRunE: validationForDescribeWorkloadIdentityConfigurationCmd,
@@ -24,10 +23,7 @@ func NewDescribeWorkloadIdentityConfiguration() *cobra.Command {
 }
 
 func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	id, err := urls.Expand(argv)
-	if err != nil {
-		return errors.Wrapf(err, "could not create URI")
-	}
+	key := argv[0]
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
@@ -36,11 +32,11 @@ func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string)
 	}
 	defer connection.Close()
 
-	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(id).Get().Send()
+	// Verify the WIF configuration exists
+	wifConfig, err := findWifConfig(connection.ClustersMgmt().V1(), key)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get wif-config")
 	}
-	wifConfig := response.Body()
 
 	// Print output
 	w := tabwriter.NewWriter(os.Stdout, 8, 0, 2, ' ', 0)
@@ -54,8 +50,8 @@ func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string)
 }
 
 func validationForDescribeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	if len(argv) != 1 {
-		return fmt.Errorf("Expected exactly one command line parameters containing the id of the WIF config")
+	if err := wifKeyArgCheck(argv); err != nil {
+		return err
 	}
 	return nil
 }

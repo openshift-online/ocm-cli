@@ -28,8 +28,8 @@ func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 }
 
 func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	if len(argv) != 1 {
-		return fmt.Errorf("Expected exactly one command line parameters containing the id of the WIF config")
+	if err := wifKeyArgCheck(argv); err != nil {
+		return err
 	}
 	return nil
 }
@@ -37,16 +37,17 @@ func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
 	log := log.Default()
-	id := argv[0]
+	key := argv[0]
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create OCM connection")
 	}
+	defer connection.Close()
 
 	// Verify the WIF configuration exists
-	wifconfig, err := findWifConfig(connection.ClustersMgmt().V1(), id)
+	wifConfig, err := findWifConfig(connection.ClustersMgmt().V1(), key)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get wif-config")
 	}
@@ -59,7 +60,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	// Re-apply WIF resources
 	gcpClientWifConfigShim := NewGcpClientWifConfigShim(GcpClientWifConfigShimSpec{
 		GcpClient: gcpClient,
-		WifConfig: wifconfig,
+		WifConfig: wifConfig,
 	})
 
 	if err := gcpClientWifConfigShim.GrantSupportAccess(ctx, log); err != nil {

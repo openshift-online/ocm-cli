@@ -545,3 +545,12 @@ func (c *shim) createMemberRoleBindingForProject(
 		Role:    roleName,
 	})
 }
+
+// Checks for WIF config name or id in input
+func wifKeyArgCheck(args []string) error {
+	if len(args) != 1 || args[0] == "" {
+		return fmt.Errorf("expected exactly one command line parameters containing the name " +
+			"or ID of the WIF config")
+	}
+	return nil
+}

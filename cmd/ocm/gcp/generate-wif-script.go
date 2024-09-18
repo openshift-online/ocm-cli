@@ -2,7 +2,6 @@ package gcp
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
@@ -20,7 +19,7 @@ var (
 
 func NewGenerateCommand() *cobra.Command {
 	generateScriptCmd := &cobra.Command{
-		Use:     "generate [wif-config ID]",
+		Use:     "generate [wif-config ID|Name]",
 		Short:   "Generate script based on a wif-config",
 		Args:    cobra.ExactArgs(1),
 		RunE:    generateCreateScriptCmd,
@@ -34,39 +33,33 @@ func NewGenerateCommand() *cobra.Command {
 }
 
 func validationForGenerateCreateScriptCmd(cmd *cobra.Command, argv []string) error {
-	if len(argv) != 1 {
-		return fmt.Errorf(
-			"Expected exactly one command line parameters containing the id " +
-				"of the WIF config.",
-		)
+	if err := wifKeyArgCheck(argv); err != nil {
+		return err
 	}
 	return nil
 }
 
 func generateCreateScriptCmd(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
+	key := argv[0]
 
-	gcpClient, err := gcp.NewGcpClient(ctx)
-	if err != nil {
-		errors.Wrapf(err, "failed to initiate GCP client")
-	}
-
+	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create OCM connection")
 	}
 	defer connection.Close()
 
-	wifConfigId := argv[0]
-	if wifConfigId == "" {
-		return fmt.Errorf("WIF config ID is required")
+	gcpClient, err := gcp.NewGcpClient(ctx)
+	if err != nil {
+		errors.Wrapf(err, "failed to initiate GCP client")
 	}
 
-	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(wifConfigId).Get().Send()
+	// Verify the WIF configuration exists
+	wifConfig, err := findWifConfig(connection.ClustersMgmt().V1(), key)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get wif-config")
 	}
-	wifConfig := response.Body()
 
 	projectNum, err := gcpClient.ProjectNumberFromId(ctx, wifConfig.Gcp().ProjectId())
 	if err != nil {
