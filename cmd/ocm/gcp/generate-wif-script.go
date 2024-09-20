@@ -19,11 +19,10 @@ var (
 
 func NewGenerateCommand() *cobra.Command {
 	generateScriptCmd := &cobra.Command{
-		Use:     "generate [wif-config ID|Name]",
-		Short:   "Generate script based on a wif-config",
-		Args:    cobra.ExactArgs(1),
-		RunE:    generateCreateScriptCmd,
-		PreRunE: validationForGenerateCreateScriptCmd,
+		Use:   "generate [wif-config ID|Name]",
+		Short: "Generate script based on a wif-config",
+		Args:  cobra.ExactArgs(1),
+		RunE:  generateCreateScriptCmd,
 	}
 
 	generateScriptCmd.PersistentFlags().StringVar(&GenerateScriptOpts.TargetDir, "output-dir", "",
@@ -32,16 +31,12 @@ func NewGenerateCommand() *cobra.Command {
 	return generateScriptCmd
 }
 
-func validationForGenerateCreateScriptCmd(cmd *cobra.Command, argv []string) error {
-	if err := wifKeyArgCheck(argv); err != nil {
-		return err
-	}
-	return nil
-}
-
 func generateCreateScriptCmd(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
-	key := argv[0]
+	key, err := wifKeyFromArgs(argv)
+	if err != nil {
+		return err
+	}
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()

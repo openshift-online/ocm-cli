@@ -13,17 +13,19 @@ import (
 // NewDescribeWorkloadIdentityConfiguration provides the "gcp describe wif-config" subcommand
 func NewDescribeWorkloadIdentityConfiguration() *cobra.Command {
 	describeWorkloadIdentityPoolCmd := &cobra.Command{
-		Use:     "wif-config [ID|Name]",
-		Short:   "Show details of a wif-config.",
-		RunE:    describeWorkloadIdentityConfigurationCmd,
-		PreRunE: validationForDescribeWorkloadIdentityConfigurationCmd,
+		Use:   "wif-config [ID|Name]",
+		Short: "Show details of a wif-config.",
+		RunE:  describeWorkloadIdentityConfigurationCmd,
 	}
 
 	return describeWorkloadIdentityPoolCmd
 }
 
 func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	key := argv[0]
+	key, err := wifKeyFromArgs(argv)
+	if err != nil {
+		return err
+	}
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
@@ -47,11 +49,4 @@ func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string)
 	fmt.Fprintf(w, "Issuer URL:\t%s\n", wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl())
 
 	return w.Flush()
-}
-
-func validationForDescribeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	if err := wifKeyArgCheck(argv); err != nil {
-		return err
-	}
-	return nil
 }

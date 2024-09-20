@@ -42,15 +42,15 @@ func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 }
 
 func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	if err := wifKeyArgCheck(argv); err != nil {
-		return err
-	}
 	return nil
 }
 
 func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
-	key := argv[0]
+	key, err := wifKeyFromArgs(argv)
+	if err != nil {
+		return err
+	}
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
