@@ -8,6 +8,7 @@ archs=(amd64)
 oses=(darwin windows linux)
 
 REL_VER=$(git describe --tags --abbrev=0 | sed "s/v//")
+REL_VER=v0.1.75
 if [[ -z "$REL_VER" ]]; then
     echo "Failed to determine release version" 1>&2
     exit 1
