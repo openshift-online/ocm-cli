@@ -2,8 +2,11 @@ package gcp
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/pkg/errors"
 )
 
 // Checks for WIF config name or id in input
@@ -44,4 +47,31 @@ func findWifConfig(client *cmv1.Client, key string) (*cmv1.WifConfig, error) {
 		return nil, fmt.Errorf("there are %d WIF configurations found with identifier or name '%s'", response.Total(), key)
 	}
 	return response.Items().Slice()[0], nil
+}
+
+// getPathFromFlag validates the filepath
+func getPathFromFlag(targetDir string) (string, error) {
+	if targetDir == "" {
+		pwd, err := os.Getwd()
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to get current directory")
+		}
+
+		return pwd, nil
+	}
+
+	fPath, err := filepath.Abs(targetDir)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to resolve full path")
+	}
+
+	sResult, err := os.Stat(fPath)
+	if os.IsNotExist(err) {
+		return "", fmt.Errorf("directory %s does not exist", fPath)
+	}
+	if !sResult.IsDir() {
+		return "", fmt.Errorf("file %s exists and is not a directory", fPath)
+	}
+
+	return targetDir, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -11,18 +12,37 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var UpdateWifConfigOpts struct {
-}
+var (
+	UpdateWifConfigOpts = options{
+		DryRun:    false,
+		TargetDir: "",
+	}
+)
 
 // NewUpdateWorkloadIdentityConfiguration provides the "gcp update wif-config" subcommand
 func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 	updateWifConfigCmd := &cobra.Command{
-		Use:   "wif-config [ID|Name]",
-		Short: "Update wif-config.",
-		RunE:  updateWorkloadIdentityConfigurationCmd,
+		Use:     "wif-config [ID|Name]",
+		Short:   "Update wif-config.",
+		RunE:    updateWorkloadIdentityConfigurationCmd,
+		PreRunE: validationForUpdateWorkloadIdentityConfigurationCmd,
 	}
 
+	updateWifConfigCmd.PersistentFlags().BoolVar(&UpdateWifConfigOpts.DryRun, "dry-run", false,
+		"Skip creating objects, and just save what would have been created into files")
+	updateWifConfigCmd.PersistentFlags().StringVar(&UpdateWifConfigOpts.TargetDir, "output-dir", "",
+		"Directory to place generated files (defaults to current directory)")
+
 	return updateWifConfigCmd
+}
+
+func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
+	var err error
+	UpdateWifConfigOpts.TargetDir, err = getPathFromFlag(UpdateWifConfigOpts.TargetDir)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
@@ -49,6 +69,19 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	gcpClient, err := gcp.NewGcpClient(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "failed to initiate GCP client")
+	}
+
+	if UpdateWifConfigOpts.DryRun {
+		log.Printf("Writing script files to %s", UpdateWifConfigOpts.TargetDir)
+		projectNumInt64, err := strconv.ParseInt(wifConfig.Gcp().ProjectNumber(), 10, 64)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse project number from WifConfig")
+		}
+
+		if err := createUpdateScript(UpdateWifConfigOpts.TargetDir, wifConfig, projectNumInt64); err != nil {
+			return errors.Wrapf(err, "failed to generate script files")
+		}
+		return nil
 	}
 
 	// Re-apply WIF resources

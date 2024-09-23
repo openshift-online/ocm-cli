@@ -42,6 +42,11 @@ func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 }
 
 func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
+	var err error
+	DeleteWifConfigOpts.TargetDir, err = getPathFromFlag(DeleteWifConfigOpts.TargetDir)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
