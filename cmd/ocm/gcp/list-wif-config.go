@@ -24,7 +24,6 @@ func NewListWorkloadIdentityConfiguration() *cobra.Command {
 		Aliases: []string{"wif-configs"},
 		Short:   "List wif-configs.",
 		RunE:    listWorkloadIdentityConfigurationCmd,
-		PreRunE: validationForListWorkloadIdentityConfigurationCmd,
 	}
 
 	fs := listWorkloadIdentityPoolCmd.Flags()
@@ -42,11 +41,6 @@ func NewListWorkloadIdentityConfiguration() *cobra.Command {
 	)
 
 	return listWorkloadIdentityPoolCmd
-}
-
-func validationForListWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	// No validation needed
-	return nil
 }
 
 func listWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {

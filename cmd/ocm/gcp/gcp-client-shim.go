@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -86,8 +87,6 @@ func (c *shim) CreateWorkloadIdentityPool(
 		} else {
 			return errors.Wrapf(err, "failed to check if there is existing workload identity pool %s", poolId)
 		}
-	} else {
-		log.Printf("Workload identity pool %s already exists", poolId)
 	}
 
 	return nil
@@ -136,8 +135,6 @@ func (c *shim) CreateWorkloadIdentityProvider(
 			return errors.Wrapf(err, "failed to check if there is existing workload identity provider %s in pool %s",
 				providerId, poolId)
 		}
-	} else {
-		return errors.Errorf("workload identity provider %s already exists in pool %s", providerId, poolId)
 	}
 
 	return nil
@@ -175,7 +172,6 @@ func (c *shim) GrantSupportAccess(
 	if err := c.bindRolesToGroup(ctx, support.Principal(), support.Roles()); err != nil {
 		return err
 	}
-	log.Printf("support access granted to %s", support.Principal())
 	return nil
 }
 
@@ -255,9 +251,11 @@ func (c *shim) createOrUpdateRoles(
 			log.Printf("Role %q undeleted", roleID)
 		}
 
-		// Update role if permissions have changed
-		if c.roleRequiresUpdate(permissions, existingRole.IncludedPermissions) {
-			existingRole.IncludedPermissions = permissions
+		if addedPermissions, needsUpdate := c.missingPermissions(permissions, existingRole.IncludedPermissions); needsUpdate {
+			// Add missing permissions
+			existingRole.IncludedPermissions = append(existingRole.IncludedPermissions, addedPermissions...)
+			sort.Strings(existingRole.IncludedPermissions)
+
 			_, err := c.updateRole(ctx, existingRole, c.fmtRoleResourceId(role))
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("Failed to update %s", roleID))
@@ -268,23 +266,27 @@ func (c *shim) createOrUpdateRoles(
 	return nil
 }
 
-func (c *shim) roleRequiresUpdate(
+// missingPermissions returns true if there are new permissions that are not in the existing permissions
+// and returns the list of missing permissions
+func (c *shim) missingPermissions(
 	newPermissions []string,
 	existingPermissions []string,
-) bool {
+) ([]string, bool) {
+	missing := []string{}
 	permissionMap := map[string]bool{}
 	for _, permission := range existingPermissions {
 		permissionMap[permission] = true
 	}
-	if len(permissionMap) != len(newPermissions) {
-		return true
-	}
 	for _, permission := range newPermissions {
 		if !permissionMap[permission] {
-			return true
+			missing = append(missing, permission)
 		}
 	}
-	return false
+	if len(missing) > 0 {
+		return missing, true
+	} else {
+		return missing, false
+	}
 }
 
 func (c *shim) bindRolesToServiceAccount(

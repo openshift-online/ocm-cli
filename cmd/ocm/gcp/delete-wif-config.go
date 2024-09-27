@@ -27,7 +27,7 @@ var (
 // NewDeleteWorkloadIdentityConfiguration provides the "gcp delete wif-config" subcommand
 func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 	deleteWifConfigCmd := &cobra.Command{
-		Use:     "wif-config [ID]",
+		Use:     "wif-config [ID|Name]",
 		Short:   "Delete workload identity configuration",
 		RunE:    deleteWorkloadIdentityConfigurationCmd,
 		PreRunE: validationForDeleteWorkloadIdentityConfigurationCmd,
@@ -42,21 +42,19 @@ func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 }
 
 func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	if len(argv) != 1 {
-		return fmt.Errorf(
-			"expected exactly one command line parameters containing the id " +
-				"of the WIF config",
-		)
+	var err error
+	DeleteWifConfigOpts.TargetDir, err = getPathFromFlag(DeleteWifConfigOpts.TargetDir)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
-
-	wifConfigId := argv[0]
-	if wifConfigId == "" {
-		return fmt.Errorf("WIF config ID is required")
+	key, err := wifKeyFromArgs(argv)
+	if err != nil {
+		return err
 	}
 
 	// Create the client for the OCM API:
@@ -66,11 +64,11 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	}
 	defer connection.Close()
 
-	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(wifConfigId).Get().Send()
+	// Verify the WIF configuration exists
+	wifConfig, err := findWifConfig(connection.ClustersMgmt().V1(), key)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get wif-config")
 	}
-	wifConfig := response.Body()
 
 	if DeleteWifConfigOpts.DryRun {
 		log.Printf("Writing script files to %s", DeleteWifConfigOpts.TargetDir)
@@ -96,11 +94,11 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	}
 
 	_, err = connection.ClustersMgmt().V1().GCP().WifConfigs().
-		WifConfig(wifConfigId).
+		WifConfig(wifConfig.ID()).
 		Delete().
 		Send()
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete wif config %q", wifConfigId)
+		return errors.Wrapf(err, "failed to delete wif config %q", wifConfig.ID())
 	}
 	return nil
 }

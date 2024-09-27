@@ -9,10 +9,28 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
-func createScript(targetDir string, wifConfig *cmv1.WifConfig, projectNum int64) error {
+const bashShebang = "#!/bin/bash\n"
+
+func createCreateScript(targetDir string, wifConfig *cmv1.WifConfig, projectNum int64) error {
 	// Write the script content to the path
-	scriptContent := generateScriptContent(wifConfig, projectNum)
-	err := os.WriteFile(filepath.Join(targetDir, "script.sh"), []byte(scriptContent), 0600)
+	scriptContent := generateCreateScriptContent(wifConfig, projectNum)
+	err := os.WriteFile(filepath.Join(targetDir, "create.sh"), []byte(scriptContent), 0600)
+	if err != nil {
+		return err
+	}
+	// Write jwk json file to the path
+	jwkPath := filepath.Join(targetDir, "jwk.json")
+	err = os.WriteFile(jwkPath, []byte(wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().Jwks()), 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createUpdateScript(targetDir string, wifConfig *cmv1.WifConfig, projectNum int64) error {
+	// Write the script content to the path
+	scriptContent := generateUpdateScriptContent(wifConfig, projectNum)
+	err := os.WriteFile(filepath.Join(targetDir, "apply.sh"), []byte(scriptContent), 0600)
 	if err != nil {
 		return err
 	}
@@ -36,7 +54,7 @@ func createDeleteScript(targetDir string, wifConfig *cmv1.WifConfig) error {
 }
 
 func generateDeleteScriptContent(wifConfig *cmv1.WifConfig) string {
-	scriptContent := "#!/bin/bash\n"
+	scriptContent := bashShebang
 
 	// Append the script to delete the service accounts
 	scriptContent += deleteServiceAccountScriptContent(wifConfig)
@@ -67,8 +85,8 @@ gcloud iam workload-identity-pools delete %s --project=%s --location=global
 `, pool.PoolId(), wifConfig.Gcp().ProjectId())
 }
 
-func generateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
-	scriptContent := "#!/bin/bash\n"
+func generateCreateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
+	scriptContent := bashShebang
 
 	// Create a script to create the workload identity pool
 	scriptContent += createIdentityPoolScriptContent(wifConfig)
@@ -78,6 +96,23 @@ func generateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
 
 	// Append the script to create the service accounts
 	scriptContent += createServiceAccountScriptContent(wifConfig, projectNum)
+
+	scriptContent += grantSupportAccessScriptContent(wifConfig)
+
+	return scriptContent
+}
+
+func generateUpdateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
+	scriptContent := bashShebang
+
+	// Create a script to create the workload identity pool
+	scriptContent += createIdentityPoolScriptContent(wifConfig)
+
+	// Append the script to create the identity provider
+	scriptContent += createIdentityProviderScriptContent(wifConfig)
+
+	// Append the script to create/update the service accounts
+	scriptContent += updateServiceAccountScriptContent(wifConfig, projectNum)
 
 	scriptContent += grantSupportAccessScriptContent(wifConfig)
 
@@ -125,6 +160,44 @@ func createServiceAccountScriptContent(wifConfig *cmv1.WifConfig, projectNum int
 	var sb strings.Builder
 
 	sb.WriteString("\n# Create service accounts:\n")
+	sb.WriteString(createServiceAccountScript(wifConfig))
+
+	sb.WriteString("\n# Create custom roles for service accounts:\n")
+	sb.WriteString(createCustomRoleScript(wifConfig))
+
+	sb.WriteString("\n# Bind roles to service accounts:\n")
+	sb.WriteString(addRoleBindingsScript(wifConfig))
+
+	sb.WriteString("\n# Grant access to service accounts:\n")
+	sb.WriteString(grantServiceAccountAccessScript(wifConfig, projectNum))
+
+	return sb.String()
+}
+
+func updateServiceAccountScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
+	// For each service account, create a service account and bind it to the workload identity pool
+	var sb strings.Builder
+
+	sb.WriteString("\n# Create service accounts:\n")
+	sb.WriteString(createServiceAccountScript(wifConfig))
+
+	sb.WriteString("\n# Create custom roles for service accounts:\n")
+	sb.WriteString(createCustomRoleScript(wifConfig))
+
+	sb.WriteString("\n# Update custom roles for service accounts:\n")
+	sb.WriteString(updateCustomRolesScript(wifConfig))
+
+	sb.WriteString("\n# Bind roles to service accounts:\n")
+	sb.WriteString(addRoleBindingsScript(wifConfig))
+
+	sb.WriteString("\n# Grant access to service accounts:\n")
+	sb.WriteString(grantServiceAccountAccessScript(wifConfig, projectNum))
+
+	return sb.String()
+}
+
+func createServiceAccountScript(wifConfig *cmv1.WifConfig) string {
+	var sb strings.Builder
 	for _, sa := range wifConfig.Gcp().ServiceAccounts() {
 		project := wifConfig.Gcp().ProjectId()
 		serviceAccountID := sa.ServiceAccountId()
@@ -134,11 +207,15 @@ func createServiceAccountScriptContent(wifConfig *cmv1.WifConfig, projectNum int
 		sb.WriteString(fmt.Sprintf("gcloud iam service-accounts create %s --display-name=%s --description=\"%s\" --project=%s\n",
 			serviceAccountID, serviceAccountName, serviceAccountDesc, project))
 	}
-	sb.WriteString("\n# Create custom roles for service accounts:\n")
+	return sb.String()
+}
+
+func createCustomRoleScript(wifConfig *cmv1.WifConfig) string {
+	var sb strings.Builder
 	for _, sa := range wifConfig.Gcp().ServiceAccounts() {
 		for _, role := range sa.Roles() {
 			if !role.Predefined() {
-				roleId := strings.ReplaceAll(role.RoleId(), "-", "_")
+				roleId := role.RoleId()
 				project := wifConfig.Gcp().ProjectId()
 				permissions := strings.Join(role.Permissions(), ",")
 				roleName := roleId
@@ -149,7 +226,27 @@ func createServiceAccountScriptContent(wifConfig *cmv1.WifConfig, projectNum int
 			}
 		}
 	}
-	sb.WriteString("\n# Bind roles to service accounts:\n")
+	return sb.String()
+}
+
+func updateCustomRolesScript(wifConfig *cmv1.WifConfig) string {
+	var sb strings.Builder
+	for _, sa := range wifConfig.Gcp().ServiceAccounts() {
+		for _, role := range sa.Roles() {
+			if !role.Predefined() {
+				project := wifConfig.Gcp().ProjectId()
+				permissions := strings.Join(role.Permissions(), ",")
+				//nolint:lll
+				sb.WriteString(fmt.Sprintf("gcloud iam roles update %s --project=%s --permissions=%s\n",
+					role.RoleId(), project, permissions))
+			}
+		}
+	}
+	return sb.String()
+}
+
+func addRoleBindingsScript(wifConfig *cmv1.WifConfig) string {
+	var sb strings.Builder
 	for _, sa := range wifConfig.Gcp().ServiceAccounts() {
 		for _, role := range sa.Roles() {
 			project := wifConfig.Gcp().ProjectId()
@@ -164,7 +261,11 @@ func createServiceAccountScriptContent(wifConfig *cmv1.WifConfig, projectNum int
 				project, member, roleResource))
 		}
 	}
-	sb.WriteString("\n# Grant access to service accounts:\n")
+	return sb.String()
+}
+
+func grantServiceAccountAccessScript(wifConfig *cmv1.WifConfig, projectNum int64) string {
+	var sb strings.Builder
 	for _, sa := range wifConfig.Gcp().ServiceAccounts() {
 		if sa.AccessMethod() == "wif" {
 			project := wifConfig.Gcp().ProjectId()
@@ -198,13 +299,16 @@ func grantSupportAccessScriptContent(wifConfig *cmv1.WifConfig) string {
 	sb.WriteString("\n# Create custom roles for support:\n")
 	for _, role := range roles {
 		if !role.Predefined() {
-			roleId := strings.ReplaceAll(role.RoleId(), "-", "_")
+			roleId := role.RoleId()
 			permissions := strings.Join(role.Permissions(), ",")
 			roleName := roleId
 			roleDesc := roleDescription + " for WIF config " + wifConfig.DisplayName()
 			//nolint:lll
 			sb.WriteString(fmt.Sprintf("gcloud iam roles create %s --project=%s --title=%s --description=\"%s\" --stage=GA --permissions=%s\n",
 				roleId, project, roleName, roleDesc, permissions))
+			//nolint:lll
+			sb.WriteString(fmt.Sprintf("gcloud iam roles update %s --project=%s --permissions=%s\n",
+				roleId, project, permissions))
 		}
 	}
 

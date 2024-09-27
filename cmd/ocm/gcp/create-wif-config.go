@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
@@ -65,26 +63,10 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 		return fmt.Errorf("Project is required")
 	}
 
-	if CreateWifConfigOpts.TargetDir == "" {
-		pwd, err := os.Getwd()
-		if err != nil {
-			return errors.Wrapf(err, "failed to get current directory")
-		}
-
-		CreateWifConfigOpts.TargetDir = pwd
-	}
-
-	fPath, err := filepath.Abs(CreateWifConfigOpts.TargetDir)
+	var err error
+	CreateWifConfigOpts.TargetDir, err = getPathFromFlag(CreateWifConfigOpts.TargetDir)
 	if err != nil {
-		return errors.Wrapf(err, "failed to resolve full path")
-	}
-
-	sResult, err := os.Stat(fPath)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("directory %s does not exist", fPath)
-	}
-	if !sResult.IsDir() {
-		return fmt.Errorf("file %s exists and is not a directory", fPath)
+		return err
 	}
 	return nil
 }
@@ -116,7 +98,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		if err != nil {
 			return errors.Wrapf(err, "failed to get project number from id")
 		}
-		err = createScript(CreateWifConfigOpts.TargetDir, wifConfig, projectNum)
+		err = createCreateScript(CreateWifConfigOpts.TargetDir, wifConfig, projectNum)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to create script files")
 		}

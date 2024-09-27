@@ -42,7 +42,11 @@ func EnsureOpenshiftVPrefix(v string) string {
 // GetEnabledVersions returns the versions with enabled=true, and the one that has default=true.
 // The returned strings are the IDs without "openshift-v" prefix (e.g. "4.6.0-rc.4-candidate")
 // sorted in approximate SemVer order (handling of text parts is somewhat arbitrary).
-func GetEnabledVersions(client *cmv1.Client, channelGroup string, gcpMarketplaceEnabled string) (
+func GetEnabledVersions(client *cmv1.Client,
+	channelGroup string,
+	gcpMarketplaceEnabled string,
+	additionalFilters string,
+) (
 	versions []string, defaultVersion string, err error) {
 	collection := client.Versions()
 	page := 1
@@ -53,6 +57,9 @@ func GetEnabledVersions(client *cmv1.Client, channelGroup string, gcpMarketplace
 	}
 	if channelGroup != "" {
 		filter = fmt.Sprintf("%s AND channel_group = '%s'", filter, channelGroup)
+	}
+	if additionalFilters != "" {
+		filter = fmt.Sprintf("%s %s", filter, additionalFilters)
 	}
 	for {
 		response, err := collection.List().

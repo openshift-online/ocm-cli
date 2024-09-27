@@ -477,16 +477,21 @@ func GetDefaultClusterFlavors(connection *sdk.Connection, flavour string) (dMach
 }
 
 func getVersionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
-	options, _, err := getVersionOptionsWithDefault(connection, "", "")
+	options, _, err := getVersionOptionsWithDefault(connection, "", "", "")
 	return options, err
 }
 
-func getVersionOptionsWithDefault(connection *sdk.Connection, channelGroup string, gcpMarketplaceEnabled string) (
+func getVersionOptionsWithDefault(
+	connection *sdk.Connection,
+	channelGroup string,
+	gcpMarketplaceEnabled string,
+	additionalFilters string,
+) (
 	options []arguments.Option, defaultVersion string, err error,
 ) {
 	// Check and set the cluster version
 	versionList, defaultVersion, err := c.GetEnabledVersions(
-		connection.ClustersMgmt().V1(), channelGroup, gcpMarketplaceEnabled)
+		connection.ClustersMgmt().V1(), channelGroup, gcpMarketplaceEnabled, additionalFilters)
 	if err != nil {
 		return
 	}
@@ -674,8 +679,9 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	if isGcpMarketplace {
 		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
 	}
+	additionalFilters := getVersionFilters()
 	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channelGroup,
-		gcpMarketplaceEnabled)
+		gcpMarketplaceEnabled, additionalFilters)
 	if err != nil {
 		return err
 	}
@@ -1572,4 +1578,14 @@ func promptAutoscaling(fs *pflag.FlagSet) error {
 
 	}
 	return nil
+}
+
+// getVersionFilters returns a version filter based on the current args
+func getVersionFilters() string {
+	filter := ""
+	// WIF filter
+	if args.gcpAuthentication.Type == c.AuthenticationWif {
+		filter = fmt.Sprintf("%s AND wif_enabled = 'true'", filter)
+	}
+	return filter
 }
