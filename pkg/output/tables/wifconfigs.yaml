@@ -3,3 +3,5 @@ columns:
   header: ID
 - name: displayName
   header: NAME
+- name: gcp.project_id
+  header: PROJECT ID
