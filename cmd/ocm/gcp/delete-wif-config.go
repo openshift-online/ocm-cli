@@ -70,6 +70,13 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to get wif-config")
 	}
 
+	// Check if wif-config can be deleted with dry-run
+	_, err = connection.ClustersMgmt().V1().GCP().WifConfigs().
+		WifConfig(wifConfig.ID()).Delete().DryRun(true).Send()
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete wif config %q", wifConfig.ID())
+	}
+
 	if DeleteWifConfigOpts.DryRun {
 		log.Printf("Writing script files to %s", DeleteWifConfigOpts.TargetDir)
 
