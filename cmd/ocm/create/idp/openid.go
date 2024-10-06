@@ -32,6 +32,7 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 	email := args.openidEmail
 	name := args.openidName
 	username := args.openidUsername
+	groups := args.openidGroups
 	extraScopes := args.openidExtraScopes
 
 	isInteractive := clientID == "" || clientSecret == "" || issuerURL == "" ||
@@ -109,6 +110,16 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 		}
 
+		if groups == "" {
+			prompt := &survey.Input{
+				Message: "Claim mappings to use as the groups:",
+			}
+			err = survey.AskOne(prompt, &groups)
+			if err != nil {
+				return idpBuilder, errors.New("Expected a list of claims to use as the groups")
+			}
+		}
+
 		if extraScopes == "" {
 			prompt := &survey.Input{
 				Message: "Extra scopes to request:",
@@ -120,8 +131,9 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 		}
 	}
 
-	if email == "" && name == "" && username == "" {
-		return idpBuilder, errors.New("At least one claim is required: [email-claims name-claims username-claims]")
+	if email == "" && name == "" && username == "" && groups == "" {
+		return idpBuilder, errors.New("At least one claim is required: [email-claims name-claims username-claims " +
+			"groups-claims]")
 	}
 
 	parsedIssuerURL, err := url.ParseRequestURI(issuerURL)
@@ -148,6 +160,9 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 	}
 	if username != "" {
 		openIDClaims = openIDClaims.PreferredUsername(strings.Split(username, ",")...)
+	}
+	if groups != "" {
+		openIDClaims = openIDClaims.Groups(strings.Split(groups, ",")...)
 	}
 
 	// Create OpenID IDP
