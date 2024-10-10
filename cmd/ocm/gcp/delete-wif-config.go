@@ -19,7 +19,7 @@ import (
 var (
 	// DeleteWifConfigOpts captures the options that affect creation of the workload identity configuration
 	DeleteWifConfigOpts = options{
-		DryRun:    false,
+		Mode:      ModeAuto,
 		TargetDir: "",
 	}
 )
@@ -33,8 +33,15 @@ func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 		PreRunE: validationForDeleteWorkloadIdentityConfigurationCmd,
 	}
 
-	deleteWifConfigCmd.PersistentFlags().BoolVar(&DeleteWifConfigOpts.DryRun, "dry-run", false,
-		"Skip creating objects, and just save what would have been created into files")
+	deleteWifConfigCmd.PersistentFlags().StringVarP(
+		&DeleteWifConfigOpts.Mode,
+		"mode",
+		"m",
+		ModeAuto,
+		"How to perform the operation. Valid options are:\n"+
+			"auto (default): Resource changes will be automatic applied using the current GCP account\n"+
+			"manual: Commands necessary to modify GCP resources will be output to be run manually",
+	)
 	deleteWifConfigCmd.PersistentFlags().StringVar(&DeleteWifConfigOpts.TargetDir, "output-dir", "",
 		"Directory to place generated files (defaults to current directory)")
 
@@ -43,6 +50,11 @@ func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 
 func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	var err error
+
+	if DeleteWifConfigOpts.Mode != ModeAuto && DeleteWifConfigOpts.Mode != ModeManual {
+		return fmt.Errorf("Invalid mode. Allowed values are %s", Modes)
+	}
+
 	DeleteWifConfigOpts.TargetDir, err = getPathFromFlag(DeleteWifConfigOpts.TargetDir)
 	if err != nil {
 		return err
@@ -77,7 +89,7 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to delete wif config %q", wifConfig.ID())
 	}
 
-	if DeleteWifConfigOpts.DryRun {
+	if DeleteWifConfigOpts.Mode == ModeManual {
 		log.Printf("Writing script files to %s", DeleteWifConfigOpts.TargetDir)
 
 		err := createDeleteScript(DeleteWifConfigOpts.TargetDir, wifConfig)

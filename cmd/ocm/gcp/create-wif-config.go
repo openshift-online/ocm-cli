@@ -17,7 +17,7 @@ import (
 var (
 	// CreateWifConfigOpts captures the options that affect creation of the workload identity configuration
 	CreateWifConfigOpts = options{
-		DryRun:     false,
+		Mode:       ModeAuto,
 		Name:       "",
 		Project:    "",
 		RolePrefix: "",
@@ -47,8 +47,16 @@ func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 	createWifConfigCmd.MarkPersistentFlagRequired("project")
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.RolePrefix, "role-prefix", "",
 		"Prefix for naming custom roles")
-	createWifConfigCmd.PersistentFlags().BoolVar(&CreateWifConfigOpts.DryRun, "dry-run", false,
-		"Skip creating objects, and just save what would have been created into files")
+
+	createWifConfigCmd.PersistentFlags().StringVarP(
+		&CreateWifConfigOpts.Mode,
+		"mode",
+		"m",
+		ModeAuto,
+		"How to perform the operation. Valid options are:\n"+
+			"auto (default): Resource changes will be automatic applied using the current GCP account\n"+
+			"manual: Commands necessary to modify GCP resources will be output to be run manually",
+	)
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.TargetDir, "output-dir", "",
 		"Directory to place generated files (defaults to current directory)")
 
@@ -61,6 +69,10 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 	}
 	if CreateWifConfigOpts.Project == "" {
 		return fmt.Errorf("Project is required")
+	}
+
+	if CreateWifConfigOpts.Mode != ModeAuto && CreateWifConfigOpts.Mode != ModeManual {
+		return fmt.Errorf("Invalid mode. Allowed values are %s", Modes)
 	}
 
 	var err error
@@ -91,7 +103,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to create WIF config")
 	}
 
-	if CreateWifConfigOpts.DryRun {
+	if CreateWifConfigOpts.Mode == ModeManual {
 		log.Printf("Writing script files to %s", CreateWifConfigOpts.TargetDir)
 
 		projectNum, err := gcpClient.ProjectNumberFromId(ctx, wifConfig.Gcp().ProjectId())

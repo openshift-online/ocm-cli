@@ -14,7 +14,7 @@ import (
 
 var (
 	UpdateWifConfigOpts = options{
-		DryRun:    false,
+		Mode:      ModeAuto,
 		TargetDir: "",
 	}
 )
@@ -28,8 +28,15 @@ func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 		PreRunE: validationForUpdateWorkloadIdentityConfigurationCmd,
 	}
 
-	updateWifConfigCmd.PersistentFlags().BoolVar(&UpdateWifConfigOpts.DryRun, "dry-run", false,
-		"Skip creating objects, and just save what would have been created into files")
+	updateWifConfigCmd.PersistentFlags().StringVarP(
+		&UpdateWifConfigOpts.Mode,
+		"mode",
+		"m",
+		ModeAuto,
+		"How to perform the operation. Valid options are:\n"+
+			"auto (default): Resource changes will be automatic applied using the current GCP account\n"+
+			"manual: Commands necessary to modify GCP resources will be output to be run manually",
+	)
 	updateWifConfigCmd.PersistentFlags().StringVar(&UpdateWifConfigOpts.TargetDir, "output-dir", "",
 		"Directory to place generated files (defaults to current directory)")
 
@@ -38,6 +45,11 @@ func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 
 func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	var err error
+
+	if UpdateWifConfigOpts.Mode != ModeAuto && UpdateWifConfigOpts.Mode != ModeManual {
+		return fmt.Errorf("Invalid mode. Allowed values are %s", Modes)
+	}
+
 	UpdateWifConfigOpts.TargetDir, err = getPathFromFlag(UpdateWifConfigOpts.TargetDir)
 	if err != nil {
 		return err
@@ -71,7 +83,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to initiate GCP client")
 	}
 
-	if UpdateWifConfigOpts.DryRun {
+	if UpdateWifConfigOpts.Mode == ModeManual {
 		log.Printf("Writing script files to %s", UpdateWifConfigOpts.TargetDir)
 		projectNumInt64, err := strconv.ParseInt(wifConfig.Gcp().ProjectNumber(), 10, 64)
 		if err != nil {
