@@ -1494,6 +1494,7 @@ func promptSecureBoot(fs *pflag.FlagSet) error {
 
 	return nil
 }
+
 func promptPrivateServiceConnect(fs *pflag.FlagSet) error {
 	if args.provider != c.ProviderGCP ||
 		!args.existingVPC.Enabled || !args.private {
