@@ -78,6 +78,7 @@ var args struct {
 	gcpServiceAccountFile arguments.FilePath
 	gcpSecureBoot         c.GcpSecurity
 	gcpAuthentication     c.GcpAuthentication
+	gcpPrivateSvcConnect  c.GcpPrivateSvcConnect
 	gcpWifConfig          string
 	etcdEncryption        bool
 	subscriptionType      string
@@ -375,6 +376,14 @@ func init() {
 		"Secure Boot enables the use of Shielded VMs in the Google Cloud Platform.",
 	)
 	arguments.SetQuestion(fs, "secure-boot-for-shielded-vms", "Secure boot support for Shielded VMs:")
+
+	fs.StringVar(
+		&args.gcpPrivateSvcConnect.SvcAttachmentSubnet,
+		"psc-subnet",
+		"",
+		"Specifies the ServiceAttachment Subnet for Private Service Connect in GCP",
+	)
+	arguments.SetQuestion(fs, "psc-subnet", "PrivatSericeConnect ServiceAttachment Subnet:")
 
 	fs.StringVar(
 		&args.gcpAuthentication.Type,
@@ -763,6 +772,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	err = promptPrivateServiceConnect(fs)
+	if err != nil {
+		return err
+	}
+
 	err = arguments.PromptString(fs, "domain-prefix")
 	if err != nil {
 		return err
@@ -797,32 +811,33 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	clusterConfig := c.Spec{
-		Name:               args.clusterName,
-		DomainPrefix:       args.domainPrefix,
-		Region:             args.region,
-		Provider:           args.provider,
-		CCS:                args.ccs,
-		ExistingVPC:        args.existingVPC,
-		ClusterWideProxy:   args.clusterWideProxy,
-		Flavour:            args.flavour,
-		MultiAZ:            args.multiAZ,
-		Version:            clusterVersion,
-		ChannelGroup:       args.channelGroup,
-		Expiration:         expiration,
-		ComputeMachineType: args.computeMachineType,
-		ComputeNodes:       args.computeNodes,
-		Autoscaling:        args.autoscaling,
-		NetworkType:        args.networkType,
-		MachineCIDR:        args.machineCIDR,
-		ServiceCIDR:        args.serviceCIDR,
-		PodCIDR:            args.podCIDR,
-		HostPrefix:         args.hostPrefix,
-		Private:            &args.private,
-		EtcdEncryption:     args.etcdEncryption,
-		DefaultIngress:     defaultIngress,
-		SubscriptionType:   args.subscriptionType,
-		GcpSecurity:        args.gcpSecureBoot,
-		GcpAuthentication:  args.gcpAuthentication,
+		Name:                 args.clusterName,
+		DomainPrefix:         args.domainPrefix,
+		Region:               args.region,
+		Provider:             args.provider,
+		CCS:                  args.ccs,
+		ExistingVPC:          args.existingVPC,
+		ClusterWideProxy:     args.clusterWideProxy,
+		Flavour:              args.flavour,
+		MultiAZ:              args.multiAZ,
+		Version:              clusterVersion,
+		ChannelGroup:         args.channelGroup,
+		Expiration:           expiration,
+		ComputeMachineType:   args.computeMachineType,
+		ComputeNodes:         args.computeNodes,
+		Autoscaling:          args.autoscaling,
+		NetworkType:          args.networkType,
+		MachineCIDR:          args.machineCIDR,
+		ServiceCIDR:          args.serviceCIDR,
+		PodCIDR:              args.podCIDR,
+		HostPrefix:           args.hostPrefix,
+		Private:              &args.private,
+		EtcdEncryption:       args.etcdEncryption,
+		DefaultIngress:       defaultIngress,
+		SubscriptionType:     args.subscriptionType,
+		GcpSecurity:          args.gcpSecureBoot,
+		GcpAuthentication:    args.gcpAuthentication,
+		GcpPrivateSvcConnect: args.gcpPrivateSvcConnect,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
@@ -1475,6 +1490,33 @@ func promptSecureBoot(fs *pflag.FlagSet) error {
 	err := arguments.PromptBool(fs, "secure-boot-for-shielded-vms")
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+func promptPrivateServiceConnect(fs *pflag.FlagSet) error {
+	if args.provider != c.ProviderGCP ||
+		!args.existingVPC.Enabled || !args.private {
+		return nil
+	}
+	isPSC := (args.gcpPrivateSvcConnect.SvcAttachmentSubnet != "")
+	if !isPSC && args.interactive {
+		var err error
+		isPSC, err = interactive.GetBool(interactive.Input{
+			Question: "Enable Private Service Connect",
+			Help: "To enable private service connect, you must have a subnet of purpose " +
+				"'Private Service Connect' configured in the VPC you want your cluster installed into. ",
+			Default: false,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	if isPSC {
+		err := arguments.PromptString(fs, "psc-subnet")
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
