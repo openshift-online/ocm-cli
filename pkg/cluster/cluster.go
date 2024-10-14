@@ -98,6 +98,9 @@ type Spec struct {
 
 	// GCP Authentication settings
 	GcpAuthentication GcpAuthentication
+
+	// GCP PrivateServiceConnect settings
+	GcpPrivateSvcConnect GcpPrivateSvcConnect
 }
 
 type Autoscaling struct {
@@ -160,6 +163,10 @@ type GcpSecurity struct {
 type GcpAuthentication struct {
 	Type string
 	Id   string
+}
+
+type GcpPrivateSvcConnect struct {
+	SvcAttachmentSubnet string
 }
 
 type AddOnItem struct {
@@ -481,6 +488,11 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		gcpBuilder.Security(gcpSecurity)
 	}
 
+	if isGcpPsc(config.GcpPrivateSvcConnect) {
+		gcpPsc := cmv1.NewGcpPrivateServiceConnect().ServiceAttachmentSubnet(config.GcpPrivateSvcConnect.SvcAttachmentSubnet)
+		gcpBuilder.PrivateServiceConnect(gcpPsc)
+	}
+
 	if config.ComputeMachineType != "" || config.ComputeNodes > 0 || len(config.ExistingVPC.AvailabilityZones) > 0 ||
 		config.Autoscaling.Enabled {
 		clusterNodesBuilder := cmv1.NewClusterNodes()
@@ -554,6 +566,9 @@ func isGCPSharedVPC(existingVPC ExistingVPC) bool {
 	return existingVPC.VPCProjectID != ""
 }
 
+func isGcpPsc(gcpPsc GcpPrivateSvcConnect) bool {
+	return gcpPsc.SvcAttachmentSubnet != ""
+}
 func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) error {
 	clusterBuilder := cmv1.NewCluster()
 
