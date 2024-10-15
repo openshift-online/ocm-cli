@@ -387,12 +387,12 @@ func init() {
 
 	fs.StringVar(
 		&args.gcpAuthentication.Type,
-		"gcp-auth-type",
-		c.AuthenticationWif,
+		"gcp-authentication-type",
+		"",
 		"Method of authenticating GCP cluster",
 	)
-	arguments.SetQuestion(fs, "gcp-auth-type", "Authentication method:")
-	fs.MarkHidden("gcp-auth-type")
+	arguments.SetQuestion(fs, "gcp-authentication-type", "Authentication method:")
+	fs.MarkHidden("gcp-authentication-type")
 
 	fs.StringVar(
 		&args.gcpWifConfig,
@@ -1343,7 +1343,7 @@ func promptCCS(fs *pflag.FlagSet, presetCCS bool) error {
 		return err
 	}
 
-	err = arguments.CheckIgnoredCCSFlags(args.ccs)
+	err = arguments.CheckIgnoredCCSFlags(args.ccs, fs)
 	if err != nil {
 		return err
 	}
@@ -1382,33 +1382,45 @@ func promptAuthentication(fs *pflag.FlagSet, connection *sdk.Connection) error {
 
 func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	var err error
-
 	isWif := fs.Changed("wif-config")
 	isNonWif := fs.Changed("service-account-file")
+
 	if isWif && isNonWif {
 		return fmt.Errorf("can't use both wif-config and GCP service account file at the same time")
 	}
-
 	if !isWif && !isNonWif {
+		if !args.interactive {
+			return fmt.Errorf("either wif-config or GCP service account file must be specified")
+		}
 		options, _ := gcpAuthenticationOptions(connection)
-		err = arguments.PromptOneOf(fs, "gcp-auth-type", options)
+		err = arguments.PromptOneOf(fs, "gcp-authentication-type", options)
 		if err != nil {
 			return err
 		}
 	}
-	if isWif {
-		args.gcpAuthentication.Type = c.AuthenticationWif
-	} else if isNonWif {
-		args.gcpAuthentication.Type = c.AuthenticationKey
+
+	if args.gcpAuthentication.Type == "" {
+		// if the user has not specified the authentication method, we can determine it based on the flags
+		if isWif {
+			args.gcpAuthentication.Type = c.AuthenticationWif
+		} else if isNonWif {
+			args.gcpAuthentication.Type = c.AuthenticationKey
+		}
 	}
 
 	switch args.gcpAuthentication.Type {
 	case c.AuthenticationWif:
+		if isNonWif {
+			return fmt.Errorf("can't use a service account file with the WIF authentication method")
+		}
 		err = promptWifConfig(fs, connection)
 		if err != nil {
 			return err
 		}
 	case c.AuthenticationKey:
+		if isWif {
+			return fmt.Errorf("can't use a wif-config with the service account authentication method")
+		}
 		// TODO: re-prompt when selected file is not readable / invalid JSON
 		err = arguments.PromptFilePath(fs, "service-account-file", true)
 		if err != nil {
@@ -1422,6 +1434,8 @@ func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		if err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("unexpected GCP authentication method %q", args.gcpAuthentication.Type)
 	}
 	return nil
 }
