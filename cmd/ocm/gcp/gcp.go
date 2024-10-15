@@ -5,14 +5,15 @@ import (
 )
 
 type options struct {
-	TargetDir                string
-	Region                   string
+	Interactive              bool
+	Mode                     string
 	Name                     string
 	Project                  string
+	Region                   string
 	RolePrefix               string
+	TargetDir                string
 	WorkloadIdentityPool     string
 	WorkloadIdentityProvider string
-	Mode                     string
 }
 
 // NewGcpCmd implements the "gcp" subcommand for the credentials provisioning
