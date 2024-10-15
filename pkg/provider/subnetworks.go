@@ -30,10 +30,18 @@ func getAWSVPCs(client *cmv1.Client, ccs cluster.CCS,
 }
 
 func GetGCPVPCs(client *cmv1.Client, ccs cluster.CCS,
-	region string) (cloudVPCList []*cmv1.CloudVPC, err error) {
+	gcpAuth cluster.GcpAuthentication, region string) (cloudVPCList []*cmv1.CloudVPC, err error) {
 
-	cloudProviderData, err := cmv1.NewCloudProviderData().
-		GCP(cmv1.NewGCP().ProjectID(ccs.GCP.ProjectID).
+	gcpBuilder := cmv1.NewGCP()
+
+	switch gcpAuth.Type {
+	case cluster.AuthenticationWif:
+		gcpAuth := cmv1.NewGcpAuthentication().
+			Kind(cmv1.WifConfigKind).
+			Id(gcpAuth.Id)
+		gcpBuilder.Authentication(gcpAuth)
+	case cluster.AuthenticationKey:
+		gcpBuilder.ProjectID(ccs.GCP.ProjectID).
 			ClientEmail(ccs.GCP.ClientEmail).
 			Type(ccs.GCP.Type).
 			PrivateKey(ccs.GCP.PrivateKey).
@@ -41,7 +49,13 @@ func GetGCPVPCs(client *cmv1.Client, ccs cluster.CCS,
 			AuthProviderX509CertURL(ccs.GCP.AuthProviderX509CertURL).
 			AuthURI(ccs.GCP.AuthURI).TokenURI(ccs.GCP.TokenURI).
 			ClientX509CertURL(ccs.GCP.ClientX509CertURL).
-			ClientID(ccs.GCP.ClientID).TokenURI(ccs.GCP.TokenURI)).
+			ClientID(ccs.GCP.ClientID).TokenURI(ccs.GCP.TokenURI)
+	default:
+		return nil, fmt.Errorf("Failed to build GCP provider data, unexpected GCP authentication method %q", gcpAuth.Type)
+	}
+
+	cloudProviderData, err := cmv1.NewCloudProviderData().
+		GCP(gcpBuilder).
 		Region(cmv1.NewCloudRegion().ID(region)).
 		Build()
 	if err != nil {
@@ -73,9 +87,10 @@ func GetAWSSubnetworks(client *cmv1.Client, ccs cluster.CCS,
 }
 
 func GetGCPSubnetList(client *cmv1.Client, provider string, ccs cluster.CCS,
-	region string) (subnetList []string, err error) {
+	gcpAuth cluster.GcpAuthentication, region string) (subnetList []string, err error) {
 	if ccs.Enabled && provider == "gcp" {
-		cloudVPCs, err := GetGCPVPCs(client, ccs, region)
+
+		cloudVPCs, err := GetGCPVPCs(client, ccs, gcpAuth, region)
 		if err != nil {
 			return nil, err
 		}

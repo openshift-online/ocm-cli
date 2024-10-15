@@ -1246,7 +1246,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	if !useSharedVpc {
 		//get vpc's from the provider
 		vpcList, err := provider.GetGCPVPCs(connection.ClustersMgmt().V1(),
-			args.ccs, args.region)
+			args.ccs, args.gcpAuthentication, args.region)
 		if err != nil {
 			return err
 		}
@@ -1267,7 +1267,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 
 		//get subnets from the provider
 		subnetList, err := provider.GetGCPSubnetList(connection.ClustersMgmt().V1(), args.provider,
-			args.ccs, args.region)
+			args.ccs, args.gcpAuthentication, args.region)
 		if err != nil {
 			return err
 		}
