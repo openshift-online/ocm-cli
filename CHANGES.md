@@ -3,6 +3,26 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 0.1.76 Oct 15 2024
+
+-e034b6b Update Konflux references to 2418e94
+-5066ea0 Filter wif configs in interactive mode (#660)
+-878f5e3 Initial refactor to prepare to move the connection builder and config packages to ocm-common
+-1ea2e05 lint
+-2c66dc0 removes redundant api url
+-65bf8cf Add role prefix flag on create wif-config (#662)
+-a39ce2e Grant access to support group during WifConfig creation (#663)
+-0275d67 Revert "Grant access to support group during WifConfig creation (#663)" (#664)
+-7cddc94 Wif creation improvements, including logic to grant support access as part of wif creation. (#666)
+-7f41626 Update Konflux references
+-b9a750c UpdatesToKonflux (#668)
+-e4aa770 OCM-10615 | Implement 'gcp wif-config update' command (#667)
+-cf6e500 Dry-run wif config delete before tearing down cloud resources (#670)
+-e18ea10 OCM-11842 | feat: Updates to support GCP-PSC clusters (#672)
+-893acd5 wif-enable gcp-inquiries (#673)
+-664b2c4 Replace wif dry-run flag with mode (#671)
+-df87894 Update Konflux references (#669)
+
 ## 0.1.75 Aug 8 2024
 
 -416843e OSD-24332 Adding CNI Type to the printed output.
