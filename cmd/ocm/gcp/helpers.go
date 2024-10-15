@@ -9,6 +9,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	ModeAuto   = "auto"
+	ModeManual = "manual"
+)
+
+var Modes = []string{ModeAuto, ModeManual}
+
 // Checks for WIF config name or id in input
 func wifKeyArgCheck(args []string) error {
 	if len(args) != 1 || args[0] == "" {

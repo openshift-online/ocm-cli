@@ -12,7 +12,7 @@ type options struct {
 	RolePrefix               string
 	WorkloadIdentityPool     string
 	WorkloadIdentityProvider string
-	DryRun                   bool
+	Mode                     string
 }
 
 // NewGcpCmd implements the "gcp" subcommand for the credentials provisioning
