@@ -135,7 +135,7 @@ func AddCCSFlags(fs *pflag.FlagSet, value *cluster.CCS) {
 }
 
 // CheckIgnoredCCSFlags errors if --aws-... were used without --ccs.
-func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
+func CheckIgnoredCCSFlags(ccs cluster.CCS, fs *pflag.FlagSet) error {
 	if !ccs.Enabled {
 		bad := []string{}
 		if ccs.AWS.AccountID != "" {
@@ -147,6 +147,16 @@ func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
 		if ccs.AWS.SecretAccessKey != "" {
 			bad = append(bad, "--aws-secret-access-key")
 		}
+		if fs.Changed("wif-config") {
+			bad = append(bad, "--wif-config")
+		}
+		if fs.Changed("service-account-file") {
+			bad = append(bad, "--service-account-file")
+		}
+		if fs.Changed("gcp-authentication-type") {
+			bad = append(bad, "--gcp-authentication-type")
+		}
+
 		if len(bad) == 1 {
 			return fmt.Errorf("%s flag is meaningless without --ccs", bad[0])
 		} else if len(bad) > 1 {
