@@ -6,6 +6,8 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -39,12 +41,15 @@ func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 		RunE:    createWorkloadIdentityConfigurationCmd,
 	}
 
+	arguments.AddInteractiveFlag(
+		createWifConfigCmd.PersistentFlags(),
+		&CreateWifConfigOpts.Interactive,
+	)
+
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.Name, "name", "",
 		"User-defined name for all created Google cloud resources")
-	createWifConfigCmd.MarkPersistentFlagRequired("name")
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.Project, "project", "",
 		"ID of the Google cloud project")
-	createWifConfigCmd.MarkPersistentFlagRequired("project")
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.RolePrefix, "role-prefix", "",
 		"Prefix for naming custom roles")
 
@@ -64,11 +69,11 @@ func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 }
 
 func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
-	if CreateWifConfigOpts.Name == "" {
-		return fmt.Errorf("Name is required")
+	if err := promptWifDisplayName(); err != nil {
+		return err
 	}
-	if CreateWifConfigOpts.Project == "" {
-		return fmt.Errorf("Project is required")
+	if err := promptProjectId(); err != nil {
+		return err
 	}
 
 	if CreateWifConfigOpts.Mode != ModeAuto && CreateWifConfigOpts.Mode != ModeManual {
@@ -79,6 +84,44 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 	CreateWifConfigOpts.TargetDir, err = getPathFromFlag(CreateWifConfigOpts.TargetDir)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func promptWifDisplayName() error {
+	const wifNameHelp = "The name can be used as the identifier of the WifConfig resource."
+	if CreateWifConfigOpts.Name == "" {
+		if CreateWifConfigOpts.Interactive {
+			prompt := &survey.Input{
+				Message: "WifConfig name",
+				Help:    wifNameHelp,
+			}
+			return survey.AskOne(
+				prompt,
+				&CreateWifConfigOpts.Name,
+				survey.WithValidator(survey.Required),
+			)
+		}
+		return fmt.Errorf("flag 'name' is required")
+	}
+	return nil
+}
+
+func promptProjectId() error {
+	const projectIdHelp = "The GCP Project Id that will be used by the WifConfig"
+	if CreateWifConfigOpts.Project == "" {
+		if CreateWifConfigOpts.Interactive {
+			prompt := &survey.Input{
+				Message: "Gcp Project ID",
+				Help:    projectIdHelp,
+			}
+			return survey.AskOne(
+				prompt,
+				&CreateWifConfigOpts.Project,
+				survey.WithValidator(survey.Required),
+			)
+		}
+		return fmt.Errorf("Flag 'project' is required")
 	}
 	return nil
 }
