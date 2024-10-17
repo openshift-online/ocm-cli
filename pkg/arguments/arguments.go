@@ -157,6 +157,52 @@ func CheckIgnoredCCSFlags(ccs cluster.CCS) error {
 	return nil
 }
 
+// CheckIgnoredProviderFlags errors if provider-specific flags were used without the corresponding provider.
+func CheckIgnoredProviderFlags(fs *pflag.FlagSet, provider string) error {
+	gcpExclusiveFlags := []string{
+		"marketplace-gcp-terms",
+		"psc-subnet",
+		"secure-boot-for-shielded-vms",
+		"service-account-file",
+		"vpc-name",
+		"vpc-project-id",
+		"wif-config",
+	}
+	awsExclusiveFlags := []string{
+		"aws-account-id",
+		"aws-access-key-id",
+		"aws-secret-access-key",
+		"additional-compute-security-group-ids",
+		"additional-infra-security-group-ids",
+		"additional-control-plane-security-group-ids",
+		"additional-trust-bundle-file",
+		"subnet-ids",
+	}
+
+	bad := []string{}
+	if provider != cluster.ProviderGCP {
+		for _, flag := range gcpExclusiveFlags {
+			if fs.Changed(flag) {
+				bad = append(bad, flag)
+			}
+		}
+	}
+	if provider != cluster.ProviderAWS {
+		for _, flag := range awsExclusiveFlags {
+			if fs.Changed(flag) {
+				bad = append(bad, flag)
+			}
+		}
+	}
+	if len(bad) == 1 {
+		return fmt.Errorf("%s flag is meaningless for chosen provider", bad[0])
+	} else if len(bad) > 1 {
+		return fmt.Errorf("%s flags are meaningless for chosen provider",
+			strings.Join(bad, ", "))
+	}
+	return nil
+}
+
 const (
 	additionalComputeSecurityGroupIdsFlag      = "additional-compute-security-group-ids"
 	additionalInfraSecurityGroupIdsFlag        = "additional-infra-security-group-ids"
@@ -344,8 +390,8 @@ func AddProviderFlag(fs *pflag.FlagSet, value *string) {
 	fs.StringVar(
 		value,
 		"provider",
-		"aws",
-		"The cloud provider to create the cluster on",
+		"",
+		"The cloud provider to create the cluster on. Supported options are [aws gcp]",
 	)
 	SetQuestion(fs, "provider", "Cloud provider:")
 }
