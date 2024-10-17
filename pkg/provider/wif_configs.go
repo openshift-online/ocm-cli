@@ -7,8 +7,6 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
-const unusedWifsQuery = "cluster.id is null"
-
 func getWifConfigs(client *cmv1.Client, filter string) (wifConfigs []*cmv1.WifConfig, err error) {
 	collection := client.GCP().WifConfigs()
 	page := 1
@@ -40,11 +38,6 @@ func GetWifConfigs(client *cmv1.Client) (wifConfigs []*cmv1.WifConfig, err error
 	return getWifConfigs(client, "")
 }
 
-// GetUnusedWifConfigs returns the WIF configurations that are not associated with any cluster
-func GetUnusedWifConfigs(client *cmv1.Client) (wifConfigs []*cmv1.WifConfig, err error) {
-	return getWifConfigs(client, unusedWifsQuery)
-}
-
 // GetWifConfig returns the WIF configuration where the key is the wif config id or name
 func GetWifConfig(client *cmv1.Client, key string) (wifConfig *cmv1.WifConfig, err error) {
 	query := fmt.Sprintf(
@@ -68,7 +61,7 @@ func GetWifConfig(client *cmv1.Client, key string) (wifConfig *cmv1.WifConfig, e
 // GetWifConfigNameOptions returns the wif config options for the cluster
 // with display name as the value and id as the description
 func GetWifConfigNameOptions(client *cmv1.Client) (options []arguments.Option, err error) {
-	wifConfigs, err := GetUnusedWifConfigs(client)
+	wifConfigs, err := getWifConfigs(client, "")
 	if err != nil {
 		err = fmt.Errorf("failed to retrieve WIF configurations: %s", err)
 		return
