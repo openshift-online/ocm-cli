@@ -28,7 +28,6 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/upgradepolicy"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/delete/user"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
-	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
@@ -130,25 +129,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	if err != nil {
 		return fmt.Errorf("can't print body: %w", err)
-	}
-
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("can't load config file: %w", err)
-	}
-	if cfg == nil {
-		return fmt.Errorf("not logged in, run the 'login' command")
-	}
-
-	// Save the configuration:
-	cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
-	if err != nil {
-		return fmt.Errorf("can't get tokens: %w", err)
-	}
-	err = config.Save(cfg)
-	if err != nil {
-		return fmt.Errorf("can't save config file: %w", err)
 	}
 
 	// Bye:

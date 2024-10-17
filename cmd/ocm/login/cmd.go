@@ -329,20 +329,14 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.Password = args.password
 	cfg.Insecure = args.insecure
 
-	// Create a connection and get the token to verify that the crendentials are correct:
-	connection, err := ocm.NewConnection().Config(cfg).Build()
+	// Create a connection to verify that the credentials are correct:
+	_, err = ocm.NewConnection().Config(cfg).Build()
 	if err != nil {
 		return fmt.Errorf("Can't create connection: %v", err)
 	}
-	accessToken, refreshToken, err := connection.Tokens()
-	if err != nil {
-		return fmt.Errorf("Can't get token: %v", err)
-	}
 
-	// Save the configuration, but clear the user name and password before unless we have
+	// clear the user name and password before unless we have
 	// explicitly been asked to store them persistently:
-	cfg.AccessToken = accessToken
-	cfg.RefreshToken = refreshToken
 	if !args.persistent {
 		cfg.User = ""
 		cfg.Password = ""
