@@ -1441,7 +1441,7 @@ func promptWifConfig(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	}
 
 	// if the flag was not set, prompt the user
-	wifConfigs, err := provider.GetUnusedWifConfigs(connection.ClustersMgmt().V1())
+	wifConfigs, err := provider.GetWifConfigs(connection.ClustersMgmt().V1())
 	if err != nil {
 		return err
 	}
