@@ -615,9 +615,6 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	// Only offer the 2 providers known to support OSD now;
-	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
-	providers, _ := osdProviderOptions(connection)
 	// If marketplace-gcp subscription type is used, provider can only be GCP
 	gcpBillingModel, _ := billing.GetBillingModel(connection, billing.MarketplaceGcpSubscriptionType)
 	gcpSubscriptionTypeTemplate := subscriptionTypeOption(gcpBillingModel.ID(), gcpBillingModel.Description())
@@ -625,6 +622,10 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		parseSubscriptionType(args.subscriptionType) == parseSubscriptionType(gcpSubscriptionTypeTemplate.Value)
 
 	if isGcpMarketplace {
+		if args.provider != c.ProviderGCP && args.provider != "" {
+			return fmt.Errorf("Provider must be set to %s when using %s subscription type",
+				c.ProviderGCP, billing.MarketplaceGcpSubscriptionType)
+		}
 		fmt.Println("setting provider to", c.ProviderGCP)
 		args.provider = c.ProviderGCP
 		fmt.Println("setting ccs to 'true'")
@@ -643,10 +644,15 @@ func preRun(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf(gcpTermsAgreementNonInteractiveError)
 		}
 	} else {
-		err = arguments.PromptOneOf(fs, "provider", providers)
+		err = promptProvider(fs, connection)
 		if err != nil {
 			return err
 		}
+	}
+
+	err = arguments.CheckIgnoredProviderFlags(fs, args.provider)
+	if err != nil {
+		return err
 	}
 
 	if wasClusterWideProxyReceived() {
@@ -910,6 +916,22 @@ func promptName(argv []string) error {
 	}
 
 	return fmt.Errorf("A cluster name must be specified")
+}
+
+// promptProvider reads or prompts for the provider
+func promptProvider(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	// Only offer the 2 providers known to support OSD now;
+	// but don't validate if set, to not block `ocm` CLI from creating clusters on future providers.
+	providers, _ := osdProviderOptions(connection)
+
+	err := arguments.PromptOneOf(fs, "provider", providers)
+	if err != nil {
+		return err
+	}
+	if args.provider == "" {
+		return fmt.Errorf("A provider must be specified")
+	}
+	return nil
 }
 
 func promptClusterWideProxy() error {
