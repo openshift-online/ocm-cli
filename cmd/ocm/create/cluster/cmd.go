@@ -386,15 +386,6 @@ func init() {
 	arguments.SetQuestion(fs, "psc-subnet", "PrivatSericeConnect ServiceAttachment Subnet:")
 
 	fs.StringVar(
-		&args.gcpAuthentication.Type,
-		"gcp-auth-type",
-		c.AuthenticationWif,
-		"Method of authenticating GCP cluster",
-	)
-	arguments.SetQuestion(fs, "gcp-auth-type", "Authentication method:")
-	fs.MarkHidden("gcp-auth-type")
-
-	fs.StringVar(
 		&args.gcpWifConfig,
 		"wif-config",
 		"",
@@ -408,13 +399,6 @@ func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
 	return []arguments.Option{
 		{Value: c.ProviderAWS, Description: ""},
 		{Value: c.ProviderGCP, Description: ""},
-	}, nil
-}
-
-func gcpAuthenticationOptions(_ *sdk.Connection) ([]arguments.Option, error) {
-	return []arguments.Option{
-		{Value: c.AuthenticationWif, Description: ""},
-		{Value: c.AuthenticationKey, Description: ""},
 	}, nil
 }
 
@@ -1365,7 +1349,7 @@ func promptCCS(fs *pflag.FlagSet, presetCCS bool) error {
 		return err
 	}
 
-	err = arguments.CheckIgnoredCCSFlags(args.ccs)
+	err = arguments.CheckIgnoredCCSFlags(args.ccs, fs)
 	if err != nil {
 		return err
 	}
@@ -1404,24 +1388,35 @@ func promptAuthentication(fs *pflag.FlagSet, connection *sdk.Connection) error {
 
 func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	var err error
-
 	isWif := fs.Changed("wif-config")
 	isNonWif := fs.Changed("service-account-file")
+
 	if isWif && isNonWif {
 		return fmt.Errorf("can't use both wif-config and GCP service account file at the same time")
 	}
-
 	if !isWif && !isNonWif {
-		options, _ := gcpAuthenticationOptions(connection)
-		err = arguments.PromptOneOf(fs, "gcp-auth-type", options)
+		if !args.interactive {
+			return fmt.Errorf("either wif-config or GCP service account file must be specified")
+		}
+		// if the user has not specified the authentication method, we need to ask
+		args.gcpAuthentication.Type, err = interactive.GetOption(interactive.Input{
+			Question: "Authentication type",
+			Help:     "Select the authentication method to use for the GCP cluster",
+			Required: true,
+			Options:  []string{c.AuthenticationWif, c.AuthenticationKey},
+		})
 		if err != nil {
 			return err
 		}
 	}
-	if isWif {
-		args.gcpAuthentication.Type = c.AuthenticationWif
-	} else if isNonWif {
-		args.gcpAuthentication.Type = c.AuthenticationKey
+
+	if args.gcpAuthentication.Type == "" {
+		// if the user has not specified the authentication method, we can determine it based on the flags
+		if isWif {
+			args.gcpAuthentication.Type = c.AuthenticationWif
+		} else if isNonWif {
+			args.gcpAuthentication.Type = c.AuthenticationKey
+		}
 	}
 
 	switch args.gcpAuthentication.Type {
@@ -1444,6 +1439,8 @@ func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		if err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("unexpected GCP authentication method %q", args.gcpAuthentication.Type)
 	}
 	return nil
 }
