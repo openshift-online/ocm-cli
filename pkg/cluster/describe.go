@@ -248,7 +248,10 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 			fmt.Printf("Control-Plane-Subnet:   %s\n", cluster.GCPNetwork().ControlPlaneSubnet())
 		}
 		if cluster.GCPNetwork().ComputeSubnet() != "" {
-			fmt.Printf("Compute-Subnet:	        %s\n", cluster.GCPNetwork().ComputeSubnet())
+			fmt.Printf("Compute-Subnet:         %s\n", cluster.GCPNetwork().ComputeSubnet())
+		}
+		if cluster.GCP().Authentication().Id() != "" {
+			fmt.Printf("Wif-Config-Id:          %s\n", cluster.GCP().Authentication().Id())
 		}
 	}
 
