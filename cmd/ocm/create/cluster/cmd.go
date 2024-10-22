@@ -52,6 +52,12 @@ const (
 	gcpTermsAgreementNonInteractiveError = "Review and accept Google Terms and Agreements on " +
 		gcpTermsAgreementsHyperlink + ". Set the flag --marketplace-gcp-terms to true " +
 		"once agreed in order to proceed further."
+
+	privateFlag            = "private"
+	vpcNameFlag            = "vpc-name"
+	controlPlaneSubnetFlag = "control-plane-subnet"
+	computePlaneSubnetFlag = "compute-subnet"
+	pscSubnetFlag          = "psc-subnet"
 )
 
 var args struct {
@@ -234,7 +240,7 @@ func init() {
 	fs.MarkHidden("expiration")
 	fs.BoolVar(
 		&args.private,
-		"private",
+		privateFlag,
 		false,
 		"Restrict master API endpoint and application routes to direct, private connectivity.",
 	)
@@ -379,11 +385,11 @@ func init() {
 
 	fs.StringVar(
 		&args.gcpPrivateSvcConnect.SvcAttachmentSubnet,
-		"psc-subnet",
+		pscSubnetFlag,
 		"",
 		"Specifies the ServiceAttachment Subnet for Private Service Connect in GCP",
 	)
-	arguments.SetQuestion(fs, "psc-subnet", "PrivatSericeConnect ServiceAttachment Subnet:")
+	arguments.SetQuestion(fs, pscSubnetFlag, "PrivateServiceConnect ServiceAttachment Subnet:")
 
 	fs.StringVar(
 		&args.gcpWifConfig,
@@ -738,11 +744,21 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
+	err = promptClusterPrivacy(fs)
+	if err != nil {
+		return err
+	}
+
 	if args.existingVPC.SubnetIDs != "" {
 		args.existingVPC.Enabled = true
 	}
 
 	err = promptExistingVPC(fs, connection)
+	if err != nil {
+		return err
+	}
+
+	err = promptPrivateServiceConnect(fs)
 	if err != nil {
 		return err
 	}
@@ -758,11 +774,6 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	}
 
 	err = promptNetwork(fs)
-	if err != nil {
-		return err
-	}
-
-	err = promptPrivateServiceConnect(fs)
 	if err != nil {
 		return err
 	}
@@ -1191,13 +1202,22 @@ func cleanSecurityGroups(securityGroups *[]string) {
 }
 
 func wasGCPNetworkReceived() bool {
+	// 'required' network info for considering it byo-vpc
+	// xpn/psc are optional and not required to be set for network info to be considered complete
 	return args.existingVPC.VPCName != "" && args.existingVPC.ControlPlaneSubnet != "" &&
-		args.existingVPC.ComputeSubnet != "" && args.existingVPC.VPCProjectID != ""
+		args.existingVPC.ComputeSubnet != ""
 }
 
 func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	var err error
-	if !args.existingVPC.Enabled && !wasGCPNetworkReceived() && args.interactive {
+
+	//autoenable byo-vpc for wif+private or if GCPNetwork Info has been input
+	isWifPrivate := (args.gcpAuthentication.Type == c.AuthenticationWif) && args.private
+	if isWifPrivate || wasGCPNetworkReceived() {
+		args.existingVPC.Enabled = true
+	}
+
+	if !args.existingVPC.Enabled && args.interactive {
 		args.existingVPC.Enabled, err = interactive.GetBool(interactive.Input{
 			Question: "Install into an existing VPC",
 			Help: "To install into an existing VPC you need to ensure that your VPC is configured " +
@@ -1209,23 +1229,41 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		}
 	}
 
-	if !args.existingVPC.Enabled && !wasGCPNetworkReceived() {
+	//return if user did not enable vpc and only some or none of the gcp network is provided
+	//continue if user enabled vpc or all network received
+	if !args.existingVPC.Enabled {
 		return nil
 	}
 
-	err = arguments.PromptString(fs, "vpc-name")
+	err = arguments.PromptString(fs, vpcNameFlag)
 	if err != nil {
 		return err
 	}
+	if args.existingVPC.VPCName == "" {
+		errMsg := fmt.Sprintf("flag '%s' is required for an existing VPC.", vpcNameFlag)
+		if isWifPrivate {
+			errMsg += fmt.Sprintf("Installing into an existing VPC with private service connect is required when "+
+				"cluster is '%s' and GCP authentication type is '%s' \n", privateFlag, c.AuthenticationWif)
+		}
+		return fmt.Errorf(errMsg)
+	}
 
-	err = arguments.PromptString(fs, "control-plane-subnet")
+	err = arguments.PromptString(fs, controlPlaneSubnetFlag)
 	if err != nil {
 		return err
 	}
+	if args.existingVPC.ControlPlaneSubnet == "" {
+		return fmt.Errorf(
+			"flag '%s' is required for an existing VPC", controlPlaneSubnetFlag)
+	}
 
-	err = arguments.PromptString(fs, "compute-subnet")
+	err = arguments.PromptString(fs, computePlaneSubnetFlag)
 	if err != nil {
 		return err
+	}
+	if args.existingVPC.ComputeSubnet == "" {
+		return fmt.Errorf(
+			"flag '%s' is required for an existing VPC", computePlaneSubnetFlag)
 	}
 
 	useSharedVpc := (args.existingVPC.VPCProjectID != "")
@@ -1268,7 +1306,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			if wasClusterWideProxyReceived() && args.existingVPC.VPCName == "" {
 				return fmt.Errorf("Please provide vpc name")
 			}
-			return fmt.Errorf("Could not find the following vpc name provided: %s", args.existingVPC.VPCName)
+			return fmt.Errorf("Could not find the following vpc name provided: '%s'", args.existingVPC.VPCName)
 		}
 
 		//get subnets from the provider
@@ -1287,7 +1325,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			}
 		}
 		if !verifiedControlPlaneSubnet {
-			return fmt.Errorf("Could not find the following control-plane-subnet provided: %s",
+			return fmt.Errorf("Could not find the following control-plane-subnet provided: '%s'",
 				args.existingVPC.ControlPlaneSubnet)
 		}
 
@@ -1300,25 +1338,21 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			}
 		}
 		if !verifiedComputeSubnet {
-			return fmt.Errorf("Could not find the following compute-subnet provided: %s",
+			return fmt.Errorf("Could not find the following compute-subnet provided: '%s'",
 				args.existingVPC.ComputeSubnet)
 		}
 	}
 
-	if wasGCPNetworkReceived() {
-		args.existingVPC.Enabled = true
-	}
-
 	fs.Set("use-existing-vpc", "true")
-	flag := fs.Lookup("vpc-name")
+	flag := fs.Lookup(vpcNameFlag)
 	if !flag.Changed {
 		fs.Set("vpc-name", args.existingVPC.VPCName)
 	}
-	flag = fs.Lookup("control-plane-subnet")
+	flag = fs.Lookup(controlPlaneSubnetFlag)
 	if !flag.Changed {
 		fs.Set("control-plabe-subnet", args.existingVPC.ControlPlaneSubnet)
 	}
-	flag = fs.Lookup("compute-subnet")
+	flag = fs.Lookup(computePlaneSubnetFlag)
 	if !flag.Changed {
 		fs.Set("compute-subnet", args.existingVPC.ComputeSubnet)
 	}
@@ -1326,6 +1360,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	if !flag.Changed {
 		fs.Set("vpc-project-id", args.existingVPC.VPCProjectID)
 	}
+
 	return nil
 
 }
@@ -1338,6 +1373,10 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		err = promptExistingGCPVPC(fs, connection)
 	}
 	return err
+}
+
+func promptClusterPrivacy(fs *pflag.FlagSet) error {
+	return arguments.PromptBool(fs, privateFlag)
 }
 
 func promptCCS(fs *pflag.FlagSet, presetCCS bool) error {
@@ -1494,10 +1533,7 @@ func promptNetwork(fs *pflag.FlagSet) error {
 	if err != nil {
 		return err
 	}
-	err = arguments.PromptBool(fs, "private")
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -1519,7 +1555,11 @@ func promptPrivateServiceConnect(fs *pflag.FlagSet) error {
 		!args.existingVPC.Enabled || !args.private {
 		return nil
 	}
-	isPSC := (args.gcpPrivateSvcConnect.SvcAttachmentSubnet != "")
+
+	//if Wif cluster and private is enabled then has to be PSC
+	isWif := (args.gcpAuthentication.Type == c.AuthenticationWif)
+	isPSC := (args.gcpPrivateSvcConnect.SvcAttachmentSubnet != "") || isWif
+
 	if !isPSC && args.interactive {
 		var err error
 		isPSC, err = interactive.GetBool(interactive.Input{
@@ -1533,12 +1573,16 @@ func promptPrivateServiceConnect(fs *pflag.FlagSet) error {
 		}
 	}
 	if isPSC {
-		err := arguments.PromptString(fs, "psc-subnet")
+		err := arguments.PromptString(fs, pscSubnetFlag)
 		if err != nil {
 			return err
 		}
 	}
-
+	if isWif && args.gcpPrivateSvcConnect.SvcAttachmentSubnet == "" {
+		return fmt.Errorf(
+			"flag '%s' is required when cluster is '%s' and GCP authentication type is %s",
+			pscSubnetFlag, privateFlag, c.AuthenticationWif)
+	}
 	return nil
 }
 
