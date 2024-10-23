@@ -22,8 +22,12 @@ func NewListWorkloadIdentityConfiguration() *cobra.Command {
 	listWorkloadIdentityPoolCmd := &cobra.Command{
 		Use:     "wif-config",
 		Aliases: []string{"wif-configs"},
-		Short:   "List wif-configs.",
-		RunE:    listWorkloadIdentityConfigurationCmd,
+		Short:   "List workload identity federation configurations (wif-configs)",
+		Long: `List workload identity federation configurations (wif-configs).
+
+The caller of the command will only view data from wif-config objects that
+belong to the user's organization.`,
+		RunE: listWorkloadIdentityConfigurationCmd,
 	}
 
 	fs := listWorkloadIdentityPoolCmd.Flags()
@@ -31,7 +35,9 @@ func NewListWorkloadIdentityConfiguration() *cobra.Command {
 		&ListWorkloadIdentityConfigurationOpts.columns,
 		"columns",
 		"id, display_name, gcp.project_id",
-		"Specify which columns to display separated by commas, path is based on wif-config struct",
+		`Specify which columns to display separated by commas. 
+The path is based on wif-config struct.
+`,
 	)
 	fs.BoolVar(
 		&ListWorkloadIdentityConfigurationOpts.noHeaders,

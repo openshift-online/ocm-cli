@@ -110,7 +110,7 @@ var args struct {
 }
 
 const clusterNameHelp = "The name can be used as the identifier of the cluster." +
-	" The maximum length is 54 characters. Once set, the cluster name cannot be changed"
+	" The maximum length is 54 characters. Once set, the cluster name cannot be changed."
 
 const subnetTemplate = "%s (%s)"
 
@@ -203,7 +203,7 @@ func init() {
 			"will be used when generating a sub-domain for your cluster. It must be unique and consist "+
 			"of lowercase alphanumeric,characters or '-', start with an alphabetic character, and end with "+
 			"an alphanumeric character. The maximum length is 15 characters. Once set, the cluster domain "+
-			"prefix cannot be changed",
+			"prefix cannot be changed.",
 	)
 	arguments.SetQuestion(fs, "domain-prefix", "Domain Prefix:")
 
@@ -345,23 +345,23 @@ func init() {
 		&args.defaultIngressWildcardPolicy,
 		defaultIngressWildcardPolicyFlag,
 		"",
-		fmt.Sprintf("Wildcard Policy for ingress. Options are %s", strings.Join(ingress.ValidWildcardPolicies, ",")),
+		fmt.Sprintf("Wildcard Policy for ingress. Options are { %s }.", strings.Join(ingress.ValidWildcardPolicies, ", ")),
 	)
 
 	fs.StringVar(
 		&args.defaultIngressNamespaceOwnershipPolicy,
 		defaultIngressNamespaceOwnershipPolicyFlag,
 		"",
-		fmt.Sprintf("Namespace Ownership Policy for ingress. Options are %s",
-			strings.Join(ingress.ValidNamespaceOwnershipPolicies, ",")),
+		fmt.Sprintf("Namespace Ownership Policy for ingress. Options are { %s }.",
+			strings.Join(ingress.ValidNamespaceOwnershipPolicies, ", ")),
 	)
 
 	fs.StringVar(
 		&args.subscriptionType,
 		"subscription-type",
 		billing.StandardSubscriptionType,
-		fmt.Sprintf("The subscription billing model for the cluster. Options are %s",
-			strings.Join(billing.ValidSubscriptionTypes, ",")),
+		fmt.Sprintf("The subscription billing model for the cluster. Options are { %s }.",
+			strings.Join(billing.ValidSubscriptionTypes, ", ")),
 	)
 	arguments.SetQuestion(fs, "subscription-type", "Subscription type:")
 	Cmd.RegisterFlagCompletionFunc("subscription-type", arguments.MakeCompleteFunc(getSubscriptionTypeOptions))
@@ -395,9 +395,9 @@ func init() {
 		&args.gcpWifConfig,
 		"wif-config",
 		"",
-		"Specifies the GCP Workload Identity Federation config used to authenticate.",
+		"Specifies the GCP Workload Identity Federation config used for cloud authentication.",
 	)
-	arguments.SetQuestion(fs, "wif-config", "WIF Configuration:")
+	arguments.SetQuestion(fs, "wif-config", "WIF configuration:")
 	Cmd.RegisterFlagCompletionFunc("wif-config", arguments.MakeCompleteFunc(getWifConfigNameOptions))
 }
 
@@ -904,7 +904,7 @@ func promptName(argv []string) error {
 
 	if args.interactive {
 		prompt := &survey.Input{
-			Message: "cluster name",
+			Message: "Cluster name:",
 			Help:    clusterNameHelp,
 		}
 		return survey.AskOne(prompt, &args.clusterName, survey.WithValidator(survey.Required))

@@ -401,7 +401,7 @@ func AddProviderFlag(fs *pflag.FlagSet, value *string) {
 		value,
 		"provider",
 		"",
-		"The cloud provider to create the cluster on. Supported options are [aws gcp]",
+		"The cloud provider to create the cluster on. Supported options are: { aws, gcp }.",
 	)
 	SetQuestion(fs, "provider", "Cloud provider:")
 }

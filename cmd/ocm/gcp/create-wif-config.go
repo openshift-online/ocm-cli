@@ -35,8 +35,15 @@ const (
 // NewCreateWorkloadIdentityConfiguration provides the "gcp create wif-config" subcommand
 func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 	createWifConfigCmd := &cobra.Command{
-		Use:     "wif-config",
-		Short:   "Create workload identity configuration",
+		Use:   "wif-config",
+		Short: "Create a workload identity federation configuration (wif-config) object.",
+		Long: `Create a workload identity federation configuration (wif-config) object.
+
+wif-config objects represent a set of GCP resources that are needed in a
+deployment of WIF OSD-GCP clusters. These resources include service accounts,
+custom roles, role bindings, identity and federated pools. Running this command
+in auto-mode will generate these resources on the user's cloud, and create a
+wif-config resource within OCM to represent those resources.`,
 		PreRunE: validationForCreateWorkloadIdentityConfigurationCmd,
 		RunE:    createWorkloadIdentityConfigurationCmd,
 	}
@@ -58,12 +65,14 @@ func NewCreateWorkloadIdentityConfiguration() *cobra.Command {
 		"mode",
 		"m",
 		ModeAuto,
-		"How to perform the operation. Valid options are:\n"+
-			"auto (default): Resource changes will be automatic applied using the current GCP account\n"+
-			"manual: Commands necessary to modify GCP resources will be output to be run manually",
+		modeFlagDescription,
 	)
-	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.TargetDir, "output-dir", "",
-		"Directory to place generated files (defaults to current directory)")
+	createWifConfigCmd.PersistentFlags().StringVar(
+		&CreateWifConfigOpts.TargetDir,
+		"output-dir",
+		"",
+		targetDirFlagDescription,
+	)
 
 	return createWifConfigCmd
 }
@@ -89,11 +98,11 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 }
 
 func promptWifDisplayName() error {
-	const wifNameHelp = "The name can be used as the identifier of the WifConfig resource."
+	const wifNameHelp = "The display name of the wif-config resource."
 	if CreateWifConfigOpts.Name == "" {
 		if CreateWifConfigOpts.Interactive {
 			prompt := &survey.Input{
-				Message: "WifConfig name",
+				Message: "wif-config name:",
 				Help:    wifNameHelp,
 			}
 			return survey.AskOne(
@@ -108,11 +117,11 @@ func promptWifDisplayName() error {
 }
 
 func promptProjectId() error {
-	const projectIdHelp = "The GCP Project Id that will be used by the WifConfig"
+	const projectIdHelp = "The GCP Project Id that will be used by the wif-config."
 	if CreateWifConfigOpts.Project == "" {
 		if CreateWifConfigOpts.Interactive {
 			prompt := &survey.Input{
-				Message: "Gcp Project ID",
+				Message: "Gcp Project ID:",
 				Help:    projectIdHelp,
 			}
 			return survey.AskOne(
@@ -135,7 +144,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to initiate GCP client")
 	}
 
-	log.Println("Creating workload identity configuration...")
+	log.Println("Creating workload identity federation configuration...")
 	wifConfig, err := createWorkloadIdentityConfiguration(
 		ctx,
 		gcpClient,
@@ -143,7 +152,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		CreateWifConfigOpts.Project,
 	)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create WIF config")
+		return errors.Wrapf(err, "failed to create wif-config")
 	}
 
 	if CreateWifConfigOpts.Mode == ModeManual {
@@ -217,7 +226,7 @@ func createWorkloadIdentityConfiguration(
 	wifBuilder.DisplayName(displayName)
 	wifConfigInput, err := wifBuilder.Build()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to build WIF config")
+		return nil, errors.Wrap(err, "failed to build wif-config")
 	}
 
 	response, err := connection.ClustersMgmt().V1().GCP().
@@ -226,7 +235,7 @@ func createWorkloadIdentityConfiguration(
 		Body(wifConfigInput).
 		Send()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create WIF config")
+		return nil, errors.Wrap(err, "failed to create wif-config")
 	}
 
 	return response.Body(), nil

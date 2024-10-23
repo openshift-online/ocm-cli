@@ -27,8 +27,22 @@ var (
 // NewDeleteWorkloadIdentityConfiguration provides the "gcp delete wif-config" subcommand
 func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 	deleteWifConfigCmd := &cobra.Command{
-		Use:     "wif-config [ID|Name]",
-		Short:   "Delete workload identity configuration",
+		Use:   "wif-config [ID|Name]",
+		Short: "Delete workload identity federation configuration (wif-config)",
+		Long: `Delete workload identity federation configuration (wif-config)
+
+wif-config resources may only be deleted if they are not in use by an OSD-GCP
+cluster. Deleting a wif-config that is presently utilized is prevented and
+results in an error returned. Clusters that are utilizing a specific wif-config
+may be listed using the following command: 
+
+ocm list cluster --parameter search="gcp.authentication.wif_config_id = '<WIF_ID>'"
+
+Where <WIF_ID> is the id of the wif-config resource.
+
+Deleting the wif-config resource will remove the OCM metadata, as well as the
+GCP resources represented by the wif-config.
+        `,
 		RunE:    deleteWorkloadIdentityConfigurationCmd,
 		PreRunE: validationForDeleteWorkloadIdentityConfigurationCmd,
 	}
@@ -38,12 +52,14 @@ func NewDeleteWorkloadIdentityConfiguration() *cobra.Command {
 		"mode",
 		"m",
 		ModeAuto,
-		"How to perform the operation. Valid options are:\n"+
-			"auto (default): Resource changes will be automatic applied using the current GCP account\n"+
-			"manual: Commands necessary to modify GCP resources will be output to be run manually",
+		modeFlagDescription,
 	)
-	deleteWifConfigCmd.PersistentFlags().StringVar(&DeleteWifConfigOpts.TargetDir, "output-dir", "",
-		"Directory to place generated files (defaults to current directory)")
+	deleteWifConfigCmd.PersistentFlags().StringVar(
+		&DeleteWifConfigOpts.TargetDir,
+		"output-dir",
+		"",
+		targetDirFlagDescription,
+	)
 
 	return deleteWifConfigCmd
 }
