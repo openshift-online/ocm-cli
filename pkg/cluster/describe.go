@@ -163,12 +163,12 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 
 	// Print short cluster description:
 	fmt.Printf("\n"+
-		"ID:			%s\n"+
-		"External ID:		%s\n"+
-		"Name:			%s\n"+
-		"Domain Prefix:		%s\n"+
-		"Display Name:		%s\n"+
-		"State:			%s %s\n",
+		"ID:				%s\n"+
+		"External ID:			%s\n"+
+		"Name:				%s\n"+
+		"Domain Prefix:			%s\n"+
+		"Display Name:			%s\n"+
+		"State:				%s %s\n",
 		cluster.ID(),
 		cluster.ExternalID(),
 		cluster.Name(),
@@ -179,7 +179,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	)
 
 	if cluster.Status().Description() != "" {
-		fmt.Printf("Details:		%s\n",
+		fmt.Printf("Details:			%s\n",
 			cluster.Status().Description(),
 		)
 	}
@@ -194,20 +194,20 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		computesStr = strconv.Itoa(cluster.Nodes().Compute())
 	}
 
-	fmt.Printf("API URL:		%s\n"+
-		"API Listening:		%s\n"+
-		"Console URL:		%s\n"+
-		"Cluster History URL:	%s\n"+
-		"Control Plane:\n		%s\n"+
-		"Infra:\n		%s\n"+
-		"Compute:\n		%s\n"+
-		"Product:		%s\n"+
-		"Subscription type:	%s\n"+
-		"Provider:		%s\n"+
-		"Version:		%s\n"+
-		"Region:			%s\n"+
-		"Multi-az:		%t\n"+
-		"CNI Type:		%s\n",
+	fmt.Printf("API URL:			%s\n"+
+		"API Listening:			%s\n"+
+		"Console URL:			%s\n"+
+		"Cluster History URL:		%s\n"+
+		"Control Plane:\n			%s\n"+
+		"Infra:\n			%s\n"+
+		"Compute:\n			%s\n"+
+		"Product:			%s\n"+
+		"Subscription type:		%s\n"+
+		"Provider:			%s\n"+
+		"Version:			%s\n"+
+		"Region:				%s\n"+
+		"Multi-az:			%t\n"+
+		"CNI Type:			%s\n",
 		apiURL,
 		apiListening,
 		cluster.Console().URL(),
@@ -227,9 +227,9 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 
 	// AWS-specific info
 	if cluster.CloudProvider().ID() == ProviderAWS {
-		fmt.Printf("PrivateLink:		%t\n"+
-			"STS:			%t\n"+
-			"Subnet IDs:		%s\n",
+		fmt.Printf("PrivateLink:			%t\n"+
+			"STS:				%t\n"+
+			"Subnet IDs:			%s\n",
 			privateLinkEnabled,
 			stsEnabled,
 			cluster.AWS().SubnetIDs(),
@@ -239,32 +239,40 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	// GCP-specific info
 	if cluster.CloudProvider().ID() == ProviderGCP {
 		if cluster.GCP().Security().SecureBoot() {
-			fmt.Printf("SecureBoot:             %t\n", cluster.GCP().Security().SecureBoot())
+			fmt.Printf("SecureBoot:             	%t\n", cluster.GCP().Security().SecureBoot())
 		}
 		if cluster.GCPNetwork().VPCName() != "" {
-			fmt.Printf("VPC-Name:	        %s\n", cluster.GCPNetwork().VPCName())
+			fmt.Printf("VPC-Name:	        	%s\n", cluster.GCPNetwork().VPCName())
 		}
 		if cluster.GCPNetwork().ControlPlaneSubnet() != "" {
-			fmt.Printf("Control-Plane-Subnet:   %s\n", cluster.GCPNetwork().ControlPlaneSubnet())
+			fmt.Printf("Control-Plane-Subnet:   	%s\n", cluster.GCPNetwork().ControlPlaneSubnet())
 		}
 		if cluster.GCPNetwork().ComputeSubnet() != "" {
-			fmt.Printf("Compute-Subnet:         %s\n", cluster.GCPNetwork().ComputeSubnet())
+			fmt.Printf("Compute-Subnet:         	%s\n", cluster.GCPNetwork().ComputeSubnet())
+		}
+		if cluster.GCPNetwork().VPCProjectID() != "" {
+			fmt.Printf("Network-Project-Id:        	%s\n", cluster.GCPNetwork().VPCProjectID())
+		}
+		if cluster.GCP().PrivateServiceConnect() != nil &&
+			cluster.GCP().PrivateServiceConnect().ServiceAttachmentSubnet() != "" {
+			fmt.Printf(
+				"Private-Service-Connect-Subnet:	%s\n", cluster.GCP().PrivateServiceConnect().ServiceAttachmentSubnet())
 		}
 		if cluster.GCP().Authentication().Id() != "" {
-			fmt.Printf("Wif-Config-Id:          %s\n", cluster.GCP().Authentication().Id())
+			fmt.Printf("Wif-Config-Id:          	%s\n", cluster.GCP().Authentication().Id())
 		}
 	}
 
-	fmt.Printf("CCS:			%t\n"+
-		"HCP:			%t\n"+
-		"Existing VPC:		%s\n"+
-		"Channel Group:		%v\n"+
-		"Cluster Admin:		%t\n"+
-		"Organization:		%s\n"+
-		"Creator:		%s\n"+
-		"Email:			%s\n"+
-		"AccountNumber:          %s\n"+
-		"Created:		%v\n",
+	fmt.Printf("CCS:				%t\n"+
+		"HCP:				%t\n"+
+		"Existing VPC:			%s\n"+
+		"Channel Group:			%v\n"+
+		"Cluster Admin:			%t\n"+
+		"Organization:			%s\n"+
+		"Creator:			%s\n"+
+		"Email:				%s\n"+
+		"AccountNumber:          	%s\n"+
+		"Created:			%v\n",
 		cluster.CCS().Enabled(),
 		cluster.Hypershift().Enabled(),
 		isExistingVPC,
@@ -279,39 +287,39 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 
 	expirationTime, hasExpirationTimestamp := cluster.GetExpirationTimestamp()
 	if hasExpirationTimestamp {
-		fmt.Printf("Expiration:		%v\n", expirationTime.Round(time.Second).Format(time.RFC3339Nano))
+		fmt.Printf("Expiration:			%v\n", expirationTime.Round(time.Second).Format(time.RFC3339Nano))
 	}
 
 	// Hive
 	if shard != "" {
-		fmt.Printf("Shard:			%v\n", shard)
+		fmt.Printf("Shard:				%v\n", shard)
 	}
 
 	// HyperShift (should be mutually exclusive with Hive)
 	if mgmtClusterName != "" {
-		fmt.Printf("Management Cluster:     %s\n", mgmtClusterName)
+		fmt.Printf("Management Cluster:     	%s\n", mgmtClusterName)
 	}
 	if svcClusterName != "" {
-		fmt.Printf("Service Cluster:        %s\n", svcClusterName)
+		fmt.Printf("Service Cluster:        	%s\n", svcClusterName)
 	}
 
 	// Cluster-wide-proxy
 	if cluster.Proxy().HTTPProxy() != "" {
-		fmt.Printf("HTTPProxy:	        %s\n", cluster.Proxy().HTTPProxy())
+		fmt.Printf("HTTPProxy:	       	 %s\n", cluster.Proxy().HTTPProxy())
 	}
 	if cluster.Proxy().HTTPSProxy() != "" {
-		fmt.Printf("HTTPSProxy:	        %s\n", cluster.Proxy().HTTPSProxy())
+		fmt.Printf("HTTPSProxy:	        	%s\n", cluster.Proxy().HTTPSProxy())
 	}
 	if cluster.Proxy().NoProxy() != "" {
-		fmt.Printf("NoProxy:	        %s\n", cluster.Proxy().NoProxy())
+		fmt.Printf("NoProxy:	        	%s\n", cluster.Proxy().NoProxy())
 	}
 	if cluster.AdditionalTrustBundle() != "" {
-		fmt.Printf("AdditionalTrustBundle:  %s\n", cluster.AdditionalTrustBundle())
+		fmt.Printf("AdditionalTrustBundle:  	%s\n", cluster.AdditionalTrustBundle())
 	}
 
 	// Limited Support Status
 	if cluster.Status().LimitedSupportReasonCount() > 0 {
-		fmt.Printf("Limited Support:	%t\n", cluster.Status().LimitedSupportReasonCount() > 0)
+		fmt.Printf("Limited Support:		%t\n", cluster.Status().LimitedSupportReasonCount() > 0)
 	}
 
 	fmt.Println()
