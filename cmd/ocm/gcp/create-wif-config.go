@@ -28,8 +28,10 @@ var (
 )
 
 const (
-	poolDescription = "Created by the OLM CLI"
-	roleDescription = "Created by the OLM CLI"
+	// Description for wif-config-specific WIF resources
+	wifDescription = "Created by the OCM CLI for WIF config %s"
+	// Description for OpenShift version-specific WIF IAM roles
+	wifRoleDescription = "Created by the OCM CLI for Workload Identity Federation on OpenShift"
 )
 
 // NewCreateWorkloadIdentityConfiguration provides the "gcp create wif-config" subcommand

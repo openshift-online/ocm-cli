@@ -69,12 +69,13 @@ func (c *shim) CreateWorkloadIdentityPool(
 			return errors.Wrapf(err, "failed to undelete workload identity pool %s", poolId)
 		}
 	} else if err != nil {
+		description := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
 			strings.Contains(gerr.Message, "Requested entity was not found") {
 			pool := &iamv1.WorkloadIdentityPool{
 				Name:        poolId,
 				DisplayName: poolId,
-				Description: poolDescription,
+				Description: description,
 				State:       "ACTIVE",
 				Disabled:    false,
 			}
@@ -110,10 +111,11 @@ func (c *shim) CreateWorkloadIdentityProvider(
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
 			strings.Contains(gerr.Message, "Requested entity was not found") {
+			description := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
 			provider := &iamv1.WorkloadIdentityPoolProvider{
 				Name:        providerId,
 				DisplayName: providerId,
-				Description: poolDescription,
+				Description: description,
 				State:       "ACTIVE",
 				Disabled:    false,
 				Oidc: &iamv1.Oidc{
@@ -182,14 +184,13 @@ func (c *shim) createServiceAccount(
 ) error {
 	serviceAccountId := serviceAccount.ServiceAccountId()
 	serviceAccountName := c.wifConfig.DisplayName() + "-" + serviceAccountId
-	serviceAccountDesc := poolDescription + " for WIF config " + c.wifConfig.DisplayName()
-
+	serviceAccountDescription := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
 	request := &adminpb.CreateServiceAccountRequest{
 		Name:      fmt.Sprintf("projects/%s", c.wifConfig.Gcp().ProjectId()),
 		AccountId: serviceAccountId,
 		ServiceAccount: &adminpb.ServiceAccount{
 			DisplayName: serviceAccountName,
-			Description: serviceAccountDesc,
+			Description: serviceAccountDescription,
 		},
 	}
 	_, err := c.gcpClient.CreateServiceAccount(ctx, request)
@@ -228,7 +229,7 @@ func (c *shim) createOrUpdateRoles(
 					permissions,
 					roleTitle,
 					roleID,
-					roleDescription,
+					wifRoleDescription,
 					c.wifConfig.Gcp().ProjectId(),
 				)
 				if err != nil {
