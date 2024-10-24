@@ -20,8 +20,8 @@ type options struct {
 func NewGcpCmd() *cobra.Command {
 	gcpCmd := &cobra.Command{
 		Use:   "gcp COMMAND",
-		Short: "Perform actions related to GCP WIF",
-		Long:  "Manage GCP Workload Identity Federation (WIF) resources.",
+		Short: "Manage GCP resources.",
+		Long:  "Perform operations related to GCP resources.",
 		Args:  cobra.MinimumNArgs(1),
 	}
 
@@ -39,9 +39,13 @@ func NewGcpCmd() *cobra.Command {
 func NewCreateCmd() *cobra.Command {
 	createCmd := &cobra.Command{
 		Use:   "create COMMAND",
-		Short: "Create resources",
-		Long:  "Create resources.",
-		Args:  cobra.MinimumNArgs(1),
+		Short: "Create resources related to GCP.",
+		Long: `Create resources related to GCP.
+
+Deployments, such as OSD-GCP WIF clusters, require resources to be created on
+the user's cloud prior to cluster creation. This command set provides the
+methods needed to create these resources on behalf of the user.`,
+		Args: cobra.MinimumNArgs(1),
 	}
 
 	createCmd.AddCommand(NewCreateWorkloadIdentityConfiguration())
@@ -53,9 +57,13 @@ func NewCreateCmd() *cobra.Command {
 func NewUpdateCmd() *cobra.Command {
 	updateCmd := &cobra.Command{
 		Use:   "update COMMAND",
-		Short: "Update resources",
-		Long:  "Update resources.",
-		Args:  cobra.MinimumNArgs(1),
+		Short: "Update resources related to GCP.",
+		Long: `Update resources related to GCP.
+
+Deployments, such as OSD-GCP WIF clusters, utilize resources that may require
+updation between version upgrades. This command set providers the methods
+needed to update GCP resources on behalf of the user.`,
+		Args: cobra.MinimumNArgs(1),
 	}
 	updateCmd.AddCommand(NewUpdateWorkloadIdentityConfiguration())
 	return updateCmd
@@ -65,8 +73,8 @@ func NewUpdateCmd() *cobra.Command {
 func NewDeleteCmd() *cobra.Command {
 	deleteCmd := &cobra.Command{
 		Use:   "delete COMMAND",
-		Short: "Delete resources",
-		Long:  "Delete resources.",
+		Short: "Delete resources related to GCP.",
+		Long:  "Delete resources related to GCP.",
 		Args:  cobra.MinimumNArgs(1),
 	}
 	deleteCmd.AddCommand(NewDeleteWorkloadIdentityConfiguration())
@@ -77,8 +85,8 @@ func NewDeleteCmd() *cobra.Command {
 func NewGetCmd() *cobra.Command {
 	getCmd := &cobra.Command{
 		Use:   "get COMMAND",
-		Short: "Get resources",
-		Long:  "Get resources.",
+		Short: "Get resources related to GCP.",
+		Long:  "Get resources related to GCP.",
 		Args:  cobra.MinimumNArgs(1),
 	}
 	getCmd.AddCommand(NewGetWorkloadIdentityConfiguration())
@@ -89,8 +97,8 @@ func NewGetCmd() *cobra.Command {
 func NewListCmd() *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "list COMMAND",
-		Short: "List resources",
-		Long:  "List resources.",
+		Short: "List resources related to GCP.",
+		Long:  "List resources related to GCP.",
 		Args:  cobra.MinimumNArgs(1),
 	}
 	listCmd.AddCommand(NewListWorkloadIdentityConfiguration())
@@ -101,8 +109,8 @@ func NewListCmd() *cobra.Command {
 func NewDescribeCmd() *cobra.Command {
 	describeCmd := &cobra.Command{
 		Use:   "describe COMMAND",
-		Short: "Describe resources",
-		Long:  "Describe resources.",
+		Short: "Describe resources related to GCP.",
+		Long:  "Describe resources related to GCP.",
 		Args:  cobra.MinimumNArgs(1),
 	}
 	describeCmd.AddCommand(NewDescribeWorkloadIdentityConfiguration())

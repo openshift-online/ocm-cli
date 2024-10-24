@@ -18,8 +18,16 @@ var GetWorkloadIdentityConfigurationOpts struct {
 
 func NewGetWorkloadIdentityConfiguration() *cobra.Command {
 	getWorkloadIdentityPoolCmd := &cobra.Command{
-		Use:     "wif-config [ID]",
-		Short:   "Send a GET request for wif-config.",
+		Use:   "wif-config [ID]",
+		Short: "Retrieve workload identity federation configuration (wif-config) resource data.",
+		Long: `Retrieve workload identity federation configuration (wif-config) resource data.
+
+The wif-config object returned by this command is in the json format returned
+by the OCM backend. It displays all of the data that is associated with the
+specified wif-config object.
+
+Calling this command without an ID specified results in a dump of all
+wif-config objects that belongs to the user's organization.`,
 		RunE:    getWorkloadIdentityConfigurationCmd,
 		PreRunE: validationForGetWorkloadIdentityConfigurationCmd,
 		Aliases: []string{"wif-configs"},

@@ -22,8 +22,13 @@ var (
 // NewUpdateWorkloadIdentityConfiguration provides the "gcp update wif-config" subcommand
 func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 	updateWifConfigCmd := &cobra.Command{
-		Use:     "wif-config [ID|Name]",
-		Short:   "Update wif-config.",
+		Use:   "wif-config [ID|Name]",
+		Short: "Update workload identity federation configuration (wif-config).",
+		Long: `Update workload identity federation configuration (wif-config).
+
+wif-config that are in use by cluster deployments may require updation before
+the cluster version upgrade may continue. This command may be used to update
+the wif-config metadata and the GCP resources it represents.`,
 		RunE:    updateWorkloadIdentityConfigurationCmd,
 		PreRunE: validationForUpdateWorkloadIdentityConfigurationCmd,
 	}
@@ -33,12 +38,14 @@ func NewUpdateWorkloadIdentityConfiguration() *cobra.Command {
 		"mode",
 		"m",
 		ModeAuto,
-		"How to perform the operation. Valid options are:\n"+
-			"auto (default): Resource changes will be automatic applied using the current GCP account\n"+
-			"manual: Commands necessary to modify GCP resources will be output to be run manually",
+		modeFlagDescription,
 	)
-	updateWifConfigCmd.PersistentFlags().StringVar(&UpdateWifConfigOpts.TargetDir, "output-dir", "",
-		"Directory to place generated files (defaults to current directory)")
+	updateWifConfigCmd.PersistentFlags().StringVar(
+		&UpdateWifConfigOpts.TargetDir,
+		"output-dir",
+		"",
+		targetDirFlagDescription,
+	)
 
 	return updateWifConfigCmd
 }
