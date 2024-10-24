@@ -5,7 +5,7 @@
 #Keeping it similar to ROSA official releases which only publish amd64 to mirror
 #This list can be modified as needed if additional os or arch support is needed
 archs=(amd64)
-oses=(darwin windows linux)
+oses=(darwin linux windows)
 
 REL_VER=$(git describe --tags --abbrev=0 | sed "s/v//")
 if [[ -z "$REL_VER" ]]; then
@@ -23,9 +23,9 @@ do
         extension=".exe"
     fi
     GOOS=${os} GOARCH=${arch} go build -o /tmp/ocm_${os}_${arch} ./cmd/ocm
-    mv /tmp/ocm_${os}_${arch} ocm_v${REL_VER}${extension}
-    zip releases/ocm_${REL_VER}_${os}_${arch}.zip ocm_v${REL_VER}${extension}
-    rm ocm_v${REL_VER}${extension}
+    mv /tmp/ocm_${os}_${arch} ocm${extension}
+    zip releases/ocm_${os}_${arch}.zip ocm${extension}
+    rm ocm${extension}
   done
 done
 cd releases && sha256sum *zip > ocm_${REL_VER}_SHA256SUMS
