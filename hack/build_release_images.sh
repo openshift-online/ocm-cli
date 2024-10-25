@@ -7,11 +7,6 @@
 archs=(amd64)
 oses=(darwin linux windows)
 
-REL_VER=$(git describe --tags --abbrev=0 | sed "s/v//")
-if [[ -z "$REL_VER" ]]; then
-    echo "Failed to determine release version" 1>&2
-    exit 1
-fi
 mkdir -p releases
 
 build_release() {
@@ -28,7 +23,7 @@ do
     rm ocm${extension}
   done
 done
-cd releases && sha256sum *zip > ocm_${REL_VER}_SHA256SUMS
+cd releases && sha256sum *zip > ocm_SHA256SUMS
 }
 
 build_release
