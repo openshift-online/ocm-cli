@@ -3,6 +3,22 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.2 Oct 25 2024
+
+-8b70707 Release v0.1.76 (#674)
+-2ef1e1d Update Konflux references to 67f0290 (#676)
+-c63247f Show all WIF configs in interactive dropdown (#677)
+-f1d29bc adding interactive move for WifConfig creation (#675)
+-1382a6c Require provider, do not default to AWS, and check for provider-specific flags (#678)
+-d0b58b4 Do not default GCP authentication type (#679)
+-db35759 improve psc cli UX (#681)
+-862b072 OCM-11993 | Describe cluster shows WifConfig data (#683)
+-4053505 Add PSC-XPN to cluster  description (#685)
+-0c456f8 OCM-10728 | interface improvements (#686)
+-1e27ded Add more descriptions to WIF resources (#684)
+-cdf6466 update filenames in konflux release  container (#687)
+-010573f remove version from shasum (#688)
+
 ## 0.1.76 Oct 15 2024
 
 -e034b6b Update Konflux references to 2418e94
