@@ -28,7 +28,7 @@ do
     rm ocm${extension}
   done
 done
-cd releases && sha256sum *zip > ocm_${REL_VER}_SHA256SUMS
+cd releases && sha256sum *zip > ocm_SHA256SUMS
 }
 
 build_release
