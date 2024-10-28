@@ -23,7 +23,6 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/output"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-
 	"github.com/spf13/cobra"
 )
 

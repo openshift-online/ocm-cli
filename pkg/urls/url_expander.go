@@ -33,7 +33,7 @@ var listResourceURLs = map[string]string{
 	"roles":          "/api/accounts_mgmt/v1/roles",
 	"skus":           "/api/accounts_mgmt/v1/skus",
 	"sku_rules":      "/api/accounts_mgmt/v1/sku_rules",
-	"addons":         "/api/clusters_mgmt/v1/addons",
+	"addons":         "/api/addons_mgmt/v1/addons",
 	"clusters":       "/api/clusters_mgmt/v1/clusters",
 	"versions":       "/api/clusters_mgmt/v1/versions",
 }
@@ -52,7 +52,7 @@ var individualResourceURLs = map[string]string{
 	"sku":                   "/api/accounts_mgmt/v1/skus/%s",
 	"sku_rule":              "/api/accounts_mgmt/v1/sku_rules/%s",
 	"cluster":               "/api/clusters_mgmt/v1/clusters/%s",
-	"addon":                 "/api/clusters_mgmt/v1/addons/%s",
+	"addon":                 "/api/addons_mgmt/v1/addons/%s",
 	"version":               "/api/clusters_mgmt/v1/versions/%s",
 	"idp":                   "idp/%s",
 	"limitedsupportreasons": "/api/clusters_mgmt/v1/clusters/%s/limited_support_reasons",
