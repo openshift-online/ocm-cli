@@ -28,6 +28,7 @@ import (
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
+	asv1 "github.com/openshift-online/ocm-sdk-go/addonsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -755,7 +756,7 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 	quotaCosts := quotaCostResponse.Items()
 
 	// Get complete list of enabled add-ons
-	addOnsResponse, err := connection.ClustersMgmt().V1().Addons().
+	addOnsResponse, err := connection.AddonsMgmt().V1().Addons().
 		List().
 		Search("enabled='t'").
 		Page(1).
@@ -767,7 +768,7 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 	addOns := addOnsResponse.Items()
 
 	// Get add-ons already installed on cluster
-	addOnInstallationsResponse, err := connection.ClustersMgmt().V1().Clusters().
+	addOnInstallationsResponse, err := connection.AddonsMgmt().V1().Clusters().
 		Cluster(clusterID).
 		Addons().
 		List().
@@ -782,7 +783,7 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 	var clusterAddOns []*AddOnItem
 
 	// Populate add-on installations with all add-on metadata
-	addOns.Each(func(addOn *cmv1.AddOn) bool {
+	addOns.Each(func(addOn *asv1.Addon) bool {
 		if addOn.ID() != "rhmi" {
 			clusterAddOn := AddOnItem{
 				ID:        addOn.ID(),
@@ -805,11 +806,11 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 			})
 
 			// Get the state of add-on installations on the cluster
-			addOnInstallations.Each(func(addOnInstallation *cmv1.AddOnInstallation) bool {
+			addOnInstallations.Each(func(addOnInstallation *asv1.AddonInstallation) bool {
 				if addOn.ID() == addOnInstallation.Addon().ID() {
 					clusterAddOn.State = string(addOnInstallation.State())
 					if clusterAddOn.State == "" {
-						clusterAddOn.State = string(cmv1.AddOnInstallationStateInstalling)
+						clusterAddOn.State = string(asv1.AddonInstallationStateInstalling)
 					}
 				}
 				return true
