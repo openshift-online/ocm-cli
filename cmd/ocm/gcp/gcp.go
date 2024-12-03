@@ -31,6 +31,7 @@ func NewGcpCmd() *cobra.Command {
 	gcpCmd.AddCommand(NewGetCmd())
 	gcpCmd.AddCommand(NewListCmd())
 	gcpCmd.AddCommand(NewDescribeCmd())
+	gcpCmd.AddCommand(NewVerifyCmd())
 
 	return gcpCmd
 }
@@ -115,4 +116,16 @@ func NewDescribeCmd() *cobra.Command {
 	}
 	describeCmd.AddCommand(NewDescribeWorkloadIdentityConfiguration())
 	return describeCmd
+}
+
+// NewVerifyCmd implements the "verify" subcommand
+func NewVerifyCmd() *cobra.Command {
+	verifyCmd := &cobra.Command{
+		Use:   "verify COMMAND",
+		Short: "Verify resources related to GCP.",
+		Long:  "Verify resources related to GCP.",
+		Args:  cobra.MinimumNArgs(1),
+	}
+	verifyCmd.AddCommand(NewVerifyWorkloadIdentityConfiguration())
+	return verifyCmd
 }
