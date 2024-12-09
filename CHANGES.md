@@ -3,6 +3,14 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.3 Dec 9 2024
+
+-9fbb753 Update to use addon service API for addons function
+-1bafd65 Add command 'gcp verify wif-config' (#691)
+-5d0bec1 Update Konflux references (#682)
+-f0ed911 OCM-12467 | feat : Updates for binaries-release-pipeline (#693)
+-c42c641 Update Konflux references (#694)
+
 ## 1.0.2 Oct 25 2024
 
 -8b70707 Release v0.1.76 (#674)
