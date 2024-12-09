@@ -6,13 +6,15 @@ RUN git config --global --add safe.directory /opt/app-root/src && \
     make build_release_images
 
 FROM registry.access.redhat.com/ubi9/ubi-micro:latest
-LABEL description="OCM CLI"
-LABEL io.k8s.description="OCM CLI"
-LABEL com.redhat.component="ocm-cli"
-LABEL distribution-scope="release"
-LABEL name="ocm-cli" release="X.Y" url="https://github.com/openshift-online/ocm-cli"
-LABEL vendor="Red Hat, Inc."
-LABEL version="X.Y"
+LABEL description="A CLI tool for working with OCM API"
+LABEL io.k8s.description="A CLI tool for working with OCM API"
+LABEL io.k8s.display-name="OCM CLI"
+LABEL io.openshift.tags="ocm"
+LABEL summary="Provides the ocm CLI binary"
+LABEL com.redhat.component="ocm"
+LABEL name="ocm"
+
 
 COPY LICENSE.txt /licenses
 COPY --from=builder /opt/app-root/src/releases /releases
+COPY --from=builder /opt/app-root/src/releases /usr/local/bin
