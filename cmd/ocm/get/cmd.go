@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
-	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
@@ -59,15 +58,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	path, err := urls.Expand(argv)
 	if err != nil {
 		return fmt.Errorf("Could not create URI: %v", err)
-	}
-
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
-	}
-	if cfg == nil {
-		return fmt.Errorf("Not logged in, run the 'login' command")
 	}
 
 	// Create the client for the OCM API:
@@ -109,16 +99,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	if err != nil {
 		return fmt.Errorf("Can't print body: %v", err)
-	}
-
-	// Save the configuration:
-	cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
-	if err != nil {
-		return fmt.Errorf("Can't get tokens: %v", err)
-	}
-	err = config.Save(cfg)
-	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
 	}
 
 	// Bye:
