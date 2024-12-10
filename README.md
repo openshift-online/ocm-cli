@@ -552,3 +552,5 @@ Just like how
 works, you can write your own ocm plugins and put the binary under the
 $PATH directory, the plugin name should be named with prefix `ocm-`, like
 `ocm-foo`.
+
+test
