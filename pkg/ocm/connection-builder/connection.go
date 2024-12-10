@@ -15,7 +15,9 @@ package connection
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang/glog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/logging"
@@ -114,7 +116,32 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 	}
 
 	// Create the connection:
-	return builder.Build()
+	conn, err := builder.Build()
+	if err != nil {
+		return conn, err
+	}
+
+	// Token management:
+	accessToken, refreshToken, err := conn.Tokens()
+	if err != nil {
+		return nil, fmt.Errorf("Can't get tokens: %v", err)
+	}
+
+	// Only execute if the refresh token has changed. This helps limit warnings for users
+	// to only on login and when their refresh token is cycled by SSO instead of on every command.
+	if b.cfg.RefreshToken != refreshToken {
+		offlineTokenDeprecationWarning(refreshToken)
+	}
+
+	b.cfg.AccessToken = accessToken
+	b.cfg.RefreshToken = refreshToken
+
+	err = config.Save(b.cfg)
+	if err != nil {
+		return nil, fmt.Errorf("Can't save config file: %v", err)
+	}
+
+	return conn, nil
 }
 
 func (b *ConnectionBuilder) initConnectionBuilderFromConfig() *sdk.ConnectionBuilder {
@@ -177,4 +204,39 @@ func (b *ConnectionBuilder) getAgent() string {
 		return b.agent
 	}
 	return "OCM-CLI/" + info.Version
+}
+
+// Prints a deprecation warning if tokens have changed and the new refresh token contains the 'offline_access' scope
+// Swallow and log errors as this is a non-essential warning that should not block the user
+func offlineTokenDeprecationWarning(refreshToken string) {
+	const offlineTokenDeprecationMessage = "Logging in with offline tokens is being deprecated and will no longer " +
+		"be maintained or enhanced. Instead, log in with --use-auth-code or --use-device-code. See 'ocm login --help' " +
+		"for usage. Learn more about deprecating offline tokens via https://console.redhat.com/openshift/token"
+
+	parser := new(jwt.Parser)
+	token, _, err := parser.ParseUnverified(refreshToken, jwt.MapClaims{})
+	if err != nil {
+		if debug.Enabled() {
+			fmt.Printf("Failed to parse refresh token for deprecation warning: %v\n", err)
+		}
+		return
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		if debug.Enabled() {
+			fmt.Printf("Failed to get claims from refresh token for deprecation warning: %v\n", err)
+		}
+		return
+	}
+	scopes, ok := claims["scope"].(string)
+	if !ok {
+		if debug.Enabled() {
+			fmt.Printf("Failed to get scopes from refresh token for deprecation warning: %v\n", err)
+		}
+		return
+	}
+	if strings.Contains(scopes, "offline_access") {
+		fmt.Println(offlineTokenDeprecationMessage)
+		return
+	}
 }
