@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -54,22 +55,16 @@ func (c *shim) CreateWorkloadIdentityPool(
 	ctx context.Context,
 	log *log.Logger,
 ) error {
+	description := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
 	poolId := c.wifConfig.Gcp().WorkloadIdentityPool().PoolId()
 	project := c.wifConfig.Gcp().ProjectId()
 
 	parentResourceForPool := fmt.Sprintf("projects/%s/locations/global", project)
 	poolResource := fmt.Sprintf("%s/workloadIdentityPools/%s", parentResourceForPool, poolId)
+
 	resp, err := c.gcpClient.GetWorkloadIdentityPool(ctx, poolResource)
-	if resp != nil && resp.State == "DELETED" {
-		log.Printf("Workload identity pool %s was deleted", poolId)
-		_, err := c.gcpClient.UndeleteWorkloadIdentityPool(
-			ctx, poolResource, &iamv1.UndeleteWorkloadIdentityPoolRequest{},
-		)
-		if err != nil {
-			return errors.Wrapf(err, "failed to undelete workload identity pool %s", poolId)
-		}
-	} else if err != nil {
-		description := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
+
+	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
 			strings.Contains(gerr.Message, "Requested entity was not found") {
 			pool := &iamv1.WorkloadIdentityPool{
@@ -82,12 +77,35 @@ func (c *shim) CreateWorkloadIdentityPool(
 
 			_, err := c.gcpClient.CreateWorkloadIdentityPool(ctx, parentResourceForPool, poolId, pool)
 			if err != nil {
-				return errors.Wrapf(err, "failed to create workload identity pool %s", poolId)
+				return errors.Wrapf(err, "failed to create workload identity pool '%s'", poolId)
 			}
-			log.Printf("Workload identity pool created with name %s", poolId)
-		} else {
-			return errors.Wrapf(err, "failed to check if there is existing workload identity pool %s", poolId)
+			log.Printf("Workload identity pool created with name '%s'", poolId)
+
+			return nil
 		}
+
+		return errors.Wrapf(err, "failed to check if there is existing workload identity pool '%s'", poolId)
+	}
+
+	if resp != nil && resp.State == "DELETED" {
+		_, err := c.gcpClient.UndeleteWorkloadIdentityPool(
+			ctx, poolResource, &iamv1.UndeleteWorkloadIdentityPoolRequest{},
+		)
+		if err != nil {
+			return errors.Wrapf(err, "failed to undelete workload identity pool '%s'", poolId)
+		}
+		log.Printf("Undeleted Workload identity pool '%s'", poolId)
+	}
+
+	// Enable the pool if it exists but is disabled.
+	if resp != nil && resp.Disabled {
+		if err := c.gcpClient.EnableWorkloadIdentityPool(
+			ctx,
+			resp.Name,
+		); err != nil {
+			return errors.Wrapf(err, "failed to enabled workload identity pool '%s'", poolId)
+		}
+		log.Printf("Workload identity pool '%s' has been re-enabled", resp.DisplayName)
 	}
 
 	return nil
@@ -97,48 +115,86 @@ func (c *shim) CreateWorkloadIdentityProvider(
 	ctx context.Context,
 	log *log.Logger,
 ) error {
-	projectId := c.wifConfig.Gcp().ProjectId()
-	poolId := c.wifConfig.Gcp().WorkloadIdentityPool().PoolId()
-	jwks := c.wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().Jwks()
+	attributeMap := map[string]string{
+		"google.subject": "assertion.sub",
+	}
 	audiences := c.wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().AllowedAudiences()
+	description := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
 	issuerUrl := c.wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl()
+	jwks := c.wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().Jwks()
+	poolId := c.wifConfig.Gcp().WorkloadIdentityPool().PoolId()
+	projectId := c.wifConfig.Gcp().ProjectId()
 	providerId := c.wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IdentityProviderId()
+	state := "ACTIVE"
 
 	parent := fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s", projectId, poolId)
 	providerResource := fmt.Sprintf("%s/providers/%s", parent, providerId)
 
-	_, err := c.gcpClient.GetWorkloadIdentityProvider(ctx, providerResource)
+	resp, err := c.gcpClient.GetWorkloadIdentityProvider(ctx, providerResource)
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
 			strings.Contains(gerr.Message, "Requested entity was not found") {
-			description := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
 			provider := &iamv1.WorkloadIdentityPoolProvider{
 				Name:        providerId,
 				DisplayName: providerId,
 				Description: description,
-				State:       "ACTIVE",
+				State:       state,
 				Disabled:    false,
 				Oidc: &iamv1.Oidc{
 					AllowedAudiences: audiences,
 					IssuerUri:        issuerUrl,
 					JwksJson:         jwks,
 				},
-				AttributeMapping: map[string]string{
-					"google.subject": "assertion.sub",
-				},
+				AttributeMapping: attributeMap,
 			}
 
 			_, err := c.gcpClient.CreateWorkloadIdentityProvider(ctx, parent, providerId, provider)
 			if err != nil {
-				return errors.Wrapf(err, "failed to create workload identity provider %s", providerId)
+				return errors.Wrapf(err, "failed to create workload identity provider '%s'", providerId)
 			}
-			log.Printf("Workload identity provider created with name %s", providerId)
-		} else {
-			return errors.Wrapf(err, "failed to check if there is existing workload identity provider %s in pool %s",
-				providerId, poolId)
+			log.Printf("Workload identity provider created with name '%s' for pool '%s'", providerId, poolId)
+			return nil
 		}
+		return errors.Wrapf(err, "failed to check if there is existing workload identity provider '%s' in pool '%s'",
+			providerId, poolId)
 	}
 
+	var needsUpdate bool
+	if resp.Description != description ||
+		resp.Disabled ||
+		resp.DisplayName != providerId ||
+		resp.State != state ||
+		resp.Oidc.IssuerUri != issuerUrl ||
+		resp.Oidc.JwksJson != jwks ||
+		!reflect.DeepEqual(resp.AttributeMapping, attributeMap) ||
+		!reflect.DeepEqual(resp.Oidc.AllowedAudiences, audiences) {
+		needsUpdate = true
+	}
+
+	if needsUpdate {
+		if err := c.gcpClient.UpdateWorkloadIdentityPoolOidcIdentityProvider(ctx,
+			&iamv1.WorkloadIdentityPoolProvider{
+				Name:        providerResource,
+				DisplayName: providerId,
+				Description: description,
+				State:       state,
+				Disabled:    false,
+				Oidc: &iamv1.Oidc{
+					AllowedAudiences: audiences,
+					IssuerUri:        issuerUrl,
+					JwksJson:         jwks,
+				},
+				AttributeMapping: attributeMap,
+			},
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to updated identity provider '%s' for workload identity pool '%s'",
+				providerId, poolId,
+			)
+		}
+		log.Printf("Workload identity pool '%s' identity provider '%s' updated", poolId, providerId)
+	}
 	return nil
 }
 
@@ -147,8 +203,19 @@ func (c *shim) CreateServiceAccounts(
 	log *log.Logger,
 ) error {
 	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
-		if err := c.createServiceAccount(ctx, log, serviceAccount); err != nil {
+		sa, err := c.createServiceAccount(ctx, log, serviceAccount)
+		if err != nil {
 			return err
+		}
+		if sa.Disabled {
+			if err := c.gcpClient.EnableServiceAccount(
+				ctx,
+				serviceAccount.ServiceAccountId(),
+				c.wifConfig.Gcp().ProjectId(),
+			); err != nil {
+				return err
+			}
+			log.Printf("IAM service account %s enabled", serviceAccount.ServiceAccountId())
 		}
 		if err := c.createOrUpdateRoles(ctx, log, serviceAccount.Roles()); err != nil {
 			return err
@@ -177,11 +244,14 @@ func (c *shim) GrantSupportAccess(
 	return nil
 }
 
+// Returns the internal representation of the specified gcp service account on
+// successful creation. If the service account already exists, the current
+// instance of the service account is returned without error.
 func (c *shim) createServiceAccount(
 	ctx context.Context,
 	log *log.Logger,
 	serviceAccount *cmv1.WifServiceAccount,
-) error {
+) (*adminpb.ServiceAccount, error) {
 	serviceAccountId := serviceAccount.ServiceAccountId()
 	serviceAccountName := c.wifConfig.DisplayName() + "-" + serviceAccountId
 	serviceAccountDescription := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
@@ -193,20 +263,27 @@ func (c *shim) createServiceAccount(
 			Description: serviceAccountDescription,
 		},
 	}
-	_, err := c.gcpClient.CreateServiceAccount(ctx, request)
+	sa, err := c.gcpClient.CreateServiceAccount(ctx, request)
 	if err != nil {
 		pApiError, ok := err.(*apierror.APIError)
 		if ok {
 			if pApiError.GRPCStatus().Code() == codes.AlreadyExists {
-				return nil
+				return c.gcpClient.GetServiceAccount(
+					ctx,
+					&adminpb.GetServiceAccountRequest{
+						Name: gcp.FmtSaResourceId(
+							serviceAccount.ServiceAccountId(),
+							c.wifConfig.Gcp().ProjectId(),
+						)},
+				)
 			}
 		}
 	}
 	if err != nil {
-		return errors.Wrap(err, "Failed to create IAM service account")
+		return nil, errors.Wrap(err, "Failed to create IAM service account")
 	}
 	log.Printf("IAM service account %s created", serviceAccountId)
-	return nil
+	return sa, nil
 }
 
 func (c *shim) createOrUpdateRoles(
@@ -250,6 +327,16 @@ func (c *shim) createOrUpdateRoles(
 			}
 			existingRole.Deleted = false
 			log.Printf("Role %q undeleted", roleID)
+		}
+
+		// If role was disabled, enable role
+		if existingRole.Stage == adminpb.Role_DISABLED {
+			existingRole.Stage = adminpb.Role_GA
+			_, err := c.updateRole(ctx, existingRole, c.fmtRoleResourceId(role))
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("Failed to update %s", roleID))
+			}
+			log.Printf("Role %q enabled", roleID)
 		}
 
 		if addedPermissions, needsUpdate := c.missingPermissions(permissions, existingRole.IncludedPermissions); needsUpdate {
