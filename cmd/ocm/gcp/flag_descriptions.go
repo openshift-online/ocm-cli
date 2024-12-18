@@ -9,4 +9,5 @@ manual:         Commands necessary to modify GCP resources will be output
 `
 
 	targetDirFlagDescription = `Directory to place generated files (defaults to current directory)`
+	versionFlagDescription   = `Version of OpenShift to configure the WIF resources for`
 )

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
@@ -81,4 +82,16 @@ func getPathFromFlag(targetDir string) (string, error) {
 	}
 
 	return targetDir, nil
+}
+
+// converts openshift version of form X.Y to template ID of form vX.Y
+func versionToTemplateID(version string) string {
+	// Check if version is a semver in the form X.Y
+	re := regexp.MustCompile(`^\d+\.\d+$`)
+	if re.MatchString(version) {
+		return "v" + version
+	}
+
+	// Otherwise, return the version as is
+	return version
 }

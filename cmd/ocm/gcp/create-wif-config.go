@@ -19,11 +19,12 @@ import (
 var (
 	// CreateWifConfigOpts captures the options that affect creation of the workload identity configuration
 	CreateWifConfigOpts = options{
-		Mode:       ModeAuto,
-		Name:       "",
-		Project:    "",
-		RolePrefix: "",
-		TargetDir:  "",
+		Mode:             ModeAuto,
+		Name:             "",
+		Project:          "",
+		RolePrefix:       "",
+		TargetDir:        "",
+		OpenshiftVersion: "",
 	}
 )
 
@@ -75,6 +76,12 @@ wif-config resource within OCM to represent those resources.`,
 		"",
 		targetDirFlagDescription,
 	)
+	createWifConfigCmd.PersistentFlags().StringVar(
+		&CreateWifConfigOpts.OpenshiftVersion,
+		"version",
+		"",
+		versionFlagDescription,
+	)
 
 	return createWifConfigCmd
 }
@@ -84,6 +91,9 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 		return err
 	}
 	if err := promptProjectId(); err != nil {
+		return err
+	}
+	if err := promptVersion(); err != nil {
 		return err
 	}
 
@@ -133,6 +143,24 @@ func promptProjectId() error {
 			)
 		}
 		return fmt.Errorf("Flag 'project' is required")
+	}
+	return nil
+}
+
+func promptVersion() error {
+	const versionHelp = "The OCP version to configure the wif-config for. " +
+		"Will default to the latest supported version if left unset."
+	if CreateWifConfigOpts.OpenshiftVersion == "" {
+		if CreateWifConfigOpts.Interactive {
+			prompt := &survey.Input{
+				Message: "Openshift version:",
+				Help:    versionHelp,
+			}
+			return survey.AskOne(
+				prompt,
+				&CreateWifConfigOpts.OpenshiftVersion,
+			)
+		}
 	}
 	return nil
 }
@@ -224,6 +252,11 @@ func createWorkloadIdentityConfiguration(
 		gcpBuilder.RolePrefix(CreateWifConfigOpts.RolePrefix)
 	}
 	wifBuilder.Gcp(gcpBuilder)
+
+	if CreateWifConfigOpts.OpenshiftVersion != "" {
+		wifTemplate := versionToTemplateID(CreateWifConfigOpts.OpenshiftVersion)
+		wifBuilder.WifTemplates(wifTemplate)
+	}
 
 	wifBuilder.DisplayName(displayName)
 	wifConfigInput, err := wifBuilder.Build()

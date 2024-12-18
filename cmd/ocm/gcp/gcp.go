@@ -8,6 +8,7 @@ type options struct {
 	Interactive              bool
 	Mode                     string
 	Name                     string
+	OpenshiftVersion         string
 	Project                  string
 	Region                   string
 	RolePrefix               string
