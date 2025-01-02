@@ -174,7 +174,6 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to initiate GCP client")
 	}
 
-	log.Println("Creating workload identity federation configuration...")
 	wifConfig, err := createWorkloadIdentityConfiguration(
 		ctx,
 		gcpClient,

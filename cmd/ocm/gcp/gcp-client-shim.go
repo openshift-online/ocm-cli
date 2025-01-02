@@ -27,6 +27,13 @@ const (
 	retryDelayMs = 500
 )
 
+const (
+	impersonatorRole         = "roles/iam.serviceAccountTokenCreator"
+	workloadIdentityUserRole = "roles/iam.workloadIdentityUser"
+)
+
+// All operations that modify cloud resources should be logged to the user.
+// For this reason, all methods of this interface take a logger as a parameter.
 type GcpClientWifConfigShim interface {
 	CreateServiceAccounts(ctx context.Context, log *log.Logger) error
 	CreateWorkloadIdentityPool(ctx context.Context, log *log.Logger) error
@@ -165,7 +172,7 @@ func (c *shim) CreateWorkloadIdentityProvider(
 		resp.DisplayName != providerId ||
 		resp.State != state ||
 		resp.Oidc.IssuerUri != issuerUrl ||
-		resp.Oidc.JwksJson != jwks ||
+		!utils.JwksEqual(resp.Oidc.JwksJson, jwks) ||
 		!reflect.DeepEqual(resp.AttributeMapping, attributeMap) ||
 		!reflect.DeepEqual(resp.Oidc.AllowedAudiences, audiences) {
 		needsUpdate = true
@@ -193,7 +200,7 @@ func (c *shim) CreateWorkloadIdentityProvider(
 				providerId, poolId,
 			)
 		}
-		log.Printf("Workload identity pool '%s' identity provider '%s' updated", poolId, providerId)
+		log.Printf("Workload identity pool '%s' identity provider '%s' was updated", poolId, providerId)
 	}
 	return nil
 }
@@ -215,15 +222,15 @@ func (c *shim) CreateServiceAccounts(
 			); err != nil {
 				return err
 			}
-			log.Printf("IAM service account %s enabled", serviceAccount.ServiceAccountId())
+			log.Printf("IAM service account '%s' has been enabled", serviceAccount.ServiceAccountId())
 		}
 		if err := c.createOrUpdateRoles(ctx, log, serviceAccount.Roles()); err != nil {
 			return err
 		}
-		if err := c.bindRolesToServiceAccount(ctx, serviceAccount); err != nil {
+		if err := c.bindRolesToServiceAccount(ctx, log, serviceAccount); err != nil {
 			return err
 		}
-		if err := c.grantAccessToServiceAccount(ctx, serviceAccount); err != nil {
+		if err := c.grantAccessToServiceAccount(ctx, log, serviceAccount); err != nil {
 			return err
 		}
 	}
@@ -238,7 +245,7 @@ func (c *shim) GrantSupportAccess(
 	if err := c.createOrUpdateRoles(ctx, log, support.Roles()); err != nil {
 		return err
 	}
-	if err := c.bindRolesToGroup(ctx, support.Principal(), support.Roles()); err != nil {
+	if err := c.bindRolesToGroup(ctx, log, support.Principal(), support.Roles()); err != nil {
 		return err
 	}
 	return nil
@@ -282,7 +289,7 @@ func (c *shim) createServiceAccount(
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create IAM service account")
 	}
-	log.Printf("IAM service account %s created", serviceAccountId)
+	log.Printf("IAM service account '%s' has been created", serviceAccountId)
 	return sa, nil
 }
 
@@ -310,9 +317,9 @@ func (c *shim) createOrUpdateRoles(
 					c.wifConfig.Gcp().ProjectId(),
 				)
 				if err != nil {
-					return errors.Wrap(err, fmt.Sprintf("Failed to create %s", roleID))
+					return errors.Wrap(err, fmt.Sprintf("Failed to create role '%s'", roleID))
 				}
-				log.Printf("Role %q created", roleID)
+				log.Printf("Role '%s' has been created", roleID)
 				continue
 			} else {
 				return errors.Wrap(err, "Failed to check if role exists")
@@ -323,10 +330,10 @@ func (c *shim) createOrUpdateRoles(
 		if existingRole.Deleted {
 			_, err = c.undeleteRole(ctx, c.fmtRoleResourceId(role))
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Failed to undelete custom role %q", roleID))
+				return errors.Wrap(err, fmt.Sprintf("Failed to undelete custom role '%s'", roleID))
 			}
 			existingRole.Deleted = false
-			log.Printf("Role %q undeleted", roleID)
+			log.Printf("Role '%s' has been undeleted", roleID)
 		}
 
 		// If role was disabled, enable role
@@ -334,9 +341,9 @@ func (c *shim) createOrUpdateRoles(
 			existingRole.Stage = adminpb.Role_GA
 			_, err := c.updateRole(ctx, existingRole, c.fmtRoleResourceId(role))
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Failed to update %s", roleID))
+				return errors.Wrap(err, fmt.Sprintf("Failed to enable role '%s'", roleID))
 			}
-			log.Printf("Role %q enabled", roleID)
+			log.Printf("Role '%s' has been enabled", roleID)
 		}
 
 		if addedPermissions, needsUpdate := c.missingPermissions(permissions, existingRole.IncludedPermissions); needsUpdate {
@@ -346,9 +353,9 @@ func (c *shim) createOrUpdateRoles(
 
 			_, err := c.updateRole(ctx, existingRole, c.fmtRoleResourceId(role))
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Failed to update %s", roleID))
+				return errors.Wrap(err, fmt.Sprintf("Failed to update role '%s'", roleID))
 			}
-			log.Printf("Role %q updated", roleID)
+			log.Printf("Role '%s' has been updated", roleID)
 		}
 	}
 	return nil
@@ -379,6 +386,7 @@ func (c *shim) missingPermissions(
 
 func (c *shim) bindRolesToServiceAccount(
 	ctx context.Context,
+	log *log.Logger,
 	serviceAccount *cmv1.WifServiceAccount,
 ) error {
 	serviceAccountId := serviceAccount.ServiceAccountId()
@@ -391,6 +399,7 @@ func (c *shim) bindRolesToServiceAccount(
 	return utils.DelayedRetry(func() error {
 		return c.bindRolesToPrincipal(
 			ctx,
+			log,
 			fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountId, c.wifConfig.Gcp().ProjectId()),
 			roles,
 		)
@@ -399,11 +408,13 @@ func (c *shim) bindRolesToServiceAccount(
 
 func (c *shim) bindRolesToGroup(
 	ctx context.Context,
+	log *log.Logger,
 	groupEmail string,
 	roles []*cmv1.WifRole,
 ) error {
 	return c.bindRolesToPrincipal(
 		ctx,
+		log,
 		fmt.Sprintf("group:%s", groupEmail),
 		roles,
 	)
@@ -411,6 +422,7 @@ func (c *shim) bindRolesToGroup(
 
 func (c *shim) bindRolesToPrincipal(
 	ctx context.Context,
+	log *log.Logger,
 	principal string,
 	roles []*cmv1.WifRole,
 ) error {
@@ -418,7 +430,7 @@ func (c *shim) bindRolesToPrincipal(
 	for _, role := range roles {
 		formattedRoles = append(formattedRoles, c.fmtRoleResourceId(role))
 	}
-	err := c.ensurePolicyBindingsForProject(
+	modified, err := c.ensurePolicyBindingsForProject(
 		ctx,
 		formattedRoles,
 		principal,
@@ -427,34 +439,22 @@ func (c *shim) bindRolesToPrincipal(
 	if err != nil {
 		return errors.Errorf("Failed to bind roles to principal %s: %s", principal, err)
 	}
+	if modified {
+		log.Printf("Bound roles to principal '%s'", principal)
+	}
 	return nil
 }
 
 func (c *shim) grantAccessToServiceAccount(
 	ctx context.Context,
+	log *log.Logger,
 	serviceAccount *cmv1.WifServiceAccount,
 ) error {
 	switch serviceAccount.AccessMethod() {
 	case cmv1.WifAccessMethodImpersonate:
-		if err := c.gcpClient.AttachImpersonator(
-			ctx,
-			serviceAccount.ServiceAccountId(),
-			c.wifConfig.Gcp().ProjectId(),
-			c.wifConfig.Gcp().ImpersonatorEmail(),
-		); err != nil {
-			return errors.Wrapf(err, "Failed to attach impersonator to service account %s",
-				serviceAccount.ServiceAccountId())
-		}
+		return c.attachImpersonator(ctx, serviceAccount)
 	case cmv1.WifAccessMethodWif:
-		if err := c.gcpClient.AttachWorkloadIdentityPool(
-			ctx,
-			serviceAccount,
-			c.wifConfig.Gcp().WorkloadIdentityPool().PoolId(),
-			c.wifConfig.Gcp().ProjectId(),
-		); err != nil {
-			return errors.Wrapf(err, "Failed to attach workload identity pool to service account %s",
-				serviceAccount.ServiceAccountId())
-		}
+		return c.attachWorkloadIdentityPool(ctx, serviceAccount)
 	case cmv1.WifAccessMethodVm:
 		// Service accounts with the "vm" access method require no external access
 		return nil
@@ -487,6 +487,7 @@ func (c *shim) getRole(
 }
 
 // CreateRole creates a new role given permissions
+// This method modifies cloud resources.
 func (c *shim) createRole(
 	ctx context.Context,
 	permissions []string,
@@ -513,6 +514,7 @@ func (c *shim) createRole(
 
 // UpdateRole updates an existing role given permissions.
 // Custom roles should follow the format projects/{project}/roles/{role_id}.
+// This method modifies cloud resources.
 func (c *shim) updateRole(
 	ctx context.Context,
 	role *adminpb.Role,
@@ -529,6 +531,7 @@ func (c *shim) updateRole(
 }
 
 // UndeleteRole undeletes a previously deleted role that has not yet been pruned
+// This method modifies cloud resources.
 func (c *shim) undeleteRole(
 	ctx context.Context,
 	roleName string,
@@ -542,18 +545,19 @@ func (c *shim) undeleteRole(
 // EnsurePolicyBindingsForProject ensures that given roles and member, appropriate binding is added to project.
 // Roles should be in the format projects/{project}/roles/{role_id} for custom roles and roles/{role_id}
 // for predefined roles.
+// Return value indicates whether a modification occurred.
 func (c *shim) ensurePolicyBindingsForProject(
 	ctx context.Context,
 	roles []string,
 	member string,
 	projectName string,
-) error {
+) (bool, error) {
 	needPolicyUpdate := false
 
 	policy, err := c.gcpClient.GetProjectIamPolicy(ctx, projectName, &cloudresourcemanager.GetIamPolicyRequest{})
 
 	if err != nil {
-		return fmt.Errorf("error fetching policy for project: %v", err)
+		return false, errors.Wrap(err, "Failed to fetch policy for project")
 	}
 
 	// Validate that each role exists, and add the policy binding as needed
@@ -569,13 +573,14 @@ func (c *shim) ensurePolicyBindingsForProject(
 	}
 
 	if needPolicyUpdate {
-		return c.setProjectIamPolicy(ctx, policy)
+		return true, c.setProjectIamPolicy(ctx, policy)
 	}
 
 	// If we made it this far there were no updates needed
-	return nil
+	return false, nil
 }
 
+// This method modifies cloud resources.
 func (c *shim) setProjectIamPolicy(
 	ctx context.Context,
 	policy *cloudresourcemanager.Policy,
@@ -634,4 +639,98 @@ func (c *shim) createMemberRoleBindingForProject(
 		Members: []string{memberName},
 		Role:    roleName,
 	})
+}
+
+func (c *shim) attachImpersonator(
+	ctx context.Context,
+	serviceAccount *cmv1.WifServiceAccount,
+) error {
+	policy, err := c.gcpClient.GetServiceAccountAccessPolicy(
+		ctx,
+		gcp.FmtSaResourceId(
+			serviceAccount.ServiceAccountId(),
+			c.wifConfig.Gcp().ProjectId(),
+		),
+	)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to determine access policy of service account '%s'",
+			serviceAccount.ServiceAccountId())
+	}
+	if policy.HasRole(
+		gcp.PolicyMember(fmt.Sprintf("serviceAccount:%s", c.wifConfig.Gcp().ImpersonatorEmail())),
+		impersonatorRole,
+	) {
+		return nil
+	}
+
+	policy.AddRole(
+		gcp.PolicyMember(fmt.Sprintf("serviceAccount:%s", c.wifConfig.Gcp().ImpersonatorEmail())),
+		impersonatorRole,
+	)
+	if err := c.gcpClient.SetServiceAccountAccessPolicy(
+		ctx,
+		policy,
+	); err != nil {
+		return errors.Wrapf(err, "Failed to attach impersonator to service account '%s'",
+			serviceAccount.ServiceAccountId())
+	}
+
+	log.Printf("Impersonation access granted to service account '%s'",
+		serviceAccount.ServiceAccountId())
+	return nil
+}
+
+func (c *shim) attachWorkloadIdentityPool(
+	ctx context.Context,
+	serviceAccount *cmv1.WifServiceAccount,
+) error {
+	policy, err := c.gcpClient.GetServiceAccountAccessPolicy(
+		ctx,
+		gcp.FmtSaResourceId(
+			serviceAccount.ServiceAccountId(),
+			c.wifConfig.Gcp().ProjectId(),
+		),
+	)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to determine access policy of service account '%s'",
+			serviceAccount.ServiceAccountId())
+	}
+
+	var modified bool
+	openshiftNamespace := serviceAccount.CredentialRequest().SecretRef().Namespace()
+	for _, openshiftServiceAccount := range serviceAccount.CredentialRequest().ServiceAccountNames() {
+		principal := fmt.Sprintf(
+			"principal://iam.googleapis.com/projects/%s/"+
+				"locations/global/workloadIdentityPools/%s/"+
+				"subject/system:serviceaccount:%s:%s",
+			c.wifConfig.Gcp().ProjectNumber(),
+			c.wifConfig.Gcp().WorkloadIdentityPool().PoolId(),
+			openshiftNamespace, openshiftServiceAccount,
+		)
+
+		if !policy.HasRole(
+			gcp.PolicyMember(principal),
+			gcp.RoleName(workloadIdentityUserRole),
+		) {
+			modified = true
+
+			policy.AddRole(
+				gcp.PolicyMember(principal),
+				gcp.RoleName(workloadIdentityUserRole),
+			)
+		}
+	}
+
+	if modified {
+		if err := c.gcpClient.SetServiceAccountAccessPolicy(
+			ctx,
+			policy,
+		); err != nil {
+			return errors.Wrapf(err, "Failed to attach federated access on service account '%s'",
+				serviceAccount.ServiceAccountId())
+		}
+		log.Printf("Federated access granted to service account '%s'",
+			serviceAccount.ServiceAccountId())
+	}
+	return nil
 }
