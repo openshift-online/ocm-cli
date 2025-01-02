@@ -8,14 +8,16 @@ import (
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 var (
 	UpdateWifConfigOpts = options{
-		Mode:      ModeAuto,
-		TargetDir: "",
+		Mode:             ModeAuto,
+		TargetDir:        "",
+		OpenshiftVersion: "",
 	}
 )
 
@@ -45,6 +47,12 @@ the wif-config metadata and the GCP resources it represents.`,
 		"output-dir",
 		"",
 		targetDirFlagDescription,
+	)
+	updateWifConfigCmd.PersistentFlags().StringVar(
+		&UpdateWifConfigOpts.OpenshiftVersion,
+		"version",
+		"",
+		versionFlagDescription,
 	)
 
 	return updateWifConfigCmd
@@ -83,6 +91,27 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	wifConfig, err := findWifConfig(connection.ClustersMgmt().V1(), key)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get wif-config")
+	}
+
+	// Update the WIF configuration
+	if UpdateWifConfigOpts.OpenshiftVersion != "" {
+		wifTemplate := versionToTemplateID(UpdateWifConfigOpts.OpenshiftVersion)
+
+		wifBuilder := cmv1.NewWifConfig()
+		existingTemplates, _ := wifConfig.GetWifTemplates()
+		wifBuilder.WifTemplates(append(existingTemplates, wifTemplate)...)
+
+		updatedWifConfig, err := wifBuilder.Build()
+		if err != nil {
+			return errors.Wrapf(err, "failed to create wif-config body")
+		}
+
+		resp, err := connection.ClustersMgmt().V1().GCP().WifConfigs().
+			WifConfig(wifConfig.ID()).Update().Body(updatedWifConfig).Send()
+		if err != nil {
+			return errors.Wrapf(err, "failed to update wif-config")
+		}
+		wifConfig = resp.Body()
 	}
 
 	gcpClient, err := gcp.NewGcpClient(ctx)
