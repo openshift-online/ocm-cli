@@ -45,7 +45,7 @@ func verifyWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	}
 	if !response.Body().Configured() {
 		err := errors.New(response.Body().Description())
-		helpMsg := fmt.Sprintf("Running 'ocm gcp update wif-config' may fix errors related to " +
+		helpMsg := fmt.Sprintf("Running 'ocm gcp update wif-config' will fix errors related to " +
 			"cloud resource misconfiguration.")
 		return fmt.Errorf("verification failed with error: %v\n%s", err, helpMsg)
 	} else {
