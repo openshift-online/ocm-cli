@@ -416,7 +416,7 @@ func addGcpEncryptionFlags(fs *pflag.FlagSet, encryptionArgs *c.GcpEncryption) {
 		&encryptionArgs.KmsKeyLocation,
 		KmsKeyLocationFlag,
 		"",
-		"The location of KMS keyring in GCP for custom encryption."+
+		"The location of KMS keyring in GCP for custom encryption. "+
 			"This should match the data center where the cluster's compute pool will be located.",
 	)
 	arguments.SetQuestion(fs, KmsKeyLocationFlag, "KMS key location:")
