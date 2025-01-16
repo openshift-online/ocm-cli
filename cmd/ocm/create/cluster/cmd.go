@@ -436,7 +436,7 @@ func addGcpEncryptionFlags(fs *pflag.FlagSet, encryptionArgs *c.GcpEncryption) {
 		&encryptionArgs.KmsKeyName,
 		kmsKeyNameFlag,
 		"",
-		"The name of the KMS key in GCP to use for custom encryption."+
+		"The name of the KMS key in GCP to use for custom encryption. "+
 			"The key should belong to the KMS key ring specified.",
 	)
 	arguments.SetQuestion(fs, kmsKeyNameFlag, "KMS key name:")
