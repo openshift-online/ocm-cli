@@ -58,6 +58,11 @@ const (
 	controlPlaneSubnetFlag = "control-plane-subnet"
 	computePlaneSubnetFlag = "compute-subnet"
 	pscSubnetFlag          = "psc-subnet"
+	//Gcp Custom Encryption
+	KmsKeyLocationFlag   = "kms-key-location"
+	kmsKeyRingFlag       = "kms-key-ring"
+	kmsKeyNameFlag       = "kms-key-name"
+	kmsKeySvcAccountFlag = "kms-key-service-account"
 )
 
 var args struct {
@@ -85,6 +90,7 @@ var args struct {
 	gcpSecureBoot         c.GcpSecurity
 	gcpAuthentication     c.GcpAuthentication
 	gcpPrivateSvcConnect  c.GcpPrivateSvcConnect
+	gcpEncryption         c.GcpEncryption
 	gcpWifConfig          string
 	etcdEncryption        bool
 	subscriptionType      string
@@ -399,6 +405,50 @@ func init() {
 	)
 	arguments.SetQuestion(fs, "wif-config", "WIF configuration:")
 	Cmd.RegisterFlagCompletionFunc("wif-config", arguments.MakeCompleteFunc(getWifConfigNameOptions))
+
+	addGcpEncryptionFlags(fs, &args.gcpEncryption)
+
+}
+
+func addGcpEncryptionFlags(fs *pflag.FlagSet, encryptionArgs *c.GcpEncryption) {
+
+	fs.StringVar(
+		&encryptionArgs.KmsKeyLocation,
+		KmsKeyLocationFlag,
+		"",
+		"The location of KMS keyring in GCP for custom encryption."+
+			"This should match the data center where the cluster's compute pool will be located.",
+	)
+	arguments.SetQuestion(fs, KmsKeyLocationFlag, "KMS key location:")
+	Cmd.RegisterFlagCompletionFunc(kmsKeyRingFlag, arguments.MakeCompleteFunc(getKmsKeyLocationOptions))
+
+	fs.StringVar(
+		&encryptionArgs.KmsKeyRing,
+		kmsKeyRingFlag,
+		"",
+		"The name of the KMS key ring in GCP to use for custom encryption."+
+			"The key ring should belong to the KMS location specified.",
+	)
+	arguments.SetQuestion(fs, kmsKeyRingFlag, "KMS key ring:")
+	Cmd.RegisterFlagCompletionFunc(kmsKeyRingFlag, arguments.MakeCompleteFunc(getKmsKeyRingOptions))
+
+	fs.StringVar(
+		&encryptionArgs.KmsKeyName,
+		kmsKeyNameFlag,
+		"",
+		"The name of the KMS key in GCP to use for custom encryption."+
+			"The key should belong to the KMS key ring specified.",
+	)
+	arguments.SetQuestion(fs, kmsKeyNameFlag, "KMS key name:")
+	Cmd.RegisterFlagCompletionFunc(kmsKeyRingFlag, arguments.MakeCompleteFunc(getKmsKeyOptions))
+
+	fs.StringVar(
+		&encryptionArgs.KmsKeySvcAccount,
+		kmsKeySvcAccountFlag,
+		"",
+		"The name of the service account in GCP with access to KMS keyring and key specified for custom encryption",
+	)
+	arguments.SetQuestion(fs, kmsKeySvcAccountFlag, "KMS key service-account name:")
 }
 
 func osdProviderOptions(_ *sdk.Connection) ([]arguments.Option, error) {
@@ -560,6 +610,62 @@ func getWifConfigNameOptions(connection *sdk.Connection) ([]arguments.Option, er
 	return provider.GetWifConfigNameOptions(connection.ClustersMgmt().V1())
 }
 
+func getKmsKeyLocationOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+
+	keyLocations, err := provider.GetGcpKmsKeyLocations(connection.ClustersMgmt().V1(),
+		args.ccs, args.gcpAuthentication, args.region)
+	if err != nil {
+		return nil, err
+	}
+
+	options := []arguments.Option{}
+	for _, keyLoc := range keyLocations {
+		options = append(options, arguments.Option{
+			Value:       keyLoc,
+			Description: keyLoc,
+		})
+	}
+	return options, nil
+}
+
+func getKmsKeyRingOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+
+	keyRingList, err := provider.GetGcpKmsKeyRings(connection.ClustersMgmt().V1(),
+		args.ccs, args.gcpAuthentication, args.gcpEncryption.KmsKeyLocation)
+	if err != nil {
+		return nil, err
+	}
+
+	options := []arguments.Option{}
+	for _, kr := range keyRingList {
+		options = append(options, arguments.Option{
+			Value:       kr.Name(),
+			Description: kr.Name(),
+		})
+	}
+
+	return options, nil
+}
+
+func getKmsKeyOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+
+	keysList, err := provider.GetGcpKmsKeys(connection.ClustersMgmt().V1(),
+		args.ccs, args.gcpAuthentication, args.gcpEncryption.KmsKeyLocation, args.gcpEncryption.KmsKeyRing)
+	if err != nil {
+		return nil, err
+	}
+
+	options := []arguments.Option{}
+	for _, key := range keysList {
+		options = append(options, arguments.Option{
+			Value:       key.Name(),
+			Description: key.Name(),
+		})
+	}
+
+	return options, nil
+}
+
 func networkTypeCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return []string{c.NetworkTypeSDN, c.NetworkTypeOVN}, cobra.ShellCompDirectiveDefault
 }
@@ -661,6 +767,15 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	regions, err := getRegionOptions(connection)
+	if err != nil {
+		return err
+	}
+	err = arguments.PromptOrCheckOneOf(fs, "region", regions)
+	if err != nil {
+		return err
+	}
+
 	err = arguments.PromptBool(fs, "multi-az")
 	if err != nil {
 		return err
@@ -671,11 +786,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	regions, err := getRegionOptions(connection)
-	if err != nil {
-		return err
-	}
-	err = arguments.PromptOrCheckOneOf(fs, "region", regions)
+	err = promptGcpCustomEncryption(fs, connection)
 	if err != nil {
 		return err
 	}
@@ -839,6 +950,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		GcpSecurity:          args.gcpSecureBoot,
 		GcpAuthentication:    args.gcpAuthentication,
 		GcpPrivateSvcConnect: args.gcpPrivateSvcConnect,
+		GcpEncryption:        args.gcpEncryption,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
@@ -1543,6 +1655,71 @@ func promptSecureBoot(fs *pflag.FlagSet) error {
 		return nil
 	}
 	err := arguments.PromptBool(fs, "secure-boot-for-shielded-vms")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func promptGcpCustomEncryption(fs *pflag.FlagSet, connection *sdk.Connection) error {
+
+	if !args.ccs.Enabled || args.provider != c.ProviderGCP {
+		return nil
+	}
+
+	isCustomKeys := args.gcpEncryption.KmsKeyLocation != "" ||
+		args.gcpEncryption.KmsKeyRing != "" ||
+		args.gcpEncryption.KmsKeyName != "" ||
+		args.gcpEncryption.KmsKeySvcAccount != ""
+
+	if !isCustomKeys && args.interactive {
+		var err error
+		isCustomKeys, err = interactive.GetBool(interactive.Input{
+			Question: "Use Custom KMS Keys",
+			Help:     "To use custom encryption keys managed via GCP Key management service.",
+			Default:  false,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if !isCustomKeys {
+		return nil
+	}
+
+	KmsKeyLocationOptions, err := getKmsKeyLocationOptions(connection)
+	if err != nil {
+		return err
+	}
+
+	err = arguments.PromptOrCheckOneOf(fs, KmsKeyLocationFlag, KmsKeyLocationOptions)
+	if err != nil {
+		return err
+	}
+
+	keyringOptions, err := getKmsKeyRingOptions(connection)
+	if err != nil {
+		return err
+	}
+
+	err = arguments.PromptOrCheckOneOf(fs, kmsKeyRingFlag, keyringOptions)
+	if err != nil {
+		return err
+	}
+
+	keysOptions, err := getKmsKeyOptions(connection)
+	if err != nil {
+		return err
+	}
+
+	err = arguments.PromptOrCheckOneOf(fs, kmsKeyNameFlag, keysOptions)
+	if err != nil {
+		return err
+	}
+
+	err = arguments.PromptString(fs, kmsKeySvcAccountFlag)
 	if err != nil {
 		return err
 	}
