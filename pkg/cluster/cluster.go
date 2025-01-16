@@ -102,6 +102,9 @@ type Spec struct {
 
 	// GCP PrivateServiceConnect settings
 	GcpPrivateSvcConnect GcpPrivateSvcConnect
+
+	//Includes Custom KMS encryption key settings
+	GcpEncryption GcpEncryption
 }
 
 type Autoscaling struct {
@@ -168,6 +171,13 @@ type GcpAuthentication struct {
 
 type GcpPrivateSvcConnect struct {
 	SvcAttachmentSubnet string
+}
+
+type GcpEncryption struct {
+	KmsKeySvcAccount string
+	KmsKeyLocation   string
+	KmsKeyRing       string
+	KmsKeyName       string
 }
 
 type AddOnItem struct {
@@ -489,6 +499,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		gcpBuilder.Security(gcpSecurity)
 	}
 
+	if useGcpCustomEncryption(config.GcpEncryption) {
+		gcpEncryption := cmv1.NewGCPEncryptionKey().
+			KeyLocation(config.GcpEncryption.KmsKeyLocation).
+			KeyRing(config.GcpEncryption.KmsKeyRing).
+			KeyName(config.GcpEncryption.KmsKeyName).
+			KMSKeyServiceAccount(config.GcpEncryption.KmsKeySvcAccount)
+		clusterBuilder.GCPEncryptionKey(gcpEncryption)
+	}
+
 	if isGcpPsc(config.GcpPrivateSvcConnect) {
 		gcpPsc := cmv1.NewGcpPrivateServiceConnect().ServiceAttachmentSubnet(config.GcpPrivateSvcConnect.SvcAttachmentSubnet)
 		gcpBuilder.PrivateServiceConnect(gcpPsc)
@@ -561,6 +580,11 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 func isGCPNetworkExists(existingVPC ExistingVPC) bool {
 	return existingVPC.VPCName != "" || existingVPC.ControlPlaneSubnet != "" ||
 		existingVPC.ComputeSubnet != "" || existingVPC.VPCProjectID != ""
+}
+
+func useGcpCustomEncryption(gcpEncData GcpEncryption) bool {
+	return gcpEncData.KmsKeyLocation != "" || gcpEncData.KmsKeyRing != "" ||
+		gcpEncData.KmsKeyName != "" || gcpEncData.KmsKeySvcAccount != ""
 }
 
 func isGCPSharedVPC(existingVPC ExistingVPC) bool {
