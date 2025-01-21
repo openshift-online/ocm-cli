@@ -20,20 +20,24 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	"github.com/openshift-online/ocm-cli/pkg/provider"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/spf13/cobra"
 )
 
-var args struct {
-	clusterKey                 string
-	instanceType               string
-	replicas                   int
-	autoscaling                c.Autoscaling
-	labels                     string
-	taints                     string
-	additionalSecurityGroupIds []string
+type Args struct {
+	Argv                       []string
+	ClusterKey                 string
+	InstanceType               string
+	Replicas                   int
+	Autoscaling                c.Autoscaling
+	Labels                     string
+	Taints                     string
+	AdditionalSecurityGroupIds []string
+	AvailabilityZone           string
 }
+
+var args Args
 
 const (
 	additionalSecurityGroupIdsFlag = "additional-security-group-ids"
@@ -60,7 +64,7 @@ func init() {
 	flags := Cmd.Flags()
 
 	flags.StringVarP(
-		&args.clusterKey,
+		&args.ClusterKey,
 		"cluster",
 		"c",
 		"",
@@ -70,7 +74,7 @@ func init() {
 	Cmd.MarkFlagRequired("cluster")
 
 	flags.StringVar(
-		&args.instanceType,
+		&args.InstanceType,
 		"instance-type",
 		"",
 		"Instance type that should be used.",
@@ -80,16 +84,16 @@ func init() {
 	Cmd.MarkFlagRequired("instance-type")
 
 	flags.IntVar(
-		&args.replicas,
+		&args.Replicas,
 		"replicas",
 		0,
 		"Count of machines for this machine pool.",
 	)
 
-	arguments.AddAutoscalingFlags(flags, &args.autoscaling)
+	arguments.AddAutoscalingFlags(flags, &args.Autoscaling)
 
 	flags.StringVar(
-		&args.labels,
+		&args.Labels,
 		"labels",
 		"",
 		"Labels for machine pool. Format should be a comma-separated list of 'key=value'. "+
@@ -97,67 +101,119 @@ func init() {
 	)
 
 	flags.StringVar(
-		&args.taints,
+		&args.Taints,
 		"taints",
 		"",
 		"Taints for machine pool. Format should be a comma-separated list of 'key=value:scheduleType'. "+
 			"This list will overwrite any modifications made to Node taints on an ongoing basis.",
 	)
 
-	flags.StringSliceVar(&args.additionalSecurityGroupIds,
+	flags.StringSliceVar(&args.AdditionalSecurityGroupIds,
 		additionalSecurityGroupIdsFlag,
 		nil,
 		"The additional Security Group IDs to be added to the machine pool. "+
 			"Format should be a comma-separated list.",
 	)
+
+	flags.StringVar(
+		&args.AvailabilityZone,
+		"availability-zone",
+		"",
+		"Select availability zone to create a single AZ machine pool for a multi-AZ cluster",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
+	args.Argv = argv
+	connection, err := ocm.NewConnection().Build()
+	if err != nil {
+		return fmt.Errorf("Failed to create OCM connection: %v", err)
+	}
+	defer connection.Close()
 
-	// Check that the cluster key (name, identifier or external identifier) given by the user
-	// is reasonably safe so that there is no risk of SQL injection:
-	clusterKey := args.clusterKey
-	if !c.IsValidClusterKey(clusterKey) {
-		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
-				"must contain only letters, digits, dashes and underscores",
-			clusterKey,
-		)
+	cluster, err := getCluster(connection, args.ClusterKey)
+	if err != nil {
+		return err
 	}
 
-	if len(argv) < 1 || argv[0] == "" {
+	if err := VerifyCluster(cluster); err != nil {
+		return err
+	}
+
+	if err := VerifyArguments(
+		args,
+		&flagSet{cmd.Flags()},
+		&machineTypeListGetter{connection},
+		cluster,
+	); err != nil {
+		return err
+	}
+
+	machinePoolId := argv[0]
+
+	machinePool, err := buildMachinePool(machinePoolId)
+	if err != nil {
+		return err
+	}
+
+	if err := addMachinePoolToCluster(connection, cluster.Id(), machinePool); err != nil {
+		return err
+	}
+
+	fmt.Printf("Machine pool '%s' created on cluster '%s'\n", machinePoolId, args.ClusterKey)
+	return nil
+}
+
+func getCluster(
+	connection *sdk.Connection,
+	clusterKey string,
+) (ocm.Cluster, error) {
+	clusterData, err := c.GetCluster(connection, clusterKey)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+	}
+	cluster := ocm.NewCluster(clusterData)
+	return cluster, nil
+}
+
+func VerifyCluster(cluster ocm.Cluster) error {
+	if cluster.State() != cmv1.ClusterStateReady {
+		return fmt.Errorf("Cluster '%s' is not yet ready", args.ClusterKey)
+	}
+	return nil
+}
+
+func VerifyArguments(
+	args Args,
+	flags FlagSet,
+	machineTypeListGetter MachineTypeListGetter,
+	cluster ocm.Cluster,
+) error {
+	if len(args.Argv) < 1 || args.Argv[0] == "" {
 		return fmt.Errorf("Missing machine pool ID")
 	}
-	machinePoolID := argv[0]
 
-	labels := make(map[string]string)
-	if args.labels != "" {
-		for _, label := range strings.Split(args.labels, ",") {
+	if args.Labels != "" {
+		for _, label := range strings.Split(args.Labels, ",") {
 			if !strings.Contains(label, "=") {
 				return fmt.Errorf("Expected key=value format for label-match")
 			}
-			tokens := strings.Split(label, "=")
-			labels[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
 		}
 	}
 
-	taintBuilders := []*cmv1.TaintBuilder{}
-
-	if args.taints != "" {
-		for _, taint := range strings.Split(args.taints, ",") {
+	if args.Taints != "" {
+		for _, taint := range strings.Split(args.Taints, ",") {
 			if !strings.Contains(taint, "=") || !strings.Contains(taint, ":") {
 				return fmt.Errorf("Expected key=value:scheduleType format for taints")
 			}
-			tokens := strings.FieldsFunc(taint, arguments.Split)
-			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(tokens[0]).Value(tokens[1]).Effect(tokens[2]))
 		}
 	}
 
-	isMinReplicasSet := cmd.Flags().Changed("min-replicas")
-	isMaxReplicasSet := cmd.Flags().Changed("max-replicas")
-	isReplicasSet := cmd.Flags().Changed("replicas")
+	isMinReplicasSet := flags.Changed("min-replicas")
+	isMaxReplicasSet := flags.Changed("max-replicas")
+	isReplicasSet := flags.Changed("replicas")
 
-	if args.autoscaling.Enabled {
+	if args.Autoscaling.Enabled {
 		if isReplicasSet {
 			return fmt.Errorf("--replicas is only allowed when --enable-autoscaling=false")
 		}
@@ -175,72 +231,95 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
-	// Create the client for the OCM API:
-	connection, err := ocm.NewConnection().Build()
-	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
-	}
-	defer connection.Close()
-
-	// Get the client for the cluster management api
-	clusterCollection := connection.ClustersMgmt().V1().Clusters()
-
-	cluster, err := c.GetCluster(connection, clusterKey)
-	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
-	}
-
-	if cluster.State() != cmv1.ClusterStateReady {
-		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
-	}
-
-	machineTypeList, err := provider.GetMachineTypeOptions(connection.ClustersMgmt().V1(),
-		cluster.CloudProvider().ID(),
-		cluster.CCS().Enabled())
+	machineTypeList, err := machineTypeListGetter.GetMachineTypeOptions(cluster)
 	if err != nil {
 		return err
 	}
-	err = arguments.CheckOneOf(cmd.Flags(), "instance-type", machineTypeList)
-	if err != nil {
+	if err := flags.CheckOneOf("instance-type", machineTypeList); err != nil {
 		return err
 	}
 
+	if len(args.AdditionalSecurityGroupIds) != 0 && cluster.CloudProviderId() != c.ProviderAWS {
+		return fmt.Errorf("'%s' may only be set for clusters using the '%s' cloud provider.",
+			additionalSecurityGroupIdsFlag, c.ProviderAWS)
+	}
+
+	if args.AvailabilityZone != "" {
+		if cluster.CloudProviderId() != c.ProviderGCP {
+			return fmt.Errorf(
+				"At this time, OCM CLI does not support setting 'availability-zone'"+
+					" for clusters using the cloud provider '%s'",
+				cluster.CloudProviderId())
+		}
+	}
+
+	return nil
+}
+
+func buildMachinePool(
+	machinePoolId string,
+) (*cmv1.MachinePool, error) {
+	labels := make(map[string]string)
+	if args.Labels != "" {
+		for _, label := range strings.Split(args.Labels, ",") {
+			tokens := strings.Split(label, "=")
+			labels[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+		}
+	}
+
+	taintBuilders := []*cmv1.TaintBuilder{}
+	if args.Taints != "" {
+		for _, taint := range strings.Split(args.Taints, ",") {
+			tokens := strings.FieldsFunc(taint, arguments.Split)
+			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(tokens[0]).Value(tokens[1]).Effect(tokens[2]))
+		}
+	}
 	mpBuilder := cmv1.NewMachinePool().
-		ID(machinePoolID).
-		InstanceType(args.instanceType).
+		ID(machinePoolId).
+		InstanceType(args.InstanceType).
 		Labels(labels).
 		Taints(taintBuilders...)
 
-	if len(args.additionalSecurityGroupIds) != 0 {
-		for i, sg := range args.additionalSecurityGroupIds {
-			args.additionalSecurityGroupIds[i] = strings.TrimSpace(sg)
+	if len(args.AdditionalSecurityGroupIds) != 0 {
+		for i, sg := range args.AdditionalSecurityGroupIds {
+			args.AdditionalSecurityGroupIds[i] = strings.TrimSpace(sg)
 		}
 		mpBuilder.AWS(
 			cmv1.NewAWSMachinePool().
-				AdditionalSecurityGroupIds(args.additionalSecurityGroupIds...))
+				AdditionalSecurityGroupIds(args.AdditionalSecurityGroupIds...))
 	}
 
-	if args.autoscaling.Enabled {
+	if args.Autoscaling.Enabled {
 		mpBuilder = mpBuilder.Autoscaling(
 			cmv1.NewMachinePoolAutoscaling().
-				MinReplicas(args.autoscaling.MinReplicas).
-				MaxReplicas(args.autoscaling.MaxReplicas))
+				MinReplicas(args.Autoscaling.MinReplicas).
+				MaxReplicas(args.Autoscaling.MaxReplicas))
 	} else {
-		mpBuilder = mpBuilder.Replicas(args.replicas)
+		mpBuilder = mpBuilder.Replicas(args.Replicas)
+	}
+
+	if args.AvailabilityZone != "" {
+		mpBuilder = mpBuilder.AvailabilityZones(args.AvailabilityZone)
 	}
 
 	machinePool, err := mpBuilder.Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create machine pool for cluster '%s': %v", clusterKey, err)
+		return nil, fmt.Errorf("Failed to create machine pool for cluster '%s': %v", args.ClusterKey, err)
 	}
+	return machinePool, nil
+}
 
-	_, err = clusterCollection.Cluster(cluster.ID()).
+func addMachinePoolToCluster(
+	connection *sdk.Connection,
+	clusterId string,
+	machinePool *cmv1.MachinePool,
+) error {
+	if _, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterId).
 		MachinePools().
 		Add().
 		Body(machinePool).
-		Send()
-	if err != nil {
-		return fmt.Errorf("Failed to add machine pool to cluster '%s': %v", clusterKey, err)
+		Send(); err != nil {
+		return fmt.Errorf("Failed to add machine pool to cluster '%s': %v", args.ClusterKey, err)
 	}
 	return nil
 }

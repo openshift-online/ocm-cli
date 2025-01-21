@@ -202,6 +202,14 @@ func IsValidClusterKey(clusterKey string) bool {
 }
 
 func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, err error) {
+	if !IsValidClusterKey(key) {
+		return nil, fmt.Errorf(
+			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+				"must contain only letters, digits, dashes and underscores",
+			key,
+		)
+	}
+
 	// Prepare the resources that we will be using:
 	subsResource := connection.AccountsMgmt().V1().Subscriptions()
 	clustersResource := connection.ClustersMgmt().V1().Clusters()
