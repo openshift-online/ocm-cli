@@ -16,14 +16,24 @@ package idp
 import (
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"net/url"
 	"strings"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	netutils "k8s.io/utils/net"
 
 	"github.com/AlecAivazis/survey/v2"
 )
+
+// isValidHostname is same validation as in the Open Shift GitHub IDP CRD
+// https://github.com/openshift/kubernetes/blob/91607f5d750ba4002f87d34a12ae1cfd45b45b81/openshift-kube-apiserver/admission/customresourcevalidation/oauth/helpers.go#L13
+//
+//nolint:lll
+func isValidHostname(hostname string) bool {
+	return len(validation.IsDNS1123Subdomain(hostname)) == 0 || netutils.ParseIPSloppy(hostname) != nil
+}
 
 func buildGithubIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.IdentityProviderBuilder, err error) {
 	clientID := args.clientID
@@ -115,9 +125,16 @@ func buildGithubIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 		ClientSecret(clientSecret)
 
 	if args.githubHostname != "" {
-		_, err = url.ParseRequestURI(args.githubHostname)
-		if err != nil {
-			return idpBuilder, fmt.Errorf("Expected a valid Hostname: %v", err)
+		if !isValidHostname(args.githubHostname) {
+			return idpBuilder, fmt.Errorf(fmt.Sprintf("'%s' hostname must be a valid DNS subdomain or IP address",
+				args.githubHostname))
+		}
+		// Allow only non GitHub domains
+		// https://github.com/openshift/kubernetes/blob/258f1d5fb6491ba65fd8201c827e179432430627/openshift-kube-apiserver/admission/customresourcevalidation/oauth/validate_github.go#L49
+		//nolint:lll
+		if args.githubHostname == "github.com" || strings.HasSuffix(args.githubHostname, ".github.com") {
+			return idpBuilder, fmt.Errorf(fmt.Sprintf("'%s' hostname cannot be equal to [*.]github.com",
+				args.githubHostname))
 		}
 		// Set the hostname, if any
 		githubIDP = githubIDP.Hostname(args.githubHostname)
