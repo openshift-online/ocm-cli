@@ -2,6 +2,7 @@ package gcp
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
@@ -10,6 +11,10 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+)
+
+const (
+	versionColumn = "versions"
 )
 
 var ListWorkloadIdentityConfigurationOpts struct {
@@ -34,7 +39,7 @@ belong to the user's organization.`,
 	fs.StringVar(
 		&ListWorkloadIdentityConfigurationOpts.columns,
 		"columns",
-		"id, display_name, gcp.project_id",
+		"id, display_name, gcp.project_id, "+versionColumn,
 		`Specify which columns to display separated by commas. 
 The path is based on wif-config struct.
 `,
@@ -80,6 +85,9 @@ func listWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) err
 	table, err := printer.NewTable().
 		Name("wifconfigs").
 		Columns(ListWorkloadIdentityConfigurationOpts.columns).
+		Value(versionColumn, func(object *cmv1.WifConfig) string {
+			return fmt.Sprintf("%v", object.WifTemplates())
+		}).
 		Build(ctx)
 	if err != nil {
 		return err
