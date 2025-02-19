@@ -9,8 +9,8 @@ require (
 	cloud.google.com/go/storage v1.39.1
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/jwkset v0.5.20
-	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/golang/glog v1.2.4
+	github.com/golang-jwt/jwt/v4 v4.5.1
+	github.com/golang/glog v1.2.0
 	github.com/googleapis/gax-go/v2 v2.12.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/m1/go-generate-password v0.2.0
@@ -18,9 +18,9 @@ require (
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8
-	github.com/openshift-online/ocm-sdk-go v0.1.451
+	github.com/openshift-online/ocm-sdk-go v0.1.459
 	github.com/openshift/rosa v1.2.24
-	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
+	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
