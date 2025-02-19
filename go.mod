@@ -10,7 +10,7 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/jwkset v0.5.20
 	github.com/golang-jwt/jwt/v4 v4.5.1
-	github.com/golang/glog v1.2.0
+	github.com/golang/glog v1.2.4
 	github.com/googleapis/gax-go/v2 v2.12.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/m1/go-generate-password v0.2.0
