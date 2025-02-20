@@ -3,6 +3,9 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.4 Feb 20 2025
+-c42c641 Update Konflux references (#694)
+
 ## 1.0.3 Dec 9 2024
 
 -9fbb753 Update to use addon service API for addons function
