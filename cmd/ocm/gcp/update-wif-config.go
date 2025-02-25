@@ -93,26 +93,26 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to get wif-config")
 	}
 
+	wifBuilder := cmv1.NewWifConfig()
 	// Update the WIF configuration
 	if UpdateWifConfigOpts.OpenshiftVersion != "" {
 		wifTemplate := versionToTemplateID(UpdateWifConfigOpts.OpenshiftVersion)
 
-		wifBuilder := cmv1.NewWifConfig()
 		existingTemplates, _ := wifConfig.GetWifTemplates()
 		wifBuilder.WifTemplates(append(existingTemplates, wifTemplate)...)
-
-		updatedWifConfig, err := wifBuilder.Build()
-		if err != nil {
-			return errors.Wrapf(err, "failed to create wif-config body")
-		}
-
-		resp, err := connection.ClustersMgmt().V1().GCP().WifConfigs().
-			WifConfig(wifConfig.ID()).Update().Body(updatedWifConfig).Send()
-		if err != nil {
-			return errors.Wrapf(err, "failed to update wif-config")
-		}
-		wifConfig = resp.Body()
 	}
+
+	updatedWifConfig, err := wifBuilder.Build()
+	if err != nil {
+		return errors.Wrapf(err, "failed to create wif-config body")
+	}
+
+	resp, err := connection.ClustersMgmt().V1().GCP().WifConfigs().
+		WifConfig(wifConfig.ID()).Update().Body(updatedWifConfig).Send()
+	if err != nil {
+		return errors.Wrapf(err, "failed to update wif-config")
+	}
+	wifConfig = resp.Body()
 
 	gcpClient, err := gcp.NewGcpClient(ctx)
 	if err != nil {
