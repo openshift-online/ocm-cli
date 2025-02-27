@@ -3,6 +3,25 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.4 Feb 27 2025
+
+-3a8ef75 OCM-12971 | 'ocm gcp update wif-config' remediates all wif-config misconfigurations (#696)
+-d4deb29 Add 'version' flag to wif-config create and update commands (#698)
+-f079176 updated help message for wif verification errors
+-1fb1d56 Refactored GCP client operations to log user messages and optimized resource updation (#700)
+-dd04c33 Update Konflux references (#697)
+-c84225e OCM-11995 | feat : Add GCP KMS custom encryption support (#701)
+-7ac7051 added 'availability-zone' argument to machine pool creation (#703)
+-56ca538 updates to konflux_build_pipeline (#704)
+-b37893c listing wif-configs shows supported versions (#706)
+-7087572 Update Konflux references (#702)
+-7aac46f Update Konflux references (#707)
+-2045f98 Update github.com/pkg/browser digest to 5ac0b6a (#708)
+-0b6615a Update module github.com/golang-jwt/jwt/v4 to v4.5.1 (#709)
+-1cf3d22 Update module github.com/openshift-online/ocm-sdk-go to v0.1.459 (#711)
+-579f8de Update module github.com/golang/glog to v1.2.4 (#710)
+-c5c95d5 n-3 vesion supportfor  wif-update (#713)
+
 ## 1.0.3 Dec 9 2024
 
 -9fbb753 Update to use addon service API for addons function
