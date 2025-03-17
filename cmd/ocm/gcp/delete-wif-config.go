@@ -120,6 +120,10 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return err
 	}
 
+	if err := unbindServiceAccounts(ctx, gcpClient, wifConfig); err != nil {
+		return err
+	}
+
 	if err := deleteServiceAccounts(ctx, gcpClient, wifConfig, true); err != nil {
 		return err
 	}
@@ -173,5 +177,29 @@ func deleteWorkloadIdentityPool(ctx context.Context, gcpClient gcp.GcpClient,
 	}
 
 	log.Printf("Workload identity pool %q deleted", poolName)
+	return nil
+}
+
+func unbindServiceAccounts(
+	ctx context.Context,
+	gcpClient gcp.GcpClient,
+	wifConfig *cmv1.WifConfig,
+) error {
+	log.Println("Unbinding service accounts...")
+
+	gcpShim := &shim{
+		wifConfig: wifConfig,
+		gcpClient: gcpClient,
+	}
+
+	for _, serviceAccount := range wifConfig.Gcp().ServiceAccounts() {
+		err := gcpShim.unbindRolesFromPrincipal(ctx, log.Default(),
+			gcpShim.formatServiceAccountId(serviceAccount),
+			serviceAccount.Roles())
+		if err != nil {
+			return errors.Wrapf(err, "Failed to unbind service account %q", serviceAccount.ServiceAccountId())
+		}
+	}
+
 	return nil
 }

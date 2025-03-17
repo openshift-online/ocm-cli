@@ -305,7 +305,7 @@ func (c *shim) createOrUpdateRoles(
 		roleID := role.RoleId()
 		roleTitle := role.RoleId()
 		permissions := role.Permissions()
-		existingRole, err := c.getRole(ctx, c.fmtRoleResourceId(role))
+		existingRole, err := c.getRole(ctx, c.formatRoleResourceId(role))
 		if err != nil {
 			if gerr, ok := err.(*apierror.APIError); ok && gerr.GRPCStatus().Code() == codes.NotFound {
 				_, err = c.createRole(
@@ -328,7 +328,7 @@ func (c *shim) createOrUpdateRoles(
 
 		// Undelete role if it was deleted
 		if existingRole.Deleted {
-			_, err = c.undeleteRole(ctx, c.fmtRoleResourceId(role))
+			_, err = c.undeleteRole(ctx, c.formatRoleResourceId(role))
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("Failed to undelete custom role '%s'", roleID))
 			}
@@ -339,7 +339,7 @@ func (c *shim) createOrUpdateRoles(
 		// If role was disabled, enable role
 		if existingRole.Stage == adminpb.Role_DISABLED {
 			existingRole.Stage = adminpb.Role_GA
-			_, err := c.updateRole(ctx, existingRole, c.fmtRoleResourceId(role))
+			_, err := c.updateRole(ctx, existingRole, c.formatRoleResourceId(role))
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("Failed to enable role '%s'", roleID))
 			}
@@ -351,7 +351,7 @@ func (c *shim) createOrUpdateRoles(
 			existingRole.IncludedPermissions = append(existingRole.IncludedPermissions, addedPermissions...)
 			sort.Strings(existingRole.IncludedPermissions)
 
-			_, err := c.updateRole(ctx, existingRole, c.fmtRoleResourceId(role))
+			_, err := c.updateRole(ctx, existingRole, c.formatRoleResourceId(role))
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("Failed to update role '%s'", roleID))
 			}
@@ -389,9 +389,6 @@ func (c *shim) bindRolesToServiceAccount(
 	log *log.Logger,
 	serviceAccount *cmv1.WifServiceAccount,
 ) error {
-	serviceAccountId := serviceAccount.ServiceAccountId()
-	roles := serviceAccount.Roles()
-
 	// It was found that there is a window of time between when a service
 	// account creation call is made that the service account is not available
 	// in adjacent API calls. The call is therefore wrapped in retry logic to
@@ -400,8 +397,8 @@ func (c *shim) bindRolesToServiceAccount(
 		return c.bindRolesToPrincipal(
 			ctx,
 			log,
-			fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", serviceAccountId, c.wifConfig.Gcp().ProjectId()),
-			roles,
+			c.formatServiceAccountId(serviceAccount),
+			serviceAccount.Roles(),
 		)
 	}, maxRetries, retryDelayMs*time.Millisecond)
 }
@@ -426,13 +423,9 @@ func (c *shim) bindRolesToPrincipal(
 	principal string,
 	roles []*cmv1.WifRole,
 ) error {
-	formattedRoles := make([]string, 0, len(roles))
-	for _, role := range roles {
-		formattedRoles = append(formattedRoles, c.fmtRoleResourceId(role))
-	}
 	modified, err := c.ensurePolicyBindingsForProject(
 		ctx,
-		formattedRoles,
+		c.formatRoles(roles),
 		principal,
 		c.wifConfig.Gcp().ProjectId(),
 	)
@@ -441,6 +434,27 @@ func (c *shim) bindRolesToPrincipal(
 	}
 	if modified {
 		log.Printf("Bound roles to principal '%s'", principal)
+	}
+	return nil
+}
+
+func (c *shim) unbindRolesFromPrincipal(
+	ctx context.Context,
+	log *log.Logger,
+	principal string,
+	roles []*cmv1.WifRole,
+) error {
+	modified, err := c.removePolicyBindingsFromProject(
+		ctx,
+		c.formatRoles(roles),
+		principal,
+		c.wifConfig.Gcp().ProjectId(),
+	)
+	if err != nil {
+		return errors.Errorf("Failed to unbind roles from principal %s: %s", principal, err)
+	}
+	if modified {
+		log.Printf("Unbound roles from principal '%s'", principal)
 	}
 	return nil
 }
@@ -464,7 +478,17 @@ func (c *shim) grantAccessToServiceAccount(
 	return nil
 }
 
-func (c *shim) fmtRoleResourceId(
+func (c *shim) formatRoles(
+	roles []*cmv1.WifRole,
+) []string {
+	formattedRoles := make([]string, 0, len(roles))
+	for _, role := range roles {
+		formattedRoles = append(formattedRoles, c.formatRoleResourceId(role))
+	}
+	return formattedRoles
+}
+
+func (c *shim) formatRoleResourceId(
 	role *cmv1.WifRole,
 ) string {
 	if role.Predefined() {
@@ -472,6 +496,14 @@ func (c *shim) fmtRoleResourceId(
 	} else {
 		return fmt.Sprintf("projects/%s/roles/%s", c.wifConfig.Gcp().ProjectId(), role.RoleId())
 	}
+}
+func (c *shim) formatServiceAccountId(
+	serviceAccount *cmv1.WifServiceAccount,
+) string {
+	return fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com",
+		serviceAccount.ServiceAccountId(),
+		c.wifConfig.Gcp().ProjectId(),
+	)
 }
 
 // GetRole fetches the role created to satisfy a credentials request.
@@ -562,14 +594,48 @@ func (c *shim) ensurePolicyBindingsForProject(
 
 	// Validate that each role exists, and add the policy binding as needed
 	for _, definedRole := range roles {
-		// Earlier we've verified that the requested roles already exist.
-
-		// Add policy binding
-		modified := c.addPolicyBindingForProject(policy, definedRole, member)
-		if modified {
+		roleBindingAdded := c.ensureRoleBindingInPolicy(policy, definedRole)
+		if roleBindingAdded {
+			needPolicyUpdate = true
+		}
+		memberAddedToRoleBinding := c.applyMemberToRoleInPolicy(policy, definedRole, member, c.addMemberToBindingForProject)
+		if memberAddedToRoleBinding {
 			needPolicyUpdate = true
 		}
 
+	}
+
+	if needPolicyUpdate {
+		return true, c.setProjectIamPolicy(ctx, policy)
+	}
+
+	// If we made it this far there were no updates needed
+	return false, nil
+}
+
+// removePolicyBindingsFromProject ensures that given member no longer has the
+// following roles bound within the project's iam policy
+// Roles should be in the format projects/{project}/roles/{role_id} for custom roles and roles/{role_id}
+// for predefined roles.
+// Return value indicates whether a modification occurred.
+func (c *shim) removePolicyBindingsFromProject(
+	ctx context.Context,
+	roles []string,
+	member string,
+	projectName string,
+) (bool, error) {
+	needPolicyUpdate := false
+
+	policy, err := c.gcpClient.GetProjectIamPolicy(ctx, projectName, &cloudresourcemanager.GetIamPolicyRequest{})
+	if err != nil {
+		return false, errors.Wrap(err, "Failed to fetch policy for project")
+	}
+
+	for _, definedRole := range roles {
+		modified := c.applyMemberToRoleInPolicy(policy, definedRole, member, c.removeMemberFromBinding)
+		if modified {
+			needPolicyUpdate = true
+		}
 	}
 
 	if needPolicyUpdate {
@@ -597,24 +663,26 @@ func (c *shim) setProjectIamPolicy(
 	return nil
 }
 
-func (c *shim) addPolicyBindingForProject(
+// Applies the passed in function to the policy entries which have the desired
+// roles and members. The application function will return a boolean indicating
+// whether a modification to the binding was made. The method returns whether a
+// modification occurred.
+func (c *shim) applyMemberToRoleInPolicy(
 	policy *cloudresourcemanager.Policy,
 	roleName string,
 	memberName string,
+	applyFunc func(string, *cloudresourcemanager.Binding) bool,
 ) bool {
 	for i, binding := range policy.Bindings {
 		if binding.Role == roleName {
-			return c.addMemberToBindingForProject(memberName, policy.Bindings[i])
+			return applyFunc(memberName, policy.Bindings[i])
 		}
 	}
-
-	// if we didn't find an existing binding entry, then make one
-	c.createMemberRoleBindingForProject(policy, roleName, memberName)
-
-	return true
+	// if we didn't find the role in the project policy, then no modification was needed.
+	return false
 }
 
-// adds member to existing binding. returns bool indicating if an entry was made
+// adds member to existing binding. Returns bool indicating whether a new entry was made.
 func (c *shim) addMemberToBindingForProject(
 	memberName string,
 	binding *cloudresourcemanager.Binding,
@@ -625,20 +693,44 @@ func (c *shim) addMemberToBindingForProject(
 			return false
 		}
 	}
-
 	binding.Members = append(binding.Members, memberName)
 	return true
 }
 
-func (c *shim) createMemberRoleBindingForProject(
+func (c *shim) removeMemberFromBinding(
+	memberName string,
+	binding *cloudresourcemanager.Binding,
+) bool {
+	newMembers := []string{}
+	for _, member := range binding.Members {
+		if member != memberName {
+			newMembers = append(newMembers, member)
+		}
+	}
+	if len(newMembers) != len(binding.Members) {
+		binding.Members = newMembers
+		return true
+	}
+	return false
+}
+
+// Ensure that the project iam policy contains a binding entry for the specified role.
+// If the binding is not yet present in the policy, it will be appended.
+// The return value indicates whether the policy was modified.
+func (c *shim) ensureRoleBindingInPolicy(
 	policy *cloudresourcemanager.Policy,
 	roleName string,
-	memberName string,
-) {
+) bool {
+	for _, binding := range policy.Bindings {
+		if binding.Role == roleName {
+			return false
+		}
+	}
 	policy.Bindings = append(policy.Bindings, &cloudresourcemanager.Binding{
-		Members: []string{memberName},
+		Members: []string{},
 		Role:    roleName,
 	})
+	return true
 }
 
 func (c *shim) attachImpersonator(
