@@ -10,6 +10,8 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/utils"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 
@@ -33,6 +35,8 @@ const (
 	wifDescription = "Created by the OCM CLI for WIF config %s"
 	// Description for OpenShift version-specific WIF IAM roles
 	wifRoleDescription = "Created by the OCM CLI for Workload Identity Federation on OpenShift"
+
+	VerificationTimeoutSeconds = 600
 )
 
 // NewCreateWorkloadIdentityConfiguration provides the "gcp create wif-config" subcommand
@@ -169,6 +173,12 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	ctx := context.Background()
 	log := log.Default()
 
+	connection, err := ocm.NewConnection().Build()
+	if err != nil {
+		return errors.Wrapf(err, "Failed to create OCM connection")
+	}
+	defer connection.Close()
+
 	gcpClient, err := gcp.NewGcpClient(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "failed to initiate GCP client")
@@ -176,6 +186,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	wifConfig, err := createWorkloadIdentityConfiguration(
 		ctx,
+		connection,
 		gcpClient,
 		CreateWifConfigOpts.Name,
 		CreateWifConfigOpts.Project,
@@ -222,11 +233,31 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		log.Printf("Failed to create IAM service accounts: %s", err)
 		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
+
+	//The IAM API is eventually consistent. If the user created the service
+	//accounts needed for cluster deployment within too brief a period, then
+	//our backend will not yet have access to it. To avoid confusing error
+	//messages being returned, we will verify that the backend can see the
+	//resources before we consider the wif-config creation complete.
+	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+		log.Printf("Verifying wif-config '%s'...", wifConfig.ID())
+		if err := verifyWifConfig(connection, wifConfig.ID()); err != nil {
+			return true, err
+		}
+		return false, nil
+	}, VerificationTimeoutSeconds, log); err != nil {
+		return fmt.Errorf("Timed out verifying wif-config resources\n"+
+			"Please run 'ocm gcp update wif-config %s' to repair potential misconfigurations "+
+			"and to complete the wif-config creation process", wifConfig.ID())
+	}
+
+	log.Printf("wif-config '%s' created successfully.", wifConfig.ID())
 	return nil
 }
 
 func createWorkloadIdentityConfiguration(
 	ctx context.Context,
+	connection *sdk.Connection,
 	client gcp.GcpClient,
 	displayName string,
 	projectId string,
@@ -235,12 +266,6 @@ func createWorkloadIdentityConfiguration(
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get GCP project number from project id")
 	}
-
-	connection, err := ocm.NewConnection().Build()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to create OCM connection")
-	}
-	defer connection.Close()
 
 	wifBuilder := cmv1.NewWifConfig()
 	gcpBuilder := cmv1.NewWifGcp().

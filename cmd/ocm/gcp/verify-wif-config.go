@@ -2,8 +2,10 @@ package gcp
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +22,8 @@ func NewVerifyWorkloadIdentityConfiguration() *cobra.Command {
 }
 
 func verifyWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
+	log := log.Default()
+
 	key, err := wifKeyFromArgs(argv)
 	if err != nil {
 		return err
@@ -38,19 +42,32 @@ func verifyWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to get wif-config")
 	}
 
-	// Verify the WIF configuration is valid
-	response, err := connection.ClustersMgmt().V1().GCP().WifConfigs().WifConfig(wif.ID()).Status().Get().Send()
-	if err != nil {
+	if err := verifyWifConfig(connection, wif.ID()); err != nil {
 		return errors.Wrapf(err, "failed to verify wif-config")
 	}
-	if !response.Body().Configured() {
-		err := errors.New(response.Body().Description())
-		helpMsg := fmt.Sprintf("Running 'ocm gcp update wif-config' will fix errors related to " +
-			"cloud resource misconfiguration.")
-		return fmt.Errorf("verification failed with error: %v\n%s", err, helpMsg)
-	} else {
-		cmd.Println("WIF configuration is valid")
+	log.Println("wif-config is valid")
+	return nil
+}
+
+func verifyWifConfig(
+	connection *sdk.Connection,
+	wifId string,
+) error {
+	// Verify the WIF configuration is valid
+	response, err := connection.
+		ClustersMgmt().V1().
+		GCP().WifConfigs().WifConfig(wifId).Status().
+		Get().Send()
+	if err != nil {
+		return fmt.Errorf("failed to call wif-config verification: %s", err.Error())
 	}
 
+	if !response.Body().Configured() {
+		return fmt.Errorf(
+			"verification failed with error: %s\n"+
+				"Running 'ocm gcp update wif-config' will fix errors related to "+
+				"cloud resource misconfiguration.",
+			response.Body().Description())
+	}
 	return nil
 }
