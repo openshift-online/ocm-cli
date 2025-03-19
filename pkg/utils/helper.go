@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"crypto/rand"
 	"crypto/x509"
 	"fmt"
+	"log"
+	"math/big"
 	"net/url"
 	"os"
 	"regexp"
@@ -16,6 +19,8 @@ import (
 // and the fourth petterrn is to be able to remove the existing no-proxy value by typing empty string ("").
 // nolint
 var UserNoProxyRE = regexp.MustCompile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(3[0-2]|[1-2][0-9]|[0-9]))$|^(.?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^""$`)
+
+var TimeoutError = fmt.Errorf("Timeout occurred")
 
 func ValidateHTTPProxy(val interface{}) error {
 	if httpProxy, ok := val.(string); ok {
@@ -102,4 +107,53 @@ func DelayedRetry(f func() error, maxRetries int, delay time.Duration) error {
 		time.Sleep(delay)
 	}
 	return fmt.Errorf("Reached max retries. Last error: %s", err.Error())
+}
+
+// Tries the passed in function multiple times within a timeout window,
+// sleeping with backoff in between calls.
+// When non-nil logger is passed as a parameter, log messages about the retry
+// logic will be sent.
+func RetryWithBackoffandTimeout(
+	f func() (bool, error),
+	timeoutSeconds int,
+	log *log.Logger,
+) error {
+	var (
+		backoffSeconds = int(1)
+		timeoutTimer   = time.NewTimer(time.Duration(timeoutSeconds) * time.Second)
+	)
+	for {
+		retry, callErr := f()
+		if !retry {
+			return callErr
+		}
+		select {
+		case <-timeoutTimer.C:
+			return TimeoutError
+		default:
+			if log != nil {
+				log.Printf("Trying again in %d seconds...", backoffSeconds)
+			}
+			// A jitter is introduced to avoid the "thundering herd" problem.
+			jitter := time.Duration(randIntN(250)) * time.Millisecond
+			backoffTimer := time.NewTimer(jitter + time.Duration(backoffSeconds)*time.Second)
+			backoffSeconds = backoffSeconds * 2
+			select {
+			case <-timeoutTimer.C:
+				return TimeoutError
+			case <-backoffTimer.C:
+				continue
+			}
+		}
+	}
+}
+
+// Returns a random int between (0, N]. Panics on failure.
+func randIntN(maxN int) int {
+	outN, err := rand.Int(rand.Reader, big.NewInt(int64(maxN)))
+	if err != nil {
+		// This is highly unlikely to happen
+		panic(fmt.Sprintf("Failed to generate random number: %s", err.Error()))
+	}
+	return int(outN.Int64())
 }
