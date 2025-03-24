@@ -97,18 +97,6 @@ func HasDuplicates(valSlice []string) (string, bool) {
 	return "", false
 }
 
-func DelayedRetry(f func() error, maxRetries int, delay time.Duration) error {
-	var err error
-	for i := 0; i < maxRetries; i++ {
-		err = f()
-		if err == nil {
-			return nil
-		}
-		time.Sleep(delay)
-	}
-	return fmt.Errorf("Reached max retries. Last error: %s", err.Error())
-}
-
 // Tries the passed in function multiple times within a timeout window,
 // sleeping with backoff in between calls.
 // When non-nil logger is passed as a parameter, log messages about the retry

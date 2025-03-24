@@ -35,8 +35,6 @@ const (
 	wifDescription = "Created by the OCM CLI for WIF config %s"
 	// Description for OpenShift version-specific WIF IAM roles
 	wifRoleDescription = "Created by the OCM CLI for Workload Identity Federation on OpenShift"
-
-	VerificationTimeoutSeconds = 600
 )
 
 // NewCreateWorkloadIdentityConfiguration provides the "gcp create wif-config" subcommand
@@ -245,7 +243,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 			return true, err
 		}
 		return false, nil
-	}, VerificationTimeoutSeconds, log); err != nil {
+	}, IamApiRetrySeconds, log); err != nil {
 		return fmt.Errorf("Timed out verifying wif-config resources\n"+
 			"Please run 'ocm gcp update wif-config %s' to repair potential misconfigurations "+
 			"and to complete the wif-config creation process", wifConfig.ID())

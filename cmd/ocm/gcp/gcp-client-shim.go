@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"time"
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"github.com/googleapis/gax-go/v2/apierror"
@@ -23,8 +22,8 @@ import (
 )
 
 const (
-	maxRetries   = 10
-	retryDelayMs = 500
+	// The time in seconds in which IAM inconsistencies may occur.
+	IamApiRetrySeconds = 600
 )
 
 const (
@@ -39,6 +38,10 @@ type GcpClientWifConfigShim interface {
 	CreateWorkloadIdentityPool(ctx context.Context, log *log.Logger) error
 	CreateWorkloadIdentityProvider(ctx context.Context, log *log.Logger) error
 	GrantSupportAccess(ctx context.Context, log *log.Logger) error
+
+	DeleteServiceAccounts(ctx context.Context, log *log.Logger) error
+	DeleteWorkloadIdentityPool(ctx context.Context, log *log.Logger) error
+	UnbindServiceAccounts(ctx context.Context, log *log.Logger) error
 }
 
 type shim struct {
@@ -58,7 +61,111 @@ func NewGcpClientWifConfigShim(spec GcpClientWifConfigShimSpec) GcpClientWifConf
 	}
 }
 
+func (c *shim) CreateServiceAccounts(
+	ctx context.Context,
+	log *log.Logger,
+) error {
+	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
+		var (
+			sa      *adminpb.ServiceAccount
+			lastErr error
+		)
+		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+			log.Printf("Ensuring service account '%s' exists...", serviceAccount.ServiceAccountId())
+			sa, lastErr = c.createServiceAccount(ctx, log, serviceAccount)
+			return lastErr != nil, lastErr
+		}, IamApiRetrySeconds, log); err != nil {
+			return lastErr
+		}
+
+		if sa.Disabled {
+			if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+				log.Printf("Enabling service account '%s'...", serviceAccount.ServiceAccountId())
+				lastErr := c.enableServiceAccount(
+					ctx,
+					log,
+					serviceAccount,
+				)
+				return lastErr != nil, lastErr
+			}, IamApiRetrySeconds, log); err != nil {
+				return lastErr
+			}
+			log.Printf("IAM service account '%s' has been enabled", serviceAccount.ServiceAccountId())
+		}
+
+		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+			log.Printf("Ensuring roles exist for service account '%s'...", serviceAccount.ServiceAccountId())
+			lastErr = c.createOrUpdateRoles(ctx, log, serviceAccount.Roles())
+			return lastErr != nil, lastErr
+		}, IamApiRetrySeconds, log); err != nil {
+			return lastErr
+		}
+
+		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+			log.Printf("Ensuring role bindings for service account '%s'...", serviceAccount.ServiceAccountId())
+			lastErr = c.bindRolesToServiceAccount(ctx, log, serviceAccount)
+			return lastErr != nil, lastErr
+		}, IamApiRetrySeconds, log); err != nil {
+			return lastErr
+		}
+
+		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+			log.Printf("Ensuring access to service account '%s'...", serviceAccount.ServiceAccountId())
+			lastErr = c.grantAccessToServiceAccount(ctx, log, serviceAccount)
+			return lastErr != nil, lastErr
+		}, IamApiRetrySeconds, log); err != nil {
+			return lastErr
+		}
+	}
+	return nil
+}
+
 func (c *shim) CreateWorkloadIdentityPool(
+	ctx context.Context,
+	log *log.Logger,
+) error {
+	var lastErr error
+	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+		log.Print("Ensuring workload identity pool exists...")
+		lastErr = c.createWorkloadIdentityPool(ctx, log)
+		return lastErr != nil, lastErr
+	}, IamApiRetrySeconds, log); err != nil {
+		return lastErr
+	}
+	return nil
+}
+
+func (c *shim) CreateWorkloadIdentityProvider(
+	ctx context.Context,
+	log *log.Logger,
+) error {
+	var lastErr error
+	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+		log.Print("Ensuring workload identity pool OIDC provider exists...")
+		lastErr = c.createWorkloadIdentityProvider(ctx, log)
+		return lastErr != nil, lastErr
+	}, IamApiRetrySeconds, log); err != nil {
+		return lastErr
+	}
+	return nil
+}
+
+func (c *shim) GrantSupportAccess(
+	ctx context.Context,
+	log *log.Logger,
+) error {
+	var lastErr error
+	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+		log.Print("Ensuring Red Hat support has access to project...")
+		lastErr = c.grantSupportAccess(ctx, log)
+		return lastErr != nil, lastErr
+	}, IamApiRetrySeconds, log); err != nil {
+		return lastErr
+	}
+	return nil
+}
+
+func (c *shim) createWorkloadIdentityPool(
 	ctx context.Context,
 	log *log.Logger,
 ) error {
@@ -118,7 +225,7 @@ func (c *shim) CreateWorkloadIdentityPool(
 	return nil
 }
 
-func (c *shim) CreateWorkloadIdentityProvider(
+func (c *shim) createWorkloadIdentityProvider(
 	ctx context.Context,
 	log *log.Logger,
 ) error {
@@ -205,39 +312,7 @@ func (c *shim) CreateWorkloadIdentityProvider(
 	return nil
 }
 
-func (c *shim) CreateServiceAccounts(
-	ctx context.Context,
-	log *log.Logger,
-) error {
-	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
-		sa, err := c.createServiceAccount(ctx, log, serviceAccount)
-		if err != nil {
-			return err
-		}
-		if sa.Disabled {
-			if err := c.gcpClient.EnableServiceAccount(
-				ctx,
-				serviceAccount.ServiceAccountId(),
-				c.wifConfig.Gcp().ProjectId(),
-			); err != nil {
-				return err
-			}
-			log.Printf("IAM service account '%s' has been enabled", serviceAccount.ServiceAccountId())
-		}
-		if err := c.createOrUpdateRoles(ctx, log, serviceAccount.Roles()); err != nil {
-			return err
-		}
-		if err := c.bindRolesToServiceAccount(ctx, log, serviceAccount); err != nil {
-			return err
-		}
-		if err := c.grantAccessToServiceAccount(ctx, log, serviceAccount); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (c *shim) GrantSupportAccess(
+func (c *shim) grantSupportAccess(
 	ctx context.Context,
 	log *log.Logger,
 ) error {
@@ -291,6 +366,21 @@ func (c *shim) createServiceAccount(
 	}
 	log.Printf("IAM service account '%s' has been created", serviceAccountId)
 	return sa, nil
+}
+
+func (c *shim) enableServiceAccount(
+	ctx context.Context,
+	log *log.Logger,
+	serviceAccount *cmv1.WifServiceAccount,
+) error {
+	if err := c.gcpClient.EnableServiceAccount(
+		ctx,
+		serviceAccount.ServiceAccountId(),
+		c.wifConfig.Gcp().ProjectId(),
+	); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *shim) createOrUpdateRoles(
@@ -389,18 +479,12 @@ func (c *shim) bindRolesToServiceAccount(
 	log *log.Logger,
 	serviceAccount *cmv1.WifServiceAccount,
 ) error {
-	// It was found that there is a window of time between when a service
-	// account creation call is made that the service account is not available
-	// in adjacent API calls. The call is therefore wrapped in retry logic to
-	// be robust to these types of synchronization issues.
-	return utils.DelayedRetry(func() error {
-		return c.bindRolesToPrincipal(
-			ctx,
-			log,
-			c.formatServiceAccountId(serviceAccount),
-			serviceAccount.Roles(),
-		)
-	}, maxRetries, retryDelayMs*time.Millisecond)
+	return c.bindRolesToPrincipal(
+		ctx,
+		log,
+		c.formatServiceAccountId(serviceAccount),
+		serviceAccount.Roles(),
+	)
 }
 
 func (c *shim) bindRolesToGroup(
@@ -823,6 +907,89 @@ func (c *shim) attachWorkloadIdentityPool(
 		}
 		log.Printf("Federated access granted to service account '%s'",
 			serviceAccount.ServiceAccountId())
+	}
+	return nil
+}
+
+func (c *shim) DeleteServiceAccounts(
+	ctx context.Context,
+	log *log.Logger,
+) error {
+	log.Println("Deleting service accounts...")
+	projectId := c.wifConfig.Gcp().ProjectId()
+
+	var lastErr error
+	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
+		serviceAccountID := serviceAccount.ServiceAccountId()
+		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+			log.Printf("Deleting service account '%s'...", serviceAccountID)
+			lastErr = c.gcpClient.DeleteServiceAccount(ctx, serviceAccountID, projectId, true)
+			return lastErr != nil, lastErr
+		}, IamApiRetrySeconds, log); err != nil {
+			return errors.Wrapf(lastErr, "Failed to delete service account '%s'", serviceAccountID)
+		}
+	}
+	return nil
+}
+
+func (c *shim) DeleteWorkloadIdentityPool(
+	ctx context.Context,
+	log *log.Logger,
+) error {
+	var lastErr error
+	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+		log.Print("Deleting workload identity pool...")
+		lastErr = c.deleteWorkloadIdentityPool(ctx, log)
+		return lastErr != nil, lastErr
+	}, IamApiRetrySeconds, log); err != nil {
+		return lastErr
+	}
+	return nil
+}
+
+func (c *shim) deleteWorkloadIdentityPool(
+	ctx context.Context,
+	log *log.Logger,
+) error {
+	log.Println("Deleting workload identity pool...")
+	projectId := c.wifConfig.Gcp().ProjectId()
+	poolName := c.wifConfig.Gcp().WorkloadIdentityPool().PoolId()
+	poolResource := fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s", projectId, poolName)
+
+	_, err := c.gcpClient.DeleteWorkloadIdentityPool(ctx, poolResource)
+	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
+			strings.Contains(gerr.Message, "Requested entity was not found") {
+			log.Printf("Workload identity pool '%s' not found", poolName)
+			return nil
+		}
+		return errors.Wrapf(err, "Failed to delete workload identity pool '%s'", poolName)
+	}
+
+	log.Printf("Workload identity pool '%s' deleted", poolName)
+	return nil
+}
+
+func (c *shim) UnbindServiceAccounts(
+	ctx context.Context,
+	log *log.Logger,
+) error {
+	var lastErr error
+
+	log.Print("Unbinding service accounts from project IAM policy...")
+	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
+		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+			log.Printf("Unbinding service account '%s'...", serviceAccount.ServiceAccountId())
+			lastErr = c.unbindRolesFromPrincipal(
+				ctx,
+				log,
+				c.formatServiceAccountId(serviceAccount),
+				serviceAccount.Roles(),
+			)
+			return lastErr != nil, lastErr
+		}, IamApiRetrySeconds, log); err != nil {
+			return errors.Wrapf(lastErr, "Failed to unbind service account '%s'", serviceAccount.ServiceAccountId())
+		}
 	}
 	return nil
 }

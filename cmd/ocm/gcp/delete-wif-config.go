@@ -3,15 +3,12 @@ package gcp
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"log"
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
-	"google.golang.org/api/googleapi"
 
 	"github.com/spf13/cobra"
 )
@@ -120,15 +117,21 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return err
 	}
 
-	if err := unbindServiceAccounts(ctx, gcpClient, wifConfig); err != nil {
+	shim := NewGcpClientWifConfigShim(GcpClientWifConfigShimSpec{
+		WifConfig: wifConfig,
+		GcpClient: gcpClient,
+	})
+	log := log.Default()
+
+	if err := shim.UnbindServiceAccounts(ctx, log); err != nil {
 		return err
 	}
 
-	if err := deleteServiceAccounts(ctx, gcpClient, wifConfig, true); err != nil {
+	if err := shim.DeleteServiceAccounts(ctx, log); err != nil {
 		return err
 	}
 
-	if err := deleteWorkloadIdentityPool(ctx, gcpClient, wifConfig, true); err != nil {
+	if err := shim.DeleteWorkloadIdentityPool(ctx, log); err != nil {
 		return err
 	}
 
@@ -139,67 +142,5 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete wif config %q", wifConfig.ID())
 	}
-	return nil
-}
-
-func deleteServiceAccounts(ctx context.Context, gcpClient gcp.GcpClient,
-	wifConfig *cmv1.WifConfig, allowMissing bool) error {
-	log.Println("Deleting service accounts...")
-	projectId := wifConfig.Gcp().ProjectId()
-
-	for _, serviceAccount := range wifConfig.Gcp().ServiceAccounts() {
-		serviceAccountID := serviceAccount.ServiceAccountId()
-		log.Println("Deleting service account", serviceAccountID)
-		err := gcpClient.DeleteServiceAccount(ctx, serviceAccountID, projectId, allowMissing)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to delete service account %q", serviceAccountID)
-		}
-	}
-
-	return nil
-}
-
-func deleteWorkloadIdentityPool(ctx context.Context, gcpClient gcp.GcpClient,
-	wifConfig *cmv1.WifConfig, allowMissing bool) error {
-	log.Println("Deleting workload identity pool...")
-	projectId := wifConfig.Gcp().ProjectId()
-	poolName := wifConfig.Gcp().WorkloadIdentityPool().PoolId()
-	poolResource := fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s", projectId, poolName)
-
-	_, err := gcpClient.DeleteWorkloadIdentityPool(ctx, poolResource)
-	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 &&
-			strings.Contains(gerr.Message, "Requested entity was not found") && allowMissing {
-			log.Printf("Workload identity pool %q not found", poolName)
-			return nil
-		}
-		return errors.Wrapf(err, "Failed to delete workload identity pool %q", poolName)
-	}
-
-	log.Printf("Workload identity pool %q deleted", poolName)
-	return nil
-}
-
-func unbindServiceAccounts(
-	ctx context.Context,
-	gcpClient gcp.GcpClient,
-	wifConfig *cmv1.WifConfig,
-) error {
-	log.Println("Unbinding service accounts...")
-
-	gcpShim := &shim{
-		wifConfig: wifConfig,
-		gcpClient: gcpClient,
-	}
-
-	for _, serviceAccount := range wifConfig.Gcp().ServiceAccounts() {
-		err := gcpShim.unbindRolesFromPrincipal(ctx, log.Default(),
-			gcpShim.formatServiceAccountId(serviceAccount),
-			serviceAccount.Roles())
-		if err != nil {
-			return errors.Wrapf(err, "Failed to unbind service account %q", serviceAccount.ServiceAccountId())
-		}
-	}
-
 	return nil
 }
