@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -138,21 +139,43 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		WifConfig: wifConfig,
 	})
 
+	log.Println("Updating support access...")
 	if err := gcpClientWifConfigShim.GrantSupportAccess(ctx, log); err != nil {
 		return fmt.Errorf("Failed to grant support access to project: %s", err)
 	}
 
+	log.Println("Updating workload identity pool...")
 	if err := gcpClientWifConfigShim.CreateWorkloadIdentityPool(ctx, log); err != nil {
 		return fmt.Errorf("Failed to update workload identity pool: %s", err)
 	}
 
+	log.Println("Updating oidc provider...")
 	if err = gcpClientWifConfigShim.CreateWorkloadIdentityProvider(ctx, log); err != nil {
 		return fmt.Errorf("Failed to update workload identity provider: %s", err)
 	}
 
+	log.Println("Updating service accounts...")
 	if err = gcpClientWifConfigShim.CreateServiceAccounts(ctx, log); err != nil {
 		return fmt.Errorf("Failed to update IAM service accounts: %s", err)
 	}
 
+	//The IAM API is eventually consistent. If the user created the service
+	//accounts needed for cluster deployment within too brief a period, then
+	//our backend will not yet have access to it. To avoid confusing error
+	//messages being returned, we will verify that the backend can see the
+	//resources before we consider the wif-config creation complete.
+	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+		log.Printf("Verifying wif-config '%s'...", wifConfig.ID())
+		if err := verifyWifConfig(connection, wifConfig.ID()); err != nil {
+			return true, err
+		}
+		return false, nil
+	}, VerificationTimeoutSeconds, log); err != nil {
+		return fmt.Errorf("Timed out verifying wif-config resources\n"+
+			"Please try 'ocm gcp update wif-config %s' again in a few minutes, "+
+			"or contact Red Hat support.", wifConfig.ID())
+	}
+
+	log.Printf("wif-config '%s' updated successfully.", wifConfig.ID())
 	return nil
 }
