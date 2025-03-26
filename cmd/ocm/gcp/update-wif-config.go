@@ -170,7 +170,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 			return true, err
 		}
 		return false, nil
-	}, VerificationTimeoutSeconds, log); err != nil {
+	}, IamApiRetrySeconds, log); err != nil {
 		return fmt.Errorf("Timed out verifying wif-config resources\n"+
 			"Please try 'ocm gcp update wif-config %s' again in a few minutes, "+
 			"or contact Red Hat support.", wifConfig.ID())
