@@ -9,7 +9,7 @@ require (
 	cloud.google.com/go/storage v1.39.1
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/jwkset v0.5.20
-	github.com/golang-jwt/jwt/v4 v4.5.1
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang/glog v1.2.4
 	github.com/googleapis/gax-go/v2 v2.12.3
 	github.com/hashicorp/go-version v1.6.0
