@@ -47,6 +47,6 @@ func describeWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string)
 	fmt.Fprintf(w, "Display Name:\t%s\n", wifConfig.DisplayName())
 	fmt.Fprintf(w, "Project:\t%s\n", wifConfig.Gcp().ProjectId())
 	fmt.Fprintf(w, "Issuer URL:\t%s\n", wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl())
-
+	fmt.Fprintf(w, "Versions:\t%v\n", wifConfig.WifTemplates())
 	return w.Flush()
 }
