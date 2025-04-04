@@ -3,6 +3,19 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.5 Apr 4 2025
+
+-8e28c06 OCM-14358 | unbind service accounts when deleting wif-configs (#723)
+-62f7db3 Improving UX around gcloud iam api consistency model (#725)
+-a8ab357 OCM-14357 | Ensuring wif commands are resilient to GCP's consistency model (#726)
+-c41ad70 Update module github.com/golang-jwt/jwt/v4 to v4.5.2 (#727)
+-19bb541 Update module github.com/hashicorp/go-version to v1.7.0 (#724)
+-d4b073f Update Konflux references (#712)
+-3d30c1c Update module github.com/spf13/pflag to v1.0.6 (#717)
+-5010823 Update module github.com/openshift-online/ocm-sdk-go to v0.1.463 (#715)
+-22467d1 various cve updates (#731)
+-7deabe5 display versions on wif-config describe (#732)
+
 ## 1.0.4 Feb 27 2025
 
 -3a8ef75 OCM-12971 | 'ocm gcp update wif-config' remediates all wif-config misconfigurations (#696)
