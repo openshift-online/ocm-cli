@@ -82,8 +82,8 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/microcosm-cc/bluemonday v1.0.23 // indirect
@@ -109,7 +109,7 @@ require (
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	google.golang.org/genproto v0.0.0-20240401170217-c3f982113cda // indirect
