@@ -25,3 +25,5 @@ there make sure that the release title and description match the release tag
 annotation.
 
 Publish the release and you're done.
+
+# Konflux Release
