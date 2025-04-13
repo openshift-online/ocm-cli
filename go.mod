@@ -1,8 +1,8 @@
 module github.com/openshift-online/ocm-cli
 
-go 1.22
+go 1.23
 
-toolchain go1.22.4
+toolchain go1.23.8
 
 require (
 	cloud.google.com/go/iam v1.1.8
@@ -76,7 +76,7 @@ require (
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jackc/pgx/v4 v4.18.3 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -95,6 +95,7 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/zalando/go-keyring v0.2.3 // indirect
@@ -111,10 +112,11 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
-	golang.org/x/tools v0.22.0 // indirect
+	golang.org/x/tools v0.26.0 // indirect
 	google.golang.org/genproto v0.0.0-20240401170217-c3f982113cda // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/protobuf v1.35.2 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
