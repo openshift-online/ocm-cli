@@ -706,7 +706,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 
 	// Get options for subscription type
 	subscriptionTypeOptions, _ := getSubscriptionTypeOptions(connection)
-	err = arguments.PromptOneOf(fs, "subscription-type", subscriptionTypeOptions)
+	err = arguments.PromptOrCheckOneOf(fs, "subscription-type", subscriptionTypeOptions)
 	if err != nil {
 		return err
 	}

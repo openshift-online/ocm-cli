@@ -7,13 +7,11 @@ import (
 
 const (
 	StandardSubscriptionType       = "standard"
-	MarketplaceRhmSubscriptionType = "marketplace-rhm"
 	MarketplaceGcpSubscriptionType = "marketplace-gcp"
 )
 
 var ValidSubscriptionTypes = []string{
 	StandardSubscriptionType,
-	MarketplaceRhmSubscriptionType,
 	MarketplaceGcpSubscriptionType,
 }
 
