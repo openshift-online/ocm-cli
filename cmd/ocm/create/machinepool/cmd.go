@@ -35,12 +35,14 @@ type Args struct {
 	Taints                     string
 	AdditionalSecurityGroupIds []string
 	AvailabilityZone           string
+	SecureBoot                 bool
 }
 
 var args Args
 
 const (
 	additionalSecurityGroupIdsFlag = "additional-security-group-ids"
+	secureBootForShieldedVmsFlag   = "secure-boot-for-shielded-vms"
 )
 
 var Cmd = &cobra.Command{
@@ -121,6 +123,14 @@ func init() {
 		"",
 		"Select availability zone to create a single AZ machine pool for a multi-AZ cluster",
 	)
+
+	flags.BoolVar(
+		&args.SecureBoot,
+		secureBootForShieldedVmsFlag,
+		false,
+		"Secure Boot enables the use of Shielded VMs in the Google Cloud Platform for the instances in this machine pool. "+
+			"This will override the cluster level configuration of secure boot.",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -151,7 +161,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	machinePoolId := argv[0]
 
-	machinePool, err := buildMachinePool(machinePoolId)
+	machinePool, err := buildMachinePool(machinePoolId, &flagSet{cmd.Flags()})
 	if err != nil {
 		return err
 	}
@@ -253,11 +263,19 @@ func VerifyArguments(
 		}
 	}
 
+	isSecureBootSet := flags.Changed(secureBootForShieldedVmsFlag)
+	if isSecureBootSet && cluster.CloudProviderId() != c.ProviderGCP {
+		return fmt.Errorf(
+			"--secure-boot-for-shielded-vms is only supported for clusters using the '%s' cloud provider",
+			c.ProviderGCP)
+	}
+
 	return nil
 }
 
 func buildMachinePool(
 	machinePoolId string,
+	flags FlagSet,
 ) (*cmv1.MachinePool, error) {
 	labels := make(map[string]string)
 	if args.Labels != "" {
@@ -287,6 +305,13 @@ func buildMachinePool(
 		mpBuilder.AWS(
 			cmv1.NewAWSMachinePool().
 				AdditionalSecurityGroupIds(args.AdditionalSecurityGroupIds...))
+	}
+
+	if flags.Changed(secureBootForShieldedVmsFlag) {
+		mpBuilder.GCP(
+			cmv1.NewGCPMachinePool().
+				SecureBoot(args.SecureBoot),
+		)
 	}
 
 	if args.Autoscaling.Enabled {
