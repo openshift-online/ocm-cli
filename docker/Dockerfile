@@ -18,3 +18,4 @@ LABEL name="ocm"
 COPY LICENSE.txt /licenses
 COPY --from=builder /opt/app-root/src/releases /releases
 COPY --from=builder /opt/app-root/src/releases /usr/local/bin
+COPY --from=builder /usr/bin/make /usr/local/bin
