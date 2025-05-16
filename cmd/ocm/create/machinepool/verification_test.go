@@ -173,6 +173,53 @@ var _ = Describe("Verification helpers", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("additional-security-group-ids"))
 		})
+		It("returns an error if the cluster is not 'GCP' and secureboot is specified", func() {
+			ctrl := gomock.NewController(GinkgoT())
+
+			mockFlagSet := machinepool.NewMockFlagSet(ctrl)
+			mockFlagSet = addChangedFlags(mockFlagSet, false, false, true)
+			mockFlagSet.EXPECT().CheckOneOf("instance-type", gomock.Any()).
+				MinTimes(1).Return(nil)
+			mockFlagSet.EXPECT().Changed("secure-boot-for-shielded-vms").
+				MinTimes(1).Return(true)
+
+			mockMachineTypeListGetter := machinepool.NewMockMachineTypeListGetter(ctrl)
+			mockMachineTypeListGetter.EXPECT().GetMachineTypeOptions(gomock.Any()).
+				MinTimes(1).Return([]arguments.Option{}, nil)
+
+			mockCluster := ocm.NewMockCluster(ctrl)
+			mockCluster.EXPECT().CloudProviderId().MinTimes(1).Return(c.ProviderAWS)
+
+			err := machinepool.VerifyArguments(machinepool.Args{
+				Argv: []string{machinePoolId},
+			}, mockFlagSet, mockMachineTypeListGetter, mockCluster)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("secure-boot-for-shielded-vms"))
+		})
+		It("succeeds when cluster is 'GCP' and secureboot is specified", func() {
+			ctrl := gomock.NewController(GinkgoT())
+
+			mockFlagSet := machinepool.NewMockFlagSet(ctrl)
+			mockFlagSet = addChangedFlags(mockFlagSet, false, false, true)
+			mockFlagSet.EXPECT().CheckOneOf("instance-type", gomock.Any()).
+				MinTimes(1).Return(nil)
+			mockFlagSet.EXPECT().Changed("secure-boot-for-shielded-vms").
+				MinTimes(1).Return(true)
+
+			mockMachineTypeListGetter := machinepool.NewMockMachineTypeListGetter(ctrl)
+			mockMachineTypeListGetter.EXPECT().GetMachineTypeOptions(gomock.Any()).
+				MinTimes(1).Return([]arguments.Option{}, nil)
+
+			mockCluster := ocm.NewMockCluster(ctrl)
+			mockCluster.EXPECT().CloudProviderId().MinTimes(1).Return(c.ProviderGCP)
+
+			err := machinepool.VerifyArguments(machinepool.Args{
+				Argv: []string{machinePoolId},
+			}, mockFlagSet, mockMachineTypeListGetter, mockCluster)
+
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 })
 
