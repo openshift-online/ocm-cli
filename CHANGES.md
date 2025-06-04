@@ -3,6 +3,22 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.6 Jun 4 2025
+
+-f95acd1 Update github.com/golang/groupcache digest to 2c02b82
+-a4c0ee2 Update github.com/jackc/pgservicefile digest to 5a60cdf
+-2f87995 Update Konflux references (#734)
+-4a1708e updates to konflux pipeline for 1.0.5 (#756)
+-687527d Bump github.com/openshift-online/ocm-sdk-go from 0.1.463 to 0.1.465
+-de7adc6 remove marketplace-rhm option from subscription-type options (#773)
+-436ff34 secure-boot-for-shielded-vms flag for create machinepool (#778)
+-3440bb5 OCM-15127 | Add make binary in ocm-cli image (#779)
+-64ca7ac secure-boot-for-shielded-vms flag tests (#780)
+-822e0f2 Bump github.com/MicahParks/jwkset from 0.5.20 to 0.7.0 (#728)
+-8474de0 Update Konflux references
+-2ecdf68 Bump github.com/spf13/cobra from 1.7.0 to 1.9.1 (#748)
+-ea64448 Bump github.com/golang/glog from 1.2.4 to 1.2.5
+
 ## 1.0.5 Apr 4 2025
 
 -8e28c06 OCM-14358 | unbind service accounts when deleting wif-configs (#723)
