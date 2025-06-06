@@ -322,8 +322,9 @@ func grantSupportAccessScriptContent(wifConfig *cmv1.WifConfig) string {
 		} else {
 			roleResource = fmt.Sprintf("projects/%s/roles/%s", project, role.RoleId())
 		}
+		supportGroup := fmt.Sprintf("group:%s", principal)
 		sb.WriteString(fmt.Sprintf("gcloud projects add-iam-policy-binding %s --member=%s --role=%s\n",
-			project, principal, roleResource))
+			project, supportGroup, roleResource))
 	}
 	return sb.String()
 }
