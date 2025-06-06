@@ -92,6 +92,7 @@ var args struct {
 	gcpPrivateSvcConnect  c.GcpPrivateSvcConnect
 	gcpEncryption         c.GcpEncryption
 	gcpWifConfig          string
+	fips                  bool
 	etcdEncryption        bool
 	subscriptionType      string
 	marketplaceGcpTerms   bool
@@ -260,11 +261,20 @@ func init() {
 	arguments.SetQuestion(fs, "multi-az", "Multiple AZ:")
 
 	fs.BoolVar(
+		&args.fips,
+		"fips",
+		false,
+		"Install a cluster that uses FIPS Validated / Modules in Process cryptographic libraries on the x86_64 architecture.",
+	)
+	arguments.SetQuestion(fs, "fips", "Enable FIPS cryptography:")
+
+	fs.BoolVar(
 		&args.etcdEncryption,
 		"etcd-encryption",
 		false,
-		"Encrypt etcd.",
+		"Add more encryption for OpenShift and Kubernetes API resources.",
 	)
+	arguments.SetQuestion(fs, "etcd-encryption", "Enable additional etcd encryption:")
 
 	// Scaling options
 	fs.StringVar(
@@ -791,6 +801,16 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	err = arguments.PromptBool(fs, "fips")
+	if err != nil {
+		return err
+	}
+
+	err = promptEtcdEncryption(fs)
+	if err != nil {
+		return err
+	}
+
 	var gcpMarketplaceEnabled string
 	if isGcpMarketplace {
 		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
@@ -944,6 +964,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		PodCIDR:              args.podCIDR,
 		HostPrefix:           args.hostPrefix,
 		Private:              &args.private,
+		Fips:                 args.fips,
 		EtcdEncryption:       args.etcdEncryption,
 		DefaultIngress:       defaultIngress,
 		SubscriptionType:     args.subscriptionType,
@@ -1724,6 +1745,20 @@ func promptGcpCustomEncryption(fs *pflag.FlagSet, connection *sdk.Connection) er
 		return err
 	}
 
+	return nil
+}
+
+func promptEtcdEncryption(fs *pflag.FlagSet) error {
+	if !args.fips {
+		return arguments.PromptBool(fs, "etcd-encryption")
+	}
+
+	if fs.Changed("etcd-encryption") && !args.etcdEncryption {
+		return fmt.Errorf("When FIPS mode is enabled, etcd encryption cannot be disabled")
+	}
+
+	//if FIPS encrytion is enabled, etcd encryption should be enabled
+	args.etcdEncryption = true
 	return nil
 }
 

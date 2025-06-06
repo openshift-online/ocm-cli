@@ -72,6 +72,7 @@ type Spec struct {
 	Version          string
 	ChannelGroup     string
 	Expiration       time.Time
+	Fips             bool
 	EtcdEncryption   bool
 	SubscriptionType string
 
@@ -361,6 +362,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 			cmv1.NewFlavour().
 				ID(config.Flavour),
 		).
+		FIPS(config.Fips).
 		EtcdEncryption(config.EtcdEncryption).
 		BillingModel(cmv1.BillingModel(config.SubscriptionType)).
 		Properties(clusterProperties)
