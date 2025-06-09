@@ -714,9 +714,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// Validate flags / ask for missing data.
 	fs := cmd.Flags()
 
-	// Get options for subscription type
-	subscriptionTypeOptions, _ := getSubscriptionTypeOptions(connection)
-	err = arguments.PromptOneOf(fs, "subscription-type", subscriptionTypeOptions)
+	err = promptSubscriptionType(fs, connection)
 	if err != nil {
 		return err
 	}
@@ -725,7 +723,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	gcpBillingModel, _ := billing.GetBillingModel(connection, billing.MarketplaceGcpSubscriptionType)
 	gcpSubscriptionTypeTemplate := subscriptionTypeOption(gcpBillingModel.ID(), gcpBillingModel.Description())
 	isGcpMarketplace :=
-		parseSubscriptionType(args.subscriptionType) == parseSubscriptionType(gcpSubscriptionTypeTemplate.Value)
+		args.subscriptionType == parseSubscriptionType(gcpSubscriptionTypeTemplate.Value)
 
 	if isGcpMarketplace {
 		if args.provider != c.ProviderGCP && args.provider != "" {
@@ -938,10 +936,6 @@ func run(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	if args.interactive {
-		args.subscriptionType = parseSubscriptionType(args.subscriptionType)
-	}
-
 	clusterConfig := c.Spec{
 		Name:                 args.clusterName,
 		DomainPrefix:         args.domainPrefix,
@@ -1044,6 +1038,26 @@ func promptName(argv []string) error {
 	}
 
 	return fmt.Errorf("A cluster name must be specified")
+}
+
+func promptSubscriptionType(fs *pflag.FlagSet, connection *sdk.Connection) error {
+
+	subscriptionTypeOptions, _ := getSubscriptionTypeOptions(connection)
+	err := arguments.PromptOneOf(fs, "subscription-type", subscriptionTypeOptions)
+	if err != nil {
+		return err
+	}
+
+	if args.interactive {
+		args.subscriptionType = parseSubscriptionType(args.subscriptionType)
+	}
+
+	if !utils.Contains(billing.ValidSubscriptionTypes, args.subscriptionType) {
+		return fmt.Errorf("'%s' is not a valid  subscription type.\nValid options are : %+v",
+			args.subscriptionType, subscriptionTypeOptions)
+	}
+
+	return nil
 }
 
 // promptProvider reads or prompts for the provider
