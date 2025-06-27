@@ -161,6 +161,21 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		)
 	}
 
+	var wifConfig *cmv1.WifConfig
+	if cluster.GCP().Authentication().Id() != "" {
+		wifConfigResponse, err := connection.ClustersMgmt().
+			V1().
+			GCP().
+			WifConfigs().
+			WifConfig(cluster.GCP().Authentication().Id()).
+			Get().
+			Send()
+		if err != nil {
+			return err
+		}
+		wifConfig = wifConfigResponse.Body()
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:				%s\n"+
@@ -258,8 +273,9 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 			fmt.Printf(
 				"Private-Service-Connect-Subnet:	%s\n", cluster.GCP().PrivateServiceConnect().ServiceAttachmentSubnet())
 		}
-		if cluster.GCP().Authentication().Id() != "" {
-			fmt.Printf("Wif-Config-Id:          	%s\n", cluster.GCP().Authentication().Id())
+		if wifConfig.ID() != "" && wifConfig.DisplayName() != "" {
+			fmt.Printf("Wif-Config ID:          	%s\n", wifConfig.ID())
+			fmt.Printf("Wif-Config Name:          	%s\n", wifConfig.DisplayName())
 		}
 	}
 
