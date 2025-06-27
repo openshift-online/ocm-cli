@@ -26,6 +26,7 @@ import (
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	slv1 "github.com/openshift-online/ocm-sdk-go/servicelogs/v1"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -161,6 +162,14 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		)
 	}
 
+	var wifConfig *cmv1.WifConfig
+	if cluster.GCP().Authentication().Id() != "" {
+		wifConfig, err = findWifConfig(connection, cluster)
+		if err != nil {
+			return errors.Wrapf(err, "failed to retrieve wif-config associated with the cluster")
+		}
+	}
+
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:				%s\n"+
@@ -258,8 +267,9 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 			fmt.Printf(
 				"Private-Service-Connect-Subnet:	%s\n", cluster.GCP().PrivateServiceConnect().ServiceAttachmentSubnet())
 		}
-		if cluster.GCP().Authentication().Id() != "" {
-			fmt.Printf("Wif-Config-Id:          	%s\n", cluster.GCP().Authentication().Id())
+		if wifConfig.ID() != "" && wifConfig.DisplayName() != "" {
+			fmt.Printf("Wif-Config ID:          	%s\n", wifConfig.ID())
+			fmt.Printf("Wif-Config Name:          	%s\n", wifConfig.DisplayName())
 		}
 	}
 
@@ -367,6 +377,21 @@ func findHyperShiftMgmtSvcClusters(conn *sdk.Connection, cluster *cmv1.Cluster) 
 
 	// Shouldn't normally happen as every management cluster should have a service cluster
 	return mgmtClusterName, ""
+}
+
+func findWifConfig(connection *sdk.Connection, cluster *cmv1.Cluster) (*cmv1.WifConfig, error) {
+
+	wifConfig, err := connection.ClustersMgmt().
+		V1().
+		GCP().
+		WifConfigs().
+		WifConfig(cluster.GCP().Authentication().Id()).
+		Get().
+		Send()
+	if err != nil {
+		return nil, err
+	}
+	return wifConfig.Body(), nil
 }
 
 func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
