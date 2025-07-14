@@ -21,6 +21,10 @@ export GOPROXY=https://proxy.golang.org
 # Disable CGO so that we always generate static binaries:
 export CGO_ENABLED=0
 
+PROJECT_PATH := $(PWD)
+LOCAL_BIN_PATH := $(PROJECT_PATH)/bin
+GINKGO := $(LOCAL_BIN_PATH)/ginkgo
+
 # Allow overriding: `make lint container_runner=docker`.
 container_runner:=podman
 
@@ -37,9 +41,16 @@ cmds:
 install:
 	go install ./cmd/ocm
 
+.PHONY: ginkgo-install
+ginkgo-install:
+	@GOBIN=$(LOCAL_BIN_PATH) go install github.com/onsi/ginkgo/v2/ginkgo@v2.23.4
+
+.PHONY: tools
+tools: ginkgo-install
+
 .PHONY: test tests
-test tests: cmds
-	ginkgo run -r
+test tests: cmds tools
+	$(GINKGO) run -r
 
 .PHONY: fmt
 fmt:
