@@ -73,8 +73,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Organization to search in case one was not provided:
 	if args.org == "" {
 		// Get organization of current user:
-		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
-			Send()
+		userConn, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().CurrentAccount().Get())
 		if err != nil {
 			return fmt.Errorf("Can't retrieve current user information: %v", err)
 		}
@@ -84,7 +83,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Get connection
 	orgCollection := connection.AccountsMgmt().V1().Organizations().Organization(orgID)
-	orgResponse, err := orgCollection.Get().Send()
+	orgResponse, err := ocm.SendTypedAndHandleDeprecation(orgCollection.Get())
 	if err != nil {
 		return fmt.Errorf("Can't retrieve organization information: %v", err)
 	}
@@ -94,9 +93,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	if !args.json {
 
 		// Request
-		quotasCostListResponse, err := quotaClient.List().
-			Parameter("fetchRelatedResources", true).
-			Send()
+		quotasCostListResponse, err := ocm.SendTypedAndHandleDeprecation(quotaClient.List().
+			Parameter("fetchRelatedResources", true))
 		if err != nil {
 			return fmt.Errorf("Failed to retrieve quota: %v", err)
 		}
@@ -118,9 +116,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// TODO: Do this without hard-code; could not find any marshall method
-	jsonDisplay, err := connection.Get().Path(
-		fmt.Sprintf("/api/accounts_mgmt/v1/organizations/%s/resource_quota", orgID)).
-		Send()
+	jsonDisplay, err := ocm.SendAndHandleDeprecation(connection.Get().Path(
+		fmt.Sprintf("/api/accounts_mgmt/v1/organizations/%s/resource_quota", orgID)))
 	if err != nil {
 		return fmt.Errorf("Failed to get resource quota: %v", err)
 	}

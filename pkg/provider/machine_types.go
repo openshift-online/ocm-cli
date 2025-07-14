@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -29,12 +30,11 @@ func getMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1
 	size := 100
 	for {
 		var response *cmv1.MachineTypesListResponse
-		response, err = collection.List().
+		response, err = ocm.SendTypedAndHandleDeprecation(collection.List().
 			Search(fmt.Sprintf("cloud_provider.id = '%s'", provider)).
 			Order("size desc").
 			Page(page).
-			Size(size).
-			Send()
+			Size(size))
 		if err != nil {
 			return
 		}

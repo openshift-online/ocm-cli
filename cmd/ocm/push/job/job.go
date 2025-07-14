@@ -24,7 +24,7 @@ import (
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	"github.com/openshift-online/ocm-sdk-go/jobqueue/v1"
+	v1 "github.com/openshift-online/ocm-sdk-go/jobqueue/v1"
 )
 
 var args struct {
@@ -71,10 +71,11 @@ func run(_ *cobra.Command, argv []string) error {
 			request.Arguments(params[1])
 		}
 	}
-	push, err = request.Send()
+	push, err = ocm.SendTypedAndHandleDeprecation(request)
 	if err != nil {
 		return fmt.Errorf("unable to create Job: %v", err)
 	}
+
 	fmt.Printf("{\n"+
 		"  \"id\": \"%s\",\n"+
 		"  \"kind\": \"Job\",\n"+

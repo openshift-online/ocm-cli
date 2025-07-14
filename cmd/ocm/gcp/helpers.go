@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 )
@@ -44,7 +45,7 @@ func findWifConfig(client *cmv1.Client, key string) (*cmv1.WifConfig, error) {
 		key, key,
 	)
 
-	response, err := collection.List().Search(query).Page(page).Size(size).Send()
+	response, err := ocm.SendTypedAndHandleDeprecation(collection.List().Search(query).Page(page).Size(size))
 	if err != nil {
 		return nil, err
 	}

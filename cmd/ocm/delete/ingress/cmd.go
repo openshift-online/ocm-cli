@@ -119,12 +119,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to get ingress '%s' for cluster '%s'", ingressID, clusterKey)
 	}
 
-	_, err = clusterCollection.
+	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.
 		Cluster(cluster.ID()).
 		Ingresses().
 		Ingress(ingress.ID()).
-		Delete().
-		Send()
+		Delete())
 	if err != nil {
 		return fmt.Errorf("Failed to delete ingress '%s' on cluster '%s'", ingress.ID(), clusterKey)
 	}

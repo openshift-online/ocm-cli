@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -395,7 +396,7 @@ func findWifConfig(connection *sdk.Connection, cluster *cmv1.Cluster) (*cmv1.Wif
 }
 
 func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
-	serviceLogs, err := connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()).Send()
+	serviceLogs, err := ocm.SendTypedAndHandleDeprecation(connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()))
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -36,20 +37,18 @@ func GetRegions(client *cmv1.Client, provider string, ccs cluster.CCS) (regions 
 			return nil, fmt.Errorf("Failed to build AWS credentials: %v", err)
 		}
 
-		response, err := client.CloudProviders().CloudProvider(provider).AvailableRegions().Search().
+		response, err := ocm.SendTypedAndHandleDeprecation(client.CloudProviders().CloudProvider(provider).AvailableRegions().Search().
 			Page(1).
 			Size(-1).
-			Body(awsCredentials).
-			Send()
+			Body(awsCredentials))
 		if err != nil {
 			return nil, err
 		}
 		regions = response.Items().Slice()
 	} else {
-		response, err := client.CloudProviders().CloudProvider(provider).Regions().List().
+		response, err := ocm.SendTypedAndHandleDeprecation(client.CloudProviders().CloudProvider(provider).Regions().List().
 			Page(1).
-			Size(-1).
-			Send()
+			Size(-1))
 		if err != nil {
 			return nil, err
 		}

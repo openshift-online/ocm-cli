@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -13,11 +14,10 @@ func getWifConfigs(client *cmv1.Client, filter string) (wifConfigs []*cmv1.WifCo
 	size := 100
 	for {
 		var response *cmv1.WifConfigsListResponse
-		response, err = collection.List().
+		response, err = ocm.SendTypedAndHandleDeprecation(collection.List().
 			Page(page).
 			Size(size).
-			Search(filter).
-			Send()
+			Search(filter))
 		if err != nil {
 			return
 		}

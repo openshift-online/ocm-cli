@@ -46,8 +46,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	defer connection.Close()
 
 	// Send the request:
-	response, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
-		Send()
+	response, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().CurrentAccount().Get())
 	if err != nil {
 		return fmt.Errorf("Can't send request: %v", err)
 	}
