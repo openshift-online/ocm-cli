@@ -70,7 +70,7 @@ func HandleDeprecationWarningFromHeaders(getHeader func(string) string) {
 		return
 	}
 
-	// Check for the OCM deprecation message header first (master message)
+	// Check for the OCM deprecation message header first
 	deprecationMessage := getHeader(consts.OCMDeprecationMessage)
 	if deprecationMessage != "" {
 		fmt.Fprintf(os.Stderr, "Warning: %s\n", deprecationMessage)
