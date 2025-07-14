@@ -396,7 +396,8 @@ func findWifConfig(connection *sdk.Connection, cluster *cmv1.Cluster) (*cmv1.Wif
 }
 
 func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
-	serviceLogs, err := ocm.SendTypedAndHandleDeprecation(connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()))
+	serviceLogs, err := ocm.SendTypedAndHandleDeprecation(
+		connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()))
 	if err != nil {
 		return err
 	}

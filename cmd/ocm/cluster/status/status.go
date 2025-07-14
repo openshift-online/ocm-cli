@@ -63,7 +63,8 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Fetch metrics from AMS
 	search := fmt.Sprintf("cluster_id = '%s'", clusterID)
-	subsList, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().Subscriptions().List().Search(search))
+	subsList, err := ocm.SendTypedAndHandleDeprecation(
+		connection.AccountsMgmt().V1().Subscriptions().List().Search(search))
 	if err != nil {
 		return fmt.Errorf("Can't retrieve subscriptions: %s", err)
 	}

@@ -37,10 +37,11 @@ func GetRegions(client *cmv1.Client, provider string, ccs cluster.CCS) (regions 
 			return nil, fmt.Errorf("Failed to build AWS credentials: %v", err)
 		}
 
-		response, err := ocm.SendTypedAndHandleDeprecation(client.CloudProviders().CloudProvider(provider).AvailableRegions().Search().
-			Page(1).
-			Size(-1).
-			Body(awsCredentials))
+		response, err := ocm.SendTypedAndHandleDeprecation(
+			client.CloudProviders().CloudProvider(provider).AvailableRegions().Search().
+				Page(1).
+				Size(-1).
+				Body(awsCredentials))
 		if err != nil {
 			return nil, err
 		}
