@@ -234,7 +234,7 @@ func AddExistingVPCFlags(fs *pflag.FlagSet, value *cluster.ExistingVPC) {
 		&value.AvailabilityZones,
 		"availability-zones",
 		nil,
-		"AWS availability zones",
+		"Cloud provider availability zones",
 	)
 	fs.StringVar(
 		&value.VPCName,
