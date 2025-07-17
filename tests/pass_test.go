@@ -54,6 +54,12 @@ func runCmd(cmds ...string) {
 
 var _ = Describe("Pass Keyring", Ordered, func() {
 	BeforeAll(func() {
+		// Check if 'pass' is available in PATH
+		_, err := exec.LookPath("pass")
+		if err != nil {
+			Skip("Skipping Pass keyring tests: 'pass' command not found in PATH. Install with: sudo dnf install pass")
+		}
+
 		pwd, err := os.Getwd()
 		if err != nil {
 			Fail(err.Error())

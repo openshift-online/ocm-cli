@@ -78,10 +78,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Send the request:
-	response, err := request.Send()
+	response, err := ocm.SendAndHandleDeprecation(request)
 	if err != nil {
 		return fmt.Errorf("Can't send request: %v", err)
 	}
+
 	status := response.Status()
 	body := response.Bytes()
 	if status < 400 {

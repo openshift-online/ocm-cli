@@ -113,7 +113,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		// Fetch the next page:
 		request.Size(size)
 		request.Page(index)
-		response, err := request.Send()
+		response, err := ocm.SendTypedAndHandleDeprecation(request)
 		if err != nil {
 			return fmt.Errorf("can't retrieve organizations: %w", err)
 		}

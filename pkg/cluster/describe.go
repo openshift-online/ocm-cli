@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -43,12 +44,11 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	var sub *amv1.Subscription
 	subID := cluster.Subscription().ID()
 	if subID != "" {
-		subResponse, err := connection.AccountsMgmt().V1().
+		subResponse, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().
 			Subscriptions().
 			Subscription(subID).
 			//nolint
-			Get().Parameter("fetchLabels", "true").
-			Send()
+			Get().Parameter("fetchLabels", "true"))
 		if err != nil {
 			if subResponse == nil || subResponse.Status() != 404 {
 				return fmt.Errorf(
@@ -64,11 +64,10 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	var account *amv1.Account
 	accountID := sub.Creator().ID()
 	if accountID != "" {
-		accountResponse, err := connection.AccountsMgmt().V1().
+		accountResponse, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().
 			Accounts().
 			Account(accountID).
-			Get().
-			Send()
+			Get())
 		if err != nil {
 			if accountResponse == nil || (accountResponse.Status() != 404 &&
 				accountResponse.Status() != 403) {
@@ -103,11 +102,10 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 	}
 
 	// Find the details of the shard
-	shardPath, err := connection.ClustersMgmt().V1().Clusters().
+	shardPath, err := ocm.SendTypedAndHandleDeprecation(connection.ClustersMgmt().V1().Clusters().
 		Cluster(cluster.ID()).
 		ProvisionShard().
-		Get().
-		Send()
+		Get())
 	var shard string
 	if shardPath != nil && err == nil {
 		shard = shardPath.Body().HiveConfig().Server()
@@ -353,20 +351,18 @@ func findHyperShiftMgmtSvcClusters(conn *sdk.Connection, cluster *cmv1.Cluster) 
 		return "", ""
 	}
 
-	hypershiftResp, err := conn.ClustersMgmt().V1().Clusters().
+	hypershiftResp, err := ocm.SendTypedAndHandleDeprecation(conn.ClustersMgmt().V1().Clusters().
 		Cluster(cluster.ID()).
 		Hypershift().
-		Get().
-		Send()
+		Get())
 	if err != nil {
 		return "", ""
 	}
 
 	mgmtClusterName := hypershiftResp.Body().ManagementCluster()
-	fmMgmtResp, err := conn.OSDFleetMgmt().V1().ManagementClusters().
+	fmMgmtResp, err := ocm.SendTypedAndHandleDeprecation(conn.OSDFleetMgmt().V1().ManagementClusters().
 		List().
-		Parameter("search", fmt.Sprintf("name='%s'", mgmtClusterName)).
-		Send()
+		Parameter("search", fmt.Sprintf("name='%s'", mgmtClusterName)))
 	if err != nil {
 		return mgmtClusterName, ""
 	}
@@ -381,13 +377,12 @@ func findHyperShiftMgmtSvcClusters(conn *sdk.Connection, cluster *cmv1.Cluster) 
 
 func findWifConfig(connection *sdk.Connection, cluster *cmv1.Cluster) (*cmv1.WifConfig, error) {
 
-	wifConfig, err := connection.ClustersMgmt().
+	wifConfig, err := ocm.SendTypedAndHandleDeprecation(connection.ClustersMgmt().
 		V1().
 		GCP().
 		WifConfigs().
 		WifConfig(cluster.GCP().Authentication().Id()).
-		Get().
-		Send()
+		Get())
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +390,8 @@ func findWifConfig(connection *sdk.Connection, cluster *cmv1.Cluster) (*cmv1.Wif
 }
 
 func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
-	serviceLogs, err := connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()).Send()
+	serviceLogs, err := ocm.SendTypedAndHandleDeprecation(
+		connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()))
 	if err != nil {
 		return err
 	}

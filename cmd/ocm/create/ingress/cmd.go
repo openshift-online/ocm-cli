@@ -132,11 +132,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to create ingress for cluster '%s': %v", clusterKey, err)
 	}
 
-	_, err = clusterCollection.Cluster(cluster.ID()).
+	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.Cluster(cluster.ID()).
 		Ingresses().
 		Add().
-		Body(ingress).
-		Send()
+		Body(ingress))
 	if err != nil {
 		return fmt.Errorf("Failed to add ingress to cluster '%s': %v", clusterKey, err)
 	}

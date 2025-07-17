@@ -108,8 +108,8 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to create wif-config body")
 	}
 
-	resp, err := connection.ClustersMgmt().V1().GCP().WifConfigs().
-		WifConfig(wifConfig.ID()).Update().Body(updatedWifConfig).Send()
+	resp, err := ocm.SendTypedAndHandleDeprecation(connection.ClustersMgmt().V1().GCP().WifConfigs().
+		WifConfig(wifConfig.ID()).Update().Body(updatedWifConfig))
 	if err != nil {
 		return errors.Wrapf(err, "failed to update wif-config")
 	}

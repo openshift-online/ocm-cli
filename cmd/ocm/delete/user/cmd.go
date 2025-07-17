@@ -94,23 +94,21 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
 	}
 
-	_, err = clusterCollection.Cluster(cluster.ID()).
+	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.Cluster(cluster.ID()).
 		Groups().
 		Group(args.group).
-		Get().
-		Send()
+		Get())
 	if err != nil {
 		return fmt.Errorf("Group '%s' in cluster '%s' doesn't exist", args.group, clusterKey)
 	}
 
-	_, err = clusterCollection.
+	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.
 		Cluster(cluster.ID()).
 		Groups().
 		Group(args.group).
 		Users().
 		User(username).
-		Delete().
-		Send()
+		Delete())
 	if err != nil {
 		return fmt.Errorf("Failed to delete '%s' user '%s' on cluster '%s'", args.group, username, clusterKey)
 	}

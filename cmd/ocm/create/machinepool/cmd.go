@@ -339,11 +339,10 @@ func addMachinePoolToCluster(
 	clusterId string,
 	machinePool *cmv1.MachinePool,
 ) error {
-	if _, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterId).
+	if _, err := ocm.SendTypedAndHandleDeprecation(connection.ClustersMgmt().V1().Clusters().Cluster(clusterId).
 		MachinePools().
 		Add().
-		Body(machinePool).
-		Send(); err != nil {
+		Body(machinePool)); err != nil {
 		return fmt.Errorf("Failed to add machine pool to cluster '%s': %v", args.ClusterKey, err)
 	}
 	return nil

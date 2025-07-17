@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 )
@@ -22,8 +23,8 @@ func GetGcpKmsKeyLocations(client *cmv1.Client, ccs cluster.CCS,
 		return nil, errors.Wrapf(err, "failed to build GCP provider data")
 	}
 
-	response, err := client.GCPInquiries().Regions().Search().
-		Page(1).Size(-1).Body(cloudProviderData).Send()
+	response, err := ocm.SendTypedAndHandleDeprecation(client.GCPInquiries().Regions().Search().
+		Page(1).Size(-1).Body(cloudProviderData))
 
 	if err != nil {
 		return nil, err
@@ -55,8 +56,8 @@ func GetGcpKmsKeyRings(client *cmv1.Client, ccs cluster.CCS,
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to build GCP provider data")
 	}
-	response, err := client.GCPInquiries().KeyRings().Search().
-		Page(1).Size(-1).Body(cloudProviderData).Send()
+	response, err := ocm.SendTypedAndHandleDeprecation(client.GCPInquiries().KeyRings().Search().
+		Page(1).Size(-1).Body(cloudProviderData))
 
 	if err != nil {
 		return nil, err
@@ -81,8 +82,8 @@ func GetGcpKmsKeys(client *cmv1.Client, ccs cluster.CCS,
 		return nil, errors.Wrapf(err, "failed to build GCP provider data")
 	}
 
-	response, err := client.GCPInquiries().EncryptionKeys().Search().
-		Page(1).Size(-1).Body(cloudProviderData).Send()
+	response, err := ocm.SendTypedAndHandleDeprecation(client.GCPInquiries().EncryptionKeys().Search().
+		Page(1).Size(-1).Body(cloudProviderData))
 
 	if err != nil {
 		return nil, err

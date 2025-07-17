@@ -286,11 +286,10 @@ func createWorkloadIdentityConfiguration(
 		return nil, errors.Wrap(err, "failed to build wif-config")
 	}
 
-	response, err := connection.ClustersMgmt().V1().GCP().
+	response, err := ocm.SendTypedAndHandleDeprecation(connection.ClustersMgmt().V1().GCP().
 		WifConfigs().
 		Add().
-		Body(wifConfigInput).
-		Send()
+		Body(wifConfigInput))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create wif-config")
 	}

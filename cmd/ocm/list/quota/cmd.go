@@ -68,8 +68,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	if args.org == "" {
 		// Get organization of current user:
-		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
-			Send()
+		userConn, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().CurrentAccount().Get())
 		if err != nil {
 			return fmt.Errorf("Can't retrieve current user information: %v", err)
 		}
@@ -85,9 +84,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	quotaClient := orgCollection.QuotaCost()
 
 	if !args.json {
-		quotasListResponse, err := quotaClient.List().
-			Parameter("fetchRelatedResources", true).
-			Send()
+		quotasListResponse, err := ocm.SendTypedAndHandleDeprecation(quotaClient.List().
+			Parameter("fetchRelatedResources", true))
 		if err != nil {
 			return fmt.Errorf("Failed to retrieve quota: %v", err)
 		}
@@ -110,10 +108,9 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	// TODO: Do this without hard-code; could not find any marshall method
-	jsonDisplay, err := connection.Get().Path(
+	jsonDisplay, err := ocm.SendAndHandleDeprecation(connection.Get().Path(
 		fmt.Sprintf("/api/accounts_mgmt/v1/organizations/%s/resource_quota", orgID)).
-		Parameter("fetchRelatedResources", true).
-		Send()
+		Parameter("fetchRelatedResources", true))
 	if err != nil {
 		return fmt.Errorf("Failed to get resource quota: %v", err)
 	}

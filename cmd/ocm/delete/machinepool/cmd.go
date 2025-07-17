@@ -87,12 +87,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
 	}
 
-	_, err = clusterCollection.
+	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.
 		Cluster(cluster.ID()).
 		MachinePools().
 		MachinePool(machinePoolID).
-		Delete().
-		Send()
+		Delete())
 	if err != nil {
 		return fmt.Errorf("Failed to delete machine pool '%s' on cluster '%s'", machinePoolID, clusterKey)
 	}
