@@ -135,10 +135,9 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return err
 	}
 
-	_, err = connection.ClustersMgmt().V1().GCP().WifConfigs().
+	_, err = ocm.SendTypedAndHandleDeprecation(connection.ClustersMgmt().V1().GCP().WifConfigs().
 		WifConfig(wifConfig.ID()).
-		Delete().
-		Send()
+		Delete())
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete wif config %q", wifConfig.ID())
 	}

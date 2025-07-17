@@ -23,6 +23,7 @@ import (
 
 	goVersion "github.com/hashicorp/go-version"
 
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -62,11 +63,10 @@ func GetEnabledVersions(client *cmv1.Client,
 		filter = fmt.Sprintf("%s %s", filter, additionalFilters)
 	}
 	for {
-		response, err := collection.List().
+		response, err := ocm.SendTypedAndHandleDeprecation(collection.List().
 			Search(filter).
 			Page(page).
-			Size(size).
-			Send()
+			Size(size))
 		if err != nil {
 			return nil, "", err
 		}
