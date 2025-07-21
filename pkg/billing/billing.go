@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
@@ -16,7 +17,8 @@ var ValidSubscriptionTypes = []string{
 }
 
 func GetBillingModel(connection *sdk.Connection, billingModelID string) (*amv1.BillingModelItem, error) {
-	bilingModel, err := connection.AccountsMgmt().V1().BillingModels().BillingModel(billingModelID).Get().Send()
+	bilingModel, err := ocm.SendTypedAndHandleDeprecation(
+		connection.AccountsMgmt().V1().BillingModels().BillingModel(billingModelID).Get())
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +26,7 @@ func GetBillingModel(connection *sdk.Connection, billingModelID string) (*amv1.B
 }
 
 func GetBillingModels(connection *sdk.Connection) ([]*amv1.BillingModelItem, error) {
-	response, err := connection.AccountsMgmt().V1().BillingModels().List().Send()
+	response, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().BillingModels().List())
 	if err != nil {
 		return nil, err
 	}

@@ -343,11 +343,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to create IDP for cluster '%s': %v", clusterKey, err)
 	}
 
-	_, err = clusterCollection.Cluster(cluster.ID()).
+	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.Cluster(cluster.ID()).
 		IdentityProviders().
 		Add().
-		Body(idp).
-		Send()
+		Body(idp))
 	if err != nil {
 		return fmt.Errorf("Failed to add IDP to cluster '%s': %v", clusterKey, err)
 	}
