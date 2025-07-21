@@ -363,8 +363,12 @@ github.com/onsi/ginkgo/v2 v2.17.1 h1:V++EzdbhI4ZV4ev0UTIj0PzhzOcReJFyJaLjtSF55M8
 github.com/onsi/ginkgo/v2 v2.17.1/go.mod h1:llBI3WDLL9Z6taip6f33H76YcWtJv+7R3HigUjbIBOs=
 github.com/onsi/gomega v1.30.0 h1:hvMK7xYz4D3HapigLTeGdId/NcfQx1VHMJc60ew99+8=
 github.com/onsi/gomega v1.30.0/go.mod h1:9sxs+SwGrKI0+PWe4Fxa9tFQQBG5xSsSbMXOI8PPpoQ=
-github.com/openshift-online/ocm-sdk-go v0.1.465 h1:RZr92sdcAKyLVcL19/RYOn6KVtspDUH1wc3UuO4LgiE=
-github.com/openshift-online/ocm-sdk-go v0.1.465/go.mod h1:EOkylgH0bafd+SlU9YvMrIIxHJw0Hk1EnC7W1VZeW8I=
+github.com/openshift-online/ocm-api-model/clientapi v0.0.424 h1:UgETlB56bFRBCjd4j2B/mjTSdBFWiVDAUQgklPJWA88=
+github.com/openshift-online/ocm-api-model/clientapi v0.0.424/go.mod h1:fZwy5HY2URG9nrExvQeXrDU/08TGqZ16f8oymVEN5lo=
+github.com/openshift-online/ocm-api-model/model v0.0.424 h1:Z26ZNwBHQTVT+lNuB7bAfRbXXthzaw8GhE4Dqi7rqo4=
+github.com/openshift-online/ocm-api-model/model v0.0.424/go.mod h1:B/fZxd88BTKig/rCCc189cENnFlEzxQslHHzoSgvo1I=
+github.com/openshift-online/ocm-sdk-go v0.1.472 h1:qdQI5rytZS9VXWf8QHdytv1lG+OudlkNhBBx9Fon5vg=
+github.com/openshift-online/ocm-sdk-go v0.1.472/go.mod h1:2dhKwgpzAbHq2lzK2guJWDMdLJf/8JPP4bYqpAS0PZE=
 github.com/openshift/rosa v1.2.24 h1:vv0yYnWHx6CCPEAau/0rS54P2ksaf+uWXb1TQPWxiYE=
 github.com/openshift/rosa v1.2.24/go.mod h1:MVXB27O3PF8WoOic23I03mmq6/9kVxpFx6FKyLMCyrQ=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c h1:+mdjkGKdHQG3305AYmdv1U2eRNDiU2ErMBj1gwrq8eQ=
