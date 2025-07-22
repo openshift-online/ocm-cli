@@ -237,10 +237,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to set an upgrade policy for cluster '%s': %v", clusterKey, err)
 	}
 
-	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.Cluster(cluster.ID()).
+	_, err = clusterCollection.Cluster(cluster.ID()).
 		UpgradePolicies().
 		Add().
-		Body(upgradePolicy))
+		Body(upgradePolicy).
+		Send()
 	if err != nil {
 		return fmt.Errorf("Failed to create upgrade policy for cluster: %v", err)
 	}

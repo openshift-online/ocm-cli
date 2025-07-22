@@ -327,12 +327,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to edit ingress for cluster '%s': %v", clusterKey, err)
 	}
 
-	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.
+	_, err = clusterCollection.
 		Cluster(cluster.ID()).
 		Ingresses().
 		Ingress(ingress.ID()).
 		Update().
-		Body(ingress))
+		Body(ingress).
+		Send()
 	if err != nil {
 		return fmt.Errorf("Failed to edit ingress for cluster '%s': %v", clusterKey, err)
 	}

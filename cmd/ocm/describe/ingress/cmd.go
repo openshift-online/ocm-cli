@@ -96,10 +96,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	clusterId := cluster.ID()
-	response, err := ocm.SendTypedAndHandleDeprecation(connection.ClustersMgmt().V1().
+	response, err := connection.ClustersMgmt().V1().
 		Clusters().Cluster(clusterId).
 		Ingresses().
-		List().Page(1).Size(-1))
+		List().Page(1).Size(-1).
+		Send()
 	if err != nil {
 		return err
 	}
