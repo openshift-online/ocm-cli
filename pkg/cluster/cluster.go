@@ -670,7 +670,6 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 func UpdateDeleteProtection(client *cmv1.ClustersClient, clusterID string, enable bool) error {
 	deleteProtection, _ := cmv1.NewDeleteProtection().Enabled(enable).Build()
 	_, err := client.Cluster(clusterID).DeleteProtection().Update().Body(deleteProtection).Send()
-		client.Cluster(clusterID).DeleteProtection().Update().Body(deleteProtection))
 	if err != nil {
 		return err
 	}

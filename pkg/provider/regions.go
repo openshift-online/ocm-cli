@@ -37,9 +37,8 @@ func GetRegions(client *cmv1.Client, provider string, ccs cluster.CCS) (regions 
 		}
 
 		response, err := client.CloudProviders().CloudProvider(provider).AvailableRegions().Search().
-			client.CloudProviders().CloudProvider(provider).AvailableRegions().Search().
-				Page(1).
-				Size(-1).
+			Page(1).
+			Size(-1).
 			Body(awsCredentials).
 			Send()
 		if err != nil {

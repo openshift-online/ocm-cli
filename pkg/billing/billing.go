@@ -17,7 +17,6 @@ var ValidSubscriptionTypes = []string{
 
 func GetBillingModel(connection *sdk.Connection, billingModelID string) (*amv1.BillingModelItem, error) {
 	bilingModel, err := connection.AccountsMgmt().V1().BillingModels().BillingModel(billingModelID).Get().Send()
-		connection.AccountsMgmt().V1().BillingModels().BillingModel(billingModelID).Get())
 	if err != nil {
 		return nil, err
 	}
