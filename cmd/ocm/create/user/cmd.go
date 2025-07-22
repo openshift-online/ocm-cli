@@ -98,10 +98,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
 	}
 
-	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.Cluster(cluster.ID()).
+	_, err = clusterCollection.Cluster(cluster.ID()).
 		Groups().
 		Group(args.group).
-		Get())
+		Get().
+		Send()
 	if err != nil {
 		return fmt.Errorf("Group '%s' in cluster '%s' doesn't exist", args.group, clusterKey)
 	}
@@ -113,12 +114,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		if err != nil {
 			return fmt.Errorf("Failed to create '%s' user '%s' for cluster '%s'", args.group, username, clusterKey)
 		}
-		_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.Cluster(cluster.ID()).
+		_, err = clusterCollection.Cluster(cluster.ID()).
 			Groups().
 			Group(args.group).
 			Users().
 			Add().
-			Body(user))
+			Body(user).
+			Send()
 		if err != nil {
 			fmt.Printf("Failed to add '%s' user '%s' to cluster '%s': %v\n", args.group, username, clusterKey, err)
 			failedToAddUser = true

@@ -93,7 +93,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Organization to search in case one was not provided:
 	if args.org == "" && len(args.roles) == 0 {
 		// Get organization of current user:
-		userConn, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().CurrentAccount().Get())
+		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
+			Send()
 		if err != nil {
 			return fmt.Errorf("Can't retrieve current user information: %v", err)
 		}
@@ -113,10 +114,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Display a list of all users in our organization and their roles:
 	for {
 		// Get all users within organization
-		usersResponse, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().Accounts().List().
+		usersResponse, err := connection.AccountsMgmt().V1().Accounts().List().
 			Size(pageSize).
 			Page(pageIndex).
-			Parameter("search", searchQuery))
+			Parameter("search", searchQuery).
+			Send()
 		if err != nil {
 			return fmt.Errorf("Can't retrieve accounts: %v", err)
 		}

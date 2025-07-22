@@ -214,12 +214,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to create machine pool body for cluster '%s': %v", clusterKey, err)
 	}
 
-	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.
+	_, err = clusterCollection.
 		Cluster(cluster.ID()).
 		MachinePools().
 		MachinePool(machinePoolID).
 		Update().
-		Body(machinePool))
+		Body(machinePool).
+		Send()
 	if err != nil {
 		return fmt.Errorf("Failed to edit machine pool for cluster '%s': %v", clusterKey, err)
 	}

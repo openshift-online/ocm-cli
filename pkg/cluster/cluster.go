@@ -221,9 +221,10 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 		"(display_name = '%s' or cluster_id = '%s' or external_cluster_id = '%s')",
 		key, key, key,
 	)
-	subsListResponse, err := ocm.SendTypedAndHandleDeprecation(subsResource.List().
+	subsListResponse, err := subsResource.List().
 		Search(subsSearch).
-		Size(1))
+		Size(1).
+		Send()
 	if err != nil {
 		err = fmt.Errorf("Can't retrieve subscription for key '%s': %v", key, err)
 		return
@@ -242,7 +243,8 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 		id, ok := sub.GetClusterID()
 		if ok {
 			var clusterGetResponse *cmv1.ClusterGetResponse
-			clusterGetResponse, err = ocm.SendTypedAndHandleDeprecation(clustersResource.Cluster(id).Get())
+			clusterGetResponse, err = clustersResource.Cluster(id).Get().
+				Send()
 			if err != nil {
 				err = fmt.Errorf(
 					"Can't retrieve cluster for key '%s': %v",
@@ -273,9 +275,10 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 		"id = '%s' or name = '%s' or external_id = '%s'",
 		key, key, key,
 	)
-	clustersListResponse, err := ocm.SendTypedAndHandleDeprecation(clustersResource.List().
+	clustersListResponse, err := clustersResource.List().
 		Search(clustersSearch).
-		Size(1))
+		Size(1).
+		Send()
 	if err != nil {
 		err = fmt.Errorf("Can't retrieve clusters for key '%s': %v", key, err)
 		return
@@ -307,11 +310,12 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 
 func GetClusterLimitedSupportReasons(connection *sdk.Connection, clusterID string) ([]*lmtSprReasonItem, error) {
 
-	limitedSupportReasons, err := ocm.SendTypedAndHandleDeprecation(connection.ClustersMgmt().V1().
+	limitedSupportReasons, err := connection.ClustersMgmt().V1().
 		Clusters().
 		Cluster(clusterID).
 		LimitedSupportReasons().
-		List())
+		List().
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get limited Support Reasons: %s", err)
 	}
@@ -703,9 +707,10 @@ func GetClusterOauthURL(cluster *cmv1.Cluster) string {
 
 func GetIdentityProviders(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.IdentityProvider, error) {
 	idpClient := client.Cluster(clusterID).IdentityProviders()
-	response, err := ocm.SendTypedAndHandleDeprecation(idpClient.List().
+	response, err := idpClient.List().
 		Page(1).
-		Size(-1))
+		Size(-1).
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get identity providers for cluster '%s': %v", clusterID, err)
 	}
@@ -715,9 +720,10 @@ func GetIdentityProviders(client *cmv1.ClustersClient, clusterID string) ([]*cmv
 
 func GetIngresses(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Ingress, error) {
 	ingressClient := client.Cluster(clusterID).Ingresses()
-	response, err := ocm.SendTypedAndHandleDeprecation(ingressClient.List().
+	response, err := ingressClient.List().
 		Page(1).
-		Size(-1))
+		Size(-1).
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get ingresses for cluster '%s': %v", clusterID, err)
 	}
@@ -727,9 +733,10 @@ func GetIngresses(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Ingres
 
 func GetGroups(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Group, error) {
 	groupClient := client.Cluster(clusterID).Groups()
-	response, err := ocm.SendTypedAndHandleDeprecation(groupClient.List().
+	response, err := groupClient.List().
 		Page(1).
-		Size(-1))
+		Size(-1).
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get groups for cluster '%s': %v", clusterID, err)
 	}
@@ -738,10 +745,11 @@ func GetGroups(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Group, er
 }
 
 func GetMachinePools(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.MachinePool, error) {
-	response, err := ocm.SendTypedAndHandleDeprecation(client.Cluster(clusterID).MachinePools().
+	response, err := client.Cluster(clusterID).MachinePools().
 		List().
 		Page(1).
-		Size(-1))
+		Size(-1).
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get machine pools for cluster '%s': %v", clusterID, err)
 	}
@@ -750,10 +758,11 @@ func GetMachinePools(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Mac
 }
 
 func GetUpgradePolicies(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.UpgradePolicy, error) {
-	response, err := ocm.SendTypedAndHandleDeprecation(client.Cluster(clusterID).UpgradePolicies().
+	response, err := client.Cluster(clusterID).UpgradePolicies().
 		List().
 		Page(1).
-		Size(-1))
+		Size(-1).
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get upgrade policies for cluster '%s': %v", clusterID, err)
 	}
@@ -763,41 +772,45 @@ func GetUpgradePolicies(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.
 
 func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnItem, error) {
 	// Get organization ID (used to get add-on quotas)
-	acctResponse, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().CurrentAccount().
-		Get())
+	acctResponse, err := connection.AccountsMgmt().V1().CurrentAccount().
+		Get().
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get current account: %s", err)
 	}
 	organization := acctResponse.Body().Organization().ID()
 
 	// Get a list of quota-cost for the current organization
-	quotaCostResponse, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().Organizations().
+	quotaCostResponse, err := connection.AccountsMgmt().V1().Organizations().
 		Organization(organization).QuotaCost().
 		List().
-		Parameter("fetchRelatedResources", true))
+		Parameter("fetchRelatedResources", true).
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get quota-cost: %v", err)
 	}
 	quotaCosts := quotaCostResponse.Items()
 
 	// Get complete list of enabled add-ons
-	addOnsResponse, err := ocm.SendTypedAndHandleDeprecation(connection.AddonsMgmt().V1().Addons().
+	addOnsResponse, err := connection.AddonsMgmt().V1().Addons().
 		List().
 		Search("enabled='t'").
 		Page(1).
-		Size(-1))
+		Size(-1).
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get add-ons: %v", err)
 	}
 	addOns := addOnsResponse.Items()
 
 	// Get add-ons already installed on cluster
-	addOnInstallationsResponse, err := ocm.SendTypedAndHandleDeprecation(connection.AddonsMgmt().V1().Clusters().
+	addOnInstallationsResponse, err := connection.AddonsMgmt().V1().Clusters().
 		Cluster(clusterID).
 		Addons().
 		List().
 		Page(1).
-		Size(-1))
+		Size(-1).
+		Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get add-on installations for cluster '%s': %v", clusterID, err)
 	}
