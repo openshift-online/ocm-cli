@@ -10,6 +10,7 @@ type options struct {
 	Name                     string
 	OpenshiftVersion         string
 	Project                  string
+	FederatedProject         string
 	Region                   string
 	RolePrefix               string
 	TargetDir                string

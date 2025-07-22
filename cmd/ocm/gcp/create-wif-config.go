@@ -24,6 +24,7 @@ var (
 		Mode:             ModeAuto,
 		Name:             "",
 		Project:          "",
+		FederatedProject: "",
 		RolePrefix:       "",
 		TargetDir:        "",
 		OpenshiftVersion: "",
@@ -62,6 +63,8 @@ wif-config resource within OCM to represent those resources.`,
 		"User-defined name for all created Google cloud resources")
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.Project, "project", "",
 		"ID of the Google cloud project")
+	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.FederatedProject, "federated-project", "",
+		"ID of the Google cloud project that will host the WIF pool")
 	createWifConfigCmd.PersistentFlags().StringVar(&CreateWifConfigOpts.RolePrefix, "role-prefix", "",
 		"Prefix for naming custom roles")
 
@@ -96,6 +99,9 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 		return err
 	}
 	if err := promptVersion(); err != nil {
+		return err
+	}
+	if err := promptFederatedProjectId(); err != nil {
 		return err
 	}
 
@@ -167,6 +173,25 @@ func promptVersion() error {
 	return nil
 }
 
+func promptFederatedProjectId() error {
+	const federatedProjectIdHelp = "The GCP Project Id that will be used to host the WIF pool." +
+		"Leave empty to use the same project as the cluster deployment project."
+
+	if CreateWifConfigOpts.FederatedProject == "" {
+		if CreateWifConfigOpts.Interactive {
+			prompt := &survey.Input{
+				Message: "Gcp Federated Project ID:",
+				Help:    federatedProjectIdHelp,
+			}
+			return survey.AskOne(
+				prompt,
+				&CreateWifConfigOpts.FederatedProject,
+			)
+		}
+	}
+	return nil
+}
+
 func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) error {
 	ctx := context.Background()
 	log := log.Default()
@@ -188,6 +213,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		gcpClient,
 		CreateWifConfigOpts.Name,
 		CreateWifConfigOpts.Project,
+		CreateWifConfigOpts.FederatedProject,
 	)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create wif-config")
@@ -196,7 +222,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	if CreateWifConfigOpts.Mode == ModeManual {
 		log.Printf("Writing script files to %s", CreateWifConfigOpts.TargetDir)
 
-		projectNum, err := gcpClient.ProjectNumberFromId(ctx, wifConfig.Gcp().ProjectId())
+		projectNum, err := gcpClient.ProjectNumberFromId(ctx, wifConfig.Gcp().FederatedProjectId())
 		if err != nil {
 			return errors.Wrapf(err, "failed to get project number from id")
 		}
@@ -259,16 +285,31 @@ func createWorkloadIdentityConfiguration(
 	client gcp.GcpClient,
 	displayName string,
 	projectId string,
+	federatedProjectId string,
 ) (*cmv1.WifConfig, error) {
+
 	projectNum, err := client.ProjectNumberFromId(ctx, projectId)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get GCP project number from project id")
 	}
 
+	var federatedProjectNum int64
+	if federatedProjectId == "" {
+		federatedProjectId = projectId
+		federatedProjectNum = projectNum
+	} else {
+		federatedProjectNum, err = client.ProjectNumberFromId(ctx, federatedProjectId)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get GCP federated project number from project id")
+		}
+	}
+
 	wifBuilder := cmv1.NewWifConfig()
 	gcpBuilder := cmv1.NewWifGcp().
 		ProjectId(projectId).
-		ProjectNumber(strconv.FormatInt(projectNum, 10))
+		ProjectNumber(strconv.FormatInt(projectNum, 10)).
+		FederatedProjectId(federatedProjectId).
+		FederatedProjectNumber(strconv.FormatInt(federatedProjectNum, 10))
 
 	if CreateWifConfigOpts.RolePrefix != "" {
 		gcpBuilder.RolePrefix(CreateWifConfigOpts.RolePrefix)
