@@ -18,7 +18,6 @@ require (
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0
-	github.com/openshift-online/ocm-common v0.0.27
 	github.com/openshift-online/ocm-sdk-go v0.1.465
 	github.com/openshift/rosa v1.2.24
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
@@ -96,7 +95,7 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/zalando/go-keyring v0.2.3 // indirect
 	github.com/zgalor/weberr v0.7.0 // indirect

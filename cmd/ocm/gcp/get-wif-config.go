@@ -65,7 +65,7 @@ func getWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) erro
 	request := connection.Get().Path(path)
 	arguments.ApplyParameterFlag(request, GetWorkloadIdentityConfigurationOpts.parameter)
 
-	resp, err := ocm.SendAndHandleDeprecation(request)
+	resp, err := request.Send()
 	if err != nil {
 		return errors.Wrapf(err, "can't send request")
 	}

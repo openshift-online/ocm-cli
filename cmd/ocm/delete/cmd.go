@@ -117,11 +117,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	arguments.ApplyHeaderFlag(request, args.header)
 
 	// Send the request:
-	response, err := ocm.SendAndHandleDeprecation(request)
+	response, err := request.Send()
 	if err != nil {
 		return fmt.Errorf("can't send request: %w", err)
 	}
-
 	status := response.Status()
 	body := response.Bytes()
 	if status < 400 {

@@ -70,7 +70,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		pageIndex := 1
 		for {
 			rolesListRequest := connection.AccountsMgmt().V1().Roles().List().Page(pageIndex)
-			response, err := ocm.SendTypedAndHandleDeprecation(rolesListRequest)
+			response, err := rolesListRequest.Send()
 			if err != nil {
 				return fmt.Errorf("Can't send request: %v", err)
 			}
@@ -95,14 +95,16 @@ func run(cmd *cobra.Command, argv []string) error {
 	} else {
 
 		// Get role with provided id response:
-		roleResponse, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().Roles().Role(argv[0]).Get())
+		roleResponse, err := connection.AccountsMgmt().V1().Roles().Role(argv[0]).Get().
+			Send()
 		if err != nil {
 			return fmt.Errorf("Can't send request: %v", err)
 		}
 		role := roleResponse.Body()
 
 		// Use role in new get request
-		byteRole, err := ocm.SendAndHandleDeprecation(connection.Get().Path(role.HREF()))
+		byteRole, err := connection.Get().Path(role.HREF()).
+			Send()
 		if err != nil {
 			return fmt.Errorf("Can't send request: %v", err)
 		}

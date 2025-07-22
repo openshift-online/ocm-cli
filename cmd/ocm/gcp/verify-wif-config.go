@@ -54,10 +54,10 @@ func verifyWifConfig(
 	wifId string,
 ) error {
 	// Verify the WIF configuration is valid
-	response, err := ocm.SendTypedAndHandleDeprecation(connection.
+	response, err := connection.
 		ClustersMgmt().V1().
 		GCP().WifConfigs().WifConfig(wifId).Status().
-		Get())
+		Get().Send()
 	if err != nil {
 		return fmt.Errorf("failed to call wif-config verification: %s", err.Error())
 	}

@@ -55,7 +55,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
 	}
-	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.Cluster(cluster.ID()).Resume())
+	_, err = clusterCollection.Cluster(cluster.ID()).Resume().Send()
 	if err != nil {
 		return err
 	}
