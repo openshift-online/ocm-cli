@@ -78,11 +78,18 @@ func deleteServiceAccountScriptContent(wifConfig *cmv1.WifConfig) string {
 
 func deleteIdentityPoolScriptContent(wifConfig *cmv1.WifConfig) string {
 	pool := wifConfig.Gcp().WorkloadIdentityPool()
+	var projectId string
+	if wifConfig.Gcp().FederatedProjectId() == "" {
+		projectId = wifConfig.Gcp().ProjectId()
+	} else {
+		projectId = wifConfig.Gcp().FederatedProjectId()
+	}
+
 	// Delete the workload identity pool
 	return fmt.Sprintf(`
 # Delete the workload identity pool
 gcloud iam workload-identity-pools delete %s --project=%s --location=global
-`, pool.PoolId(), wifConfig.Gcp().ProjectId())
+`, pool.PoolId(), projectId)
 }
 
 func generateCreateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
@@ -121,8 +128,8 @@ func generateUpdateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) st
 
 func createIdentityPoolScriptContent(wifConfig *cmv1.WifConfig) string {
 	name := wifConfig.Gcp().WorkloadIdentityPool().PoolId()
-	project := wifConfig.Gcp().ProjectId()
 	description := fmt.Sprintf(wifDescription, wifConfig.DisplayName())
+	project := wifConfig.Gcp().FederatedProjectId()
 
 	return fmt.Sprintf(`
 # Create workload identity pool:
@@ -140,6 +147,7 @@ func createIdentityProviderScriptContent(wifConfig *cmv1.WifConfig) string {
 	issuerUrl := wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl()
 	providerId := wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IdentityProviderId()
 	description := fmt.Sprintf(wifDescription, wifConfig.DisplayName())
+	projectId := wifConfig.Gcp().FederatedProjectId()
 
 	return fmt.Sprintf(`
 # Create workload identity provider:
@@ -151,8 +159,9 @@ gcloud iam workload-identity-pools providers create-oidc %s \
 	--jwk-json-path="jwk.json" \
 	--allowed-audiences="%s" \
 	--attribute-mapping="google.subject=assertion.sub" \
-	--workload-identity-pool=%s
-`, providerId, providerId, description, issuerUrl, strings.Join(audiences, ","), poolId)
+	--workload-identity-pool=%s \
+	--project=%s
+`, providerId, providerId, description, issuerUrl, strings.Join(audiences, ","), poolId, projectId)
 }
 
 // This returns the gcloud commands to create a service account, bind roles, and grant access
