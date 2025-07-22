@@ -510,10 +510,8 @@ func getFlavourOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 func GetDefaultClusterFlavors(connection *sdk.Connection, flavour string) (dMachinecidr *net.IPNet, dPodcidr *net.IPNet,
 	dServicecidr *net.IPNet, dhostPrefix int) {
 	flavourGetResponse, err := connection.ClustersMgmt().V1().Flavours().Flavour(flavour).Get().Send()
-		connection.ClustersMgmt().V1().Flavours().Flavour(flavour).Get())
 	if err != nil {
 		flavourGetResponse, _ = connection.ClustersMgmt().V1().Flavours().Flavour("osd-4").Get().Send()
-			connection.ClustersMgmt().V1().Flavours().Flavour("osd-4").Get())
 	}
 
 	network, ok := flavourGetResponse.Body().GetNetwork()

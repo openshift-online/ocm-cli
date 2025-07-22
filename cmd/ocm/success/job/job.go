@@ -18,6 +18,7 @@ package job
 
 import (
 	"fmt"
+
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +47,6 @@ func run(_ *cobra.Command, argv []string) error {
 
 	// Send a request to Success a Job:
 	_, err = client.Queues().Queue(argv[0]).Jobs().Job(argv[1]).Success().ReceiptId(argv[2]).Send()
-		client.Queues().Queue(argv[0]).Jobs().Job(argv[1]).Success().ReceiptId(argv[2]))
 	if err != nil {
 		return fmt.Errorf("unable to success a job: %v", err)
 	}
