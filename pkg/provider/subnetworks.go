@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
-	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -19,10 +18,11 @@ func getAWSVPCs(client *cmv1.Client, ccs cluster.CCS,
 		return nil, fmt.Errorf("Failed to build AWS cloud provider data: %v", err)
 	}
 
-	response, err := ocm.SendTypedAndHandleDeprecation(client.AWSInquiries().Vpcs().Search().
+	response, err := client.AWSInquiries().Vpcs().Search().
 		Page(1).
 		Size(-1).
-		Body(cloudProviderData))
+		Body(cloudProviderData).
+		Send()
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +62,11 @@ func GetGCPVPCs(client *cmv1.Client, ccs cluster.CCS,
 		return nil, fmt.Errorf("Failed to build GCP provider data: %v", err)
 	}
 
-	response, err := ocm.SendTypedAndHandleDeprecation(client.GCPInquiries().Vpcs().Search().
+	response, err := client.GCPInquiries().Vpcs().Search().
 		Page(1).
 		Size(-1).
-		Body(cloudProviderData))
+		Body(cloudProviderData).
+		Send()
 	if err != nil {
 		return nil, err
 	}

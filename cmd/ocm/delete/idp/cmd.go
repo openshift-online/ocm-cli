@@ -106,11 +106,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Failed to get identity provider '%s' for cluster '%s'", idpName, clusterKey)
 	}
 
-	_, err = ocm.SendTypedAndHandleDeprecation(clusterCollection.
+	_, err = clusterCollection.
 		Cluster(cluster.ID()).
 		IdentityProviders().
 		IdentityProvider(idp.ID()).
-		Delete())
+		Delete().
+		Send()
 	if err != nil {
 		return fmt.Errorf("Failed to delete identity provider '%s' on cluster '%s'", idpName, clusterKey)
 	}

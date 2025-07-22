@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	v1 "github.com/openshift-online/ocm-sdk-go/jobqueue/v1"
+	"github.com/openshift-online/ocm-sdk-go/jobqueue/v1"
 )
 
 // Cmd Constant:
@@ -51,7 +51,7 @@ func run(_ *cobra.Command, argv []string) error {
 	client := connection.JobQueue().V1()
 
 	// Send a request to create the Job:
-	pop, err = ocm.SendTypedAndHandleDeprecation(client.Queues().Queue(argv[0]).Pop())
+	pop, err = client.Queues().Queue(argv[0]).Pop().Send()
 	if err != nil {
 		if pop != nil && pop.Status() == 204 {
 			// No Content
@@ -60,7 +60,6 @@ func run(_ *cobra.Command, argv []string) error {
 		}
 		return fmt.Errorf("unable to fetch a Job: %v", err)
 	}
-
 	fmt.Printf("{\n"+
 		"  \"id\": \"%s\",\n"+
 		"  \"kind\": \"Job\",\n"+

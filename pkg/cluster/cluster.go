@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	asv1 "github.com/openshift-online/ocm-sdk-go/addonsmgmt/v1"
@@ -574,7 +573,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 	if dryRun {
 		request = request.Parameter("dryRun", "true")
 	}
-	response, err := ocm.SendTypedAndHandleDeprecation(request)
+	response, err := request.Send()
 	if err != nil {
 		if dryRun {
 			return nil, fmt.Errorf("dry run: unable to create cluster: %v", err)
@@ -660,7 +659,7 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 	if err != nil {
 		return err
 	}
-	_, err = ocm.SendTypedAndHandleDeprecation(client.Cluster(clusterID).Update().Body(clusterSpec))
+	_, err = client.Cluster(clusterID).Update().Body(clusterSpec).Send()
 	if err != nil {
 		return err
 	}
@@ -670,7 +669,7 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 
 func UpdateDeleteProtection(client *cmv1.ClustersClient, clusterID string, enable bool) error {
 	deleteProtection, _ := cmv1.NewDeleteProtection().Enabled(enable).Build()
-	_, err := ocm.SendTypedAndHandleDeprecation(
+	_, err := client.Cluster(clusterID).DeleteProtection().Update().Body(deleteProtection).Send()
 		client.Cluster(clusterID).DeleteProtection().Update().Body(deleteProtection))
 	if err != nil {
 		return err
@@ -873,7 +872,7 @@ func GetVersionID(cluster *cmv1.Cluster) string {
 
 func GetAvailableUpgrades(
 	client *cmv1.Client, versionID string, productID string) ([]string, error) {
-	response, err := ocm.SendTypedAndHandleDeprecation(client.Versions().Version(versionID).Get())
+	response, err := client.Versions().Version(versionID).Get().Send()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to find version ID %s", versionID)
 	}
@@ -904,7 +903,7 @@ func filterROSAVersions(
 	enabledVersions := []string{}
 	for _, version := range versions {
 		versionID := createVersionID(version, channelGroup)
-		response, err := ocm.SendTypedAndHandleDeprecation(client.Versions().Version(versionID).Get())
+		response, err := client.Versions().Version(versionID).Get().Send()
 		if err != nil {
 			return nil, fmt.Errorf("Failed to find version ID %s", versionID)
 		}

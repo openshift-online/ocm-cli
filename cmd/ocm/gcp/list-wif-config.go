@@ -108,7 +108,7 @@ func listWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) err
 		// Fetch the next page:
 		request.Size(size)
 		request.Page(index)
-		response, err := ocm.SendTypedAndHandleDeprecation(request)
+		response, err := request.Send()
 		if err != nil {
 			return errors.Wrapf(err, "can't retrieve wif configs")
 		}

@@ -20,8 +20,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/openshift-online/ocm-cli/pkg/ocm"
-	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 )
 
@@ -53,10 +52,11 @@ func GetRolesFromUsers(accounts []*amv1.Account,
 
 	for {
 		// Prepare the request:
-		response, err := ocm.SendTypedAndHandleDeprecation(conn.AccountsMgmt().V1().RoleBindings().List().
+		response, err := conn.AccountsMgmt().V1().RoleBindings().List().
 			Size(size).
 			Page(index).
-			Parameter("search", query))
+			Parameter("search", query).
+			Send()
 
 		if err != nil {
 			return nil, fmt.Errorf("Can't retrieve roles: %v", err)

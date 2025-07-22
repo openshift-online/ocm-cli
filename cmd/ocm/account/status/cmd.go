@@ -70,7 +70,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	defer connection.Close()
 
 	// Send the request:
-	response, err := ocm.SendTypedAndHandleDeprecation(connection.AccountsMgmt().V1().CurrentAccount().Get())
+	response, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
+		Send()
 	if err != nil {
 		return fmt.Errorf("Can't get current account: %v", err)
 	}

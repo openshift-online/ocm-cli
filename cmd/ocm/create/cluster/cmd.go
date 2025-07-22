@@ -509,10 +509,10 @@ func getFlavourOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 
 func GetDefaultClusterFlavors(connection *sdk.Connection, flavour string) (dMachinecidr *net.IPNet, dPodcidr *net.IPNet,
 	dServicecidr *net.IPNet, dhostPrefix int) {
-	flavourGetResponse, err := ocm.SendTypedAndHandleDeprecation(
+	flavourGetResponse, err := connection.ClustersMgmt().V1().Flavours().Flavour(flavour).Get().Send()
 		connection.ClustersMgmt().V1().Flavours().Flavour(flavour).Get())
 	if err != nil {
-		flavourGetResponse, _ = ocm.SendTypedAndHandleDeprecation(
+		flavourGetResponse, _ = connection.ClustersMgmt().V1().Flavours().Flavour("osd-4").Get().Send()
 			connection.ClustersMgmt().V1().Flavours().Flavour("osd-4").Get())
 	}
 
@@ -1855,9 +1855,10 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 	size := 100
 	for {
 		var response *cmv1.FlavoursListResponse
-		response, err = ocm.SendTypedAndHandleDeprecation(collection.List().
+		response, err = collection.List().
 			Page(page).
-			Size(size))
+			Size(size).
+			Send()
 		if err != nil {
 			return
 		}

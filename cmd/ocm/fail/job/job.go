@@ -47,7 +47,7 @@ func run(_ *cobra.Command, argv []string) error {
 	client := connection.JobQueue().V1()
 
 	// Send a request to Success a Job:
-	_, err = ocm.SendTypedAndHandleDeprecation(
+	_, err = client.Queues().Queue(argv[0]).Jobs().Job(argv[1]).Failure().ReceiptId(argv[2]).FailureReason(argv[3]).Send()
 		client.Queues().Queue(argv[0]).Jobs().Job(argv[1]).Failure().ReceiptId(argv[2]).FailureReason(argv[3]))
 	if err != nil {
 		return fmt.Errorf("unable to fail a Job: %v", err)
