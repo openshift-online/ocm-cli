@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/openshift-online/ocm-common/pkg/deprecation"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 
@@ -119,6 +120,9 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 
 func (b *ConnectionBuilder) initConnectionBuilderFromConfig() *sdk.ConnectionBuilder {
 	builder := sdk.NewConnectionBuilder()
+
+	// Add deprecation transport wrapper to automatically handle deprecation headers
+	builder.TransportWrapper(deprecation.NewTransportWrapper())
 
 	// Prepare the builder for the connection adding only the properties that have explicit
 	// values in the configuration, so that default values won't be overridden:
