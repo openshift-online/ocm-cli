@@ -171,7 +171,7 @@ func (c *shim) createWorkloadIdentityPool(
 ) error {
 	description := fmt.Sprintf(wifDescription, c.wifConfig.DisplayName())
 	poolId := c.wifConfig.Gcp().WorkloadIdentityPool().PoolId()
-	project := c.wifConfig.Gcp().ProjectId()
+	project := c.wifConfig.Gcp().FederatedProjectId()
 
 	parentResourceForPool := fmt.Sprintf("projects/%s/locations/global", project)
 	poolResource := fmt.Sprintf("%s/workloadIdentityPools/%s", parentResourceForPool, poolId)
@@ -237,8 +237,8 @@ func (c *shim) createWorkloadIdentityProvider(
 	issuerUrl := c.wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IssuerUrl()
 	jwks := c.wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().Jwks()
 	poolId := c.wifConfig.Gcp().WorkloadIdentityPool().PoolId()
-	projectId := c.wifConfig.Gcp().ProjectId()
 	providerId := c.wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().IdentityProviderId()
+	projectId := c.wifConfig.Gcp().FederatedProjectId()
 	state := "ACTIVE"
 
 	parent := fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s", projectId, poolId)
@@ -879,7 +879,7 @@ func (c *shim) attachWorkloadIdentityPool(
 			"principal://iam.googleapis.com/projects/%s/"+
 				"locations/global/workloadIdentityPools/%s/"+
 				"subject/system:serviceaccount:%s:%s",
-			c.wifConfig.Gcp().ProjectNumber(),
+			c.wifConfig.Gcp().FederatedProjectNumber(),
 			c.wifConfig.Gcp().WorkloadIdentityPool().PoolId(),
 			openshiftNamespace, openshiftServiceAccount,
 		)
@@ -953,6 +953,10 @@ func (c *shim) deleteWorkloadIdentityPool(
 ) error {
 	log.Println("Deleting workload identity pool...")
 	projectId := c.wifConfig.Gcp().ProjectId()
+	if c.wifConfig.Gcp().FederatedProjectId() != "" {
+		projectId = c.wifConfig.Gcp().FederatedProjectId()
+	}
+
 	poolName := c.wifConfig.Gcp().WorkloadIdentityPool().PoolId()
 	poolResource := fmt.Sprintf("projects/%s/locations/global/workloadIdentityPools/%s", projectId, poolName)
 
