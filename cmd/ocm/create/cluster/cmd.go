@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -743,9 +744,9 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		}
 		if !args.marketplaceGcpTerms {
 			if args.interactive {
-				return fmt.Errorf(gcpTermsAgreementInteractiveError)
+				return errors.New(gcpTermsAgreementInteractiveError)
 			}
-			return fmt.Errorf(gcpTermsAgreementNonInteractiveError)
+			return errors.New(gcpTermsAgreementNonInteractiveError)
 		}
 	} else {
 		err = promptProvider(fs, connection)
@@ -1392,7 +1393,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			errMsg += fmt.Sprintf("Installing into an existing VPC with private service connect is required when "+
 				"cluster is '%s' and GCP authentication type is '%s' \n", privateFlag, c.AuthenticationWif)
 		}
-		return fmt.Errorf(errMsg)
+		return errors.New(errMsg)
 	}
 
 	err = arguments.PromptString(fs, controlPlaneSubnetFlag)
