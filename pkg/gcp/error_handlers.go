@@ -1,6 +1,7 @@
 package gcp
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/googleapis/gax-go/v2/apierror"
@@ -13,7 +14,7 @@ func (c *gcpClient) handleApiError(err error) error {
 	if !ok {
 		return fmt.Errorf("Unexpected error")
 	}
-	return fmt.Errorf(pApiError.Details().String())
+	return errors.New(pApiError.Details().String())
 }
 
 func (c *gcpClient) handleDeleteServiceAccountError(err error, allowMissing bool) error {
@@ -24,7 +25,7 @@ func (c *gcpClient) handleDeleteServiceAccountError(err error, allowMissing bool
 	if pApiError.GRPCStatus().Code() == codes.NotFound && allowMissing {
 		return nil
 	}
-	return fmt.Errorf(pApiError.Details().String())
+	return errors.New(pApiError.Details().String())
 }
 
 // Extracts the text from google api errors for simpler processing
@@ -33,5 +34,5 @@ func (c *gcpClient) fmtGoogleApiError(err error) error {
 	if !ok {
 		return fmt.Errorf("Unexpected error")
 	}
-	return fmt.Errorf(gError.Error())
+	return errors.New(gError.Error())
 }
