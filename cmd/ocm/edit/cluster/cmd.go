@@ -178,7 +178,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Validate flags:
 	expiration, err := c.ValidateClusterExpiration(args.expirationTime, args.expirationDuration)
 	if err != nil {
-		return fmt.Errorf(fmt.Sprintf("%s", err))
+		return err
 	}
 
 	var private *bool
