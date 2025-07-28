@@ -1,8 +1,6 @@
 module github.com/openshift-online/ocm-cli
 
-go 1.22
-
-toolchain go1.22.4
+go 1.23.0
 
 require (
 	cloud.google.com/go/iam v1.1.8
@@ -19,7 +17,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0
 	github.com/openshift-online/ocm-common v0.0.29
-	github.com/openshift-online/ocm-sdk-go v0.1.465
+	github.com/openshift-online/ocm-sdk-go v0.1.473
 	github.com/openshift/rosa v1.2.24
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
@@ -91,6 +89,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.426 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.426 // indirect
 	github.com/prometheus/client_golang v1.13.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
