@@ -56,12 +56,14 @@ the wif-config metadata and the GCP resources it represents.`,
 		"",
 		versionFlagDescription,
 	)
-	updateWifConfigCmd.PersistentFlags().StringVar(
+
+	// Note: The federated-project flag on update wif-config will be enabled in milestone 2.
+	/*updateWifConfigCmd.PersistentFlags().StringVar(
 		&UpdateWifConfigOpts.FederatedProject,
 		"federated-project",
 		"",
 		federatedProjectFlagDescription,
-	)
+	)*/
 
 	return updateWifConfigCmd
 }
