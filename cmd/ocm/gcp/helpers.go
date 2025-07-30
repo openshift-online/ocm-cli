@@ -95,3 +95,19 @@ func versionToTemplateID(version string) string {
 	// Otherwise, return the version as is
 	return version
 }
+
+// getFederatedProjectNumber returns the federated project number if it exists, otherwise returns the project number
+func getFederatedProjectNumber(wifConfig *cmv1.WifConfig) string {
+	if wifConfig.Gcp().FederatedProjectNumber() != "" {
+		return wifConfig.Gcp().FederatedProjectNumber()
+	}
+	return wifConfig.Gcp().ProjectNumber()
+}
+
+// getFederatedProjectId returns the federated project id if it exists, otherwise returns the project id
+func getFederatedProjectId(wifConfig *cmv1.WifConfig) string {
+	if wifConfig.Gcp().FederatedProjectId() != "" {
+		return wifConfig.Gcp().FederatedProjectId()
+	}
+	return wifConfig.Gcp().ProjectId()
+}

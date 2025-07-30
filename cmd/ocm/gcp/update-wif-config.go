@@ -19,6 +19,7 @@ var (
 		Mode:             ModeAuto,
 		TargetDir:        "",
 		OpenshiftVersion: "",
+		FederatedProject: "",
 	}
 )
 
@@ -54,6 +55,12 @@ the wif-config metadata and the GCP resources it represents.`,
 		"version",
 		"",
 		versionFlagDescription,
+	)
+	updateWifConfigCmd.PersistentFlags().StringVar(
+		&UpdateWifConfigOpts.FederatedProject,
+		"federated-project",
+		"",
+		federatedProjectFlagDescription,
 	)
 
 	return updateWifConfigCmd
@@ -103,6 +110,24 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		wifBuilder.WifTemplates(append(existingTemplates, wifTemplate)...)
 	}
 
+	// Create the client for the GCP API
+	gcpClient, err := gcp.NewGcpClient(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "failed to initiate GCP client")
+	}
+
+	if UpdateWifConfigOpts.FederatedProject != "" &&
+		wifConfig.Gcp().FederatedProjectId() != UpdateWifConfigOpts.FederatedProject {
+		projectNumInt64, err := gcpClient.ProjectNumberFromId(ctx, UpdateWifConfigOpts.FederatedProject)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get GCP project number from project id")
+		}
+
+		wifBuilder.Gcp(cmv1.NewWifGcp().
+			FederatedProjectId(UpdateWifConfigOpts.FederatedProject).
+			FederatedProjectNumber(strconv.FormatInt(projectNumInt64, 10)))
+	}
+
 	updatedWifConfig, err := wifBuilder.Build()
 	if err != nil {
 		return errors.Wrapf(err, "failed to create wif-config body")
@@ -115,14 +140,9 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	}
 	wifConfig = resp.Body()
 
-	gcpClient, err := gcp.NewGcpClient(ctx)
-	if err != nil {
-		return errors.Wrapf(err, "failed to initiate GCP client")
-	}
-
 	if UpdateWifConfigOpts.Mode == ModeManual {
 		log.Printf("Writing script files to %s", UpdateWifConfigOpts.TargetDir)
-		projectNumInt64, err := strconv.ParseInt(wifConfig.Gcp().ProjectNumber(), 10, 64)
+		projectNumInt64, err := strconv.ParseInt(getFederatedProjectNumber(wifConfig), 10, 64)
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse project number from WifConfig")
 		}
