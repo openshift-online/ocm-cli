@@ -3,6 +3,27 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.7 Aug 6 2025
+
+-8ba748b wif config name on cluster review and describe (#816)
+-be14307 Add deprecation header handling
+-dd6c671 Handle deprecation header in all CLI commands
+-f10fefa Add Makefile target to install ginkgo and skip test in case 'pass' is not available
+-8593695 Remove redundant documentation msg
+-ccfbfe1 Fix linter issues
+-c12b3f4 availability zone help text flag to multiple cloud providers (#815)
+-53547a9 Handle deprecation header in all missed CLI commands
+-90b8edc Update Konflux references
+-d51c67b Revert "Handle deprecation header in all missed CLI commands"
+-27e48a0 Revert "Handle deprecation header in all CLI commands"
+-784b40e Fix revert conflicts
+-61e3381 OCM-17277 | feat: Use deprecation transport to handle backend API deprecation
+-443db81 OCM-17277 | feat: bump ocm-common and run go mod tidy
+-676d290 update sdk to latest
+-e8580f9 cross project wif config support (#831)
+-069c3bf cross projects wif-config update for second milestone (#840)
+-499d78f update tekton references
+
 ## 1.0.6 Jun 4 2025
 
 -f95acd1 Update github.com/golang/groupcache digest to 2c02b82
