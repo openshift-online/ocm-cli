@@ -462,8 +462,8 @@ Source: https://github.com/openshift-online/ocm-cli/archive/v@version@.tar.gz
 
 # We need to download Go explicitly because in most of the platforms that we
 # use the version available is too old.
-%define go_tar https://go.dev/dl/go1.20.4.linux-amd64.tar.gz
-%define go_sum 698ef3243972a51ddb4028e4a1ac63dc6d60821bf18e59a807e051fee0a385bd
+%define go_tar https://go.dev/dl/go1.23.12.linux-amd64.tar.gz
+%define go_sum d3847fef834e9db11bf64e3fb34db9c04db14e068eeb064f49af747010454f90
 
 BuildRequires: curl
 BuildRequires: git
