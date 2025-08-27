@@ -35,6 +35,7 @@ type RoleName string
 type Policy interface {
 	HasRole(member PolicyMember, roleName RoleName) bool
 	AddRole(member PolicyMember, roleName RoleName)
+	RemoveRole(member PolicyMember, roleName RoleName)
 
 	// Getters
 	IamPolicy() *iam.Policy
@@ -52,6 +53,10 @@ func (p *policy) AddRole(member PolicyMember, roleName RoleName) {
 
 func (p *policy) HasRole(member PolicyMember, roleName RoleName) bool {
 	return p.policy.HasRole(string(member), iam.RoleName(roleName))
+}
+
+func (p *policy) RemoveRole(member PolicyMember, roleName RoleName) {
+	p.policy.Remove(string(member), iam.RoleName(roleName))
 }
 
 func (p *policy) IamPolicy() *iam.Policy {

@@ -179,7 +179,7 @@ func (c *gcpClient) GetServiceAccountAccessPolicy(
 		Resource: saId,
 	})
 	if err != nil {
-		return nil, c.handleApiError(err)
+		return nil, c.handleApiNotFoundError(err)
 	}
 	return &policy{
 		resourceId: saId,

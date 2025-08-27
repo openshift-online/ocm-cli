@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -263,8 +264,22 @@ func addRoleBindingsScript(wifConfig *cmv1.WifConfig) string {
 			} else {
 				roleResource = fmt.Sprintf("projects/%s/roles/%s", project, role.RoleId())
 			}
-			sb.WriteString(fmt.Sprintf("gcloud projects add-iam-policy-binding %s --member=%s --role=%s\n",
-				project, member, roleResource))
+			if role.ResourceBindings() != nil {
+				for _, resourceBinding := range role.ResourceBindings() {
+					switch resourceBinding.Type() {
+					case "iam.serviceAccounts":
+						saResourceId := gcp.FmtSaResourceId(resourceBinding.Name(), project)
+						sb.WriteString(fmt.Sprintf("gcloud iam service-accounts add-iam-policy-binding %s --member=%s --role=%s\n",
+							saResourceId, member, roleResource))
+					default:
+						fmt.Printf("Warning: unsupported resource type '%s' for resource '%s'\n",
+							resourceBinding.Type(), resourceBinding.Name())
+					}
+				}
+			} else {
+				sb.WriteString(fmt.Sprintf("gcloud projects add-iam-policy-binding %s --member=%s --role=%s\n",
+					project, member, roleResource))
+			}
 		}
 	}
 	return sb.String()
