@@ -27,8 +27,9 @@ const (
 )
 
 const (
-	impersonatorRole         = "roles/iam.serviceAccountTokenCreator"
-	workloadIdentityUserRole = "roles/iam.workloadIdentityUser"
+	impersonatorRole           = "roles/iam.serviceAccountTokenCreator"
+	workloadIdentityUserRole   = "roles/iam.workloadIdentityUser"
+	serviceAccountResourceType = "iam.serviceAccounts"
 )
 
 // All operations that modify cloud resources should be logged to the user.
@@ -65,11 +66,11 @@ func (c *shim) CreateServiceAccounts(
 	ctx context.Context,
 	log *log.Logger,
 ) error {
+	var (
+		sa      *adminpb.ServiceAccount
+		lastErr error
+	)
 	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
-		var (
-			sa      *adminpb.ServiceAccount
-			lastErr error
-		)
 		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
 			log.Printf("Ensuring service account '%s' exists...", serviceAccount.ServiceAccountId())
 			sa, lastErr = c.createServiceAccount(ctx, log, serviceAccount)
@@ -112,6 +113,18 @@ func (c *shim) CreateServiceAccounts(
 		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
 			log.Printf("Ensuring access to service account '%s'...", serviceAccount.ServiceAccountId())
 			lastErr = c.grantAccessToServiceAccount(ctx, log, serviceAccount)
+			return lastErr != nil, lastErr
+		}, IamApiRetrySeconds, log); err != nil {
+			return lastErr
+		}
+	}
+
+	// Bind policies to service accounts out of the service accounts creation logic.
+	// This is needed to ensure that the service account has been created before the policy bindings are applied.
+	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
+		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+			log.Printf("Ensuring policy bindings for service account '%s'...", serviceAccount.ServiceAccountId())
+			lastErr = c.bindPoliciesToServiceAccount(ctx, log, serviceAccount)
 			return lastErr != nil, lastErr
 		}, IamApiRetrySeconds, log); err != nil {
 			return lastErr
@@ -509,7 +522,7 @@ func (c *shim) bindRolesToPrincipal(
 ) error {
 	modified, err := c.ensurePolicyBindingsForProject(
 		ctx,
-		c.formatRoles(roles),
+		roles,
 		principal,
 		c.wifConfig.Gcp().ProjectId(),
 	)
@@ -517,8 +530,9 @@ func (c *shim) bindRolesToPrincipal(
 		return errors.Errorf("Failed to bind roles to principal %s: %s", principal, err)
 	}
 	if modified {
-		log.Printf("Bound roles to principal '%s'", principal)
+		log.Printf("Bound project-level roles to principal '%s'", principal)
 	}
+
 	return nil
 }
 
@@ -543,6 +557,29 @@ func (c *shim) unbindRolesFromPrincipal(
 	return nil
 }
 
+func (c *shim) unbindPoliciesFromServiceAccount(
+	ctx context.Context,
+	log *log.Logger,
+	principal string,
+	roles []*cmv1.WifRole,
+) error {
+	for _, role := range roles {
+		if role.ResourceBindings() != nil {
+			err := c.removePolicyBindingsFromServiceAccount(
+				ctx,
+				log,
+				role,
+				principal,
+				c.wifConfig.Gcp().ProjectId(),
+			)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to unbind roles from principal %s", principal)
+			}
+		}
+	}
+	return nil
+}
+
 func (c *shim) grantAccessToServiceAccount(
 	ctx context.Context,
 	log *log.Logger,
@@ -560,6 +597,94 @@ func (c *shim) grantAccessToServiceAccount(
 		log.Printf("Warning: %s is not a supported access type\n", serviceAccount.AccessMethod())
 	}
 	return nil
+}
+
+func (c *shim) bindPoliciesToServiceAccount(
+	ctx context.Context,
+	log *log.Logger,
+	serviceAccount *cmv1.WifServiceAccount,
+) error {
+	for _, role := range serviceAccount.Roles() {
+		if role.ResourceBindings() != nil {
+			err := c.ensurePolicyBindingsFromServiceAccount(
+				ctx,
+				log,
+				role,
+				c.formatServiceAccountId(serviceAccount),
+				c.wifConfig.Gcp().ProjectId(),
+			)
+			if err != nil {
+				return errors.Errorf("Failed to bind roles to principal '%s': %s", c.formatServiceAccountId(serviceAccount), err)
+			}
+		}
+	}
+	return nil
+}
+
+// ensurePolicyBindingsFromServiceAccount ensure member has the given role bound to the given resource.
+// Return error if failed to bind role to resource.
+func (c *shim) ensurePolicyBindingsFromServiceAccount(
+	ctx context.Context,
+	log *log.Logger,
+	role *cmv1.WifRole,
+	member string,
+	projectName string,
+) error {
+
+	for _, resourceBinding := range role.ResourceBindings() {
+		if resourceBinding.Type() != serviceAccountResourceType {
+			return errors.New(fmt.Sprintf("resource binding type '%s' is not supported", resourceBinding.Type()))
+		}
+		resourceId := gcp.FmtSaResourceId(resourceBinding.Name(), projectName)
+		modified, err := c.bindPolicyToServiceAccount(
+			ctx,
+			resourceId,
+			member,
+			c.formatRoleResourceId(role),
+		)
+		if err != nil {
+			return errors.Wrapf(err, "failed to bind role '%s' to resource '%s'", c.formatRoleResourceId(role), resourceId)
+		}
+		if modified {
+			log.Printf("Bound resource-specific role '%s'on resource '%s' to principal '%s'",
+				c.formatRoleResourceId(role), resourceId, member)
+		}
+	}
+
+	return nil
+}
+
+// bindPolicyToServiceAccount binds role to member if not already bound.
+// Returns true if the binding was added, false if it already existed.
+func (c *shim) bindPolicyToServiceAccount(
+	ctx context.Context,
+	resourceId string,
+	member string,
+	role string,
+) (bool, error) {
+	policy, err := c.gcpClient.GetServiceAccountAccessPolicy(ctx, resourceId)
+	if err != nil {
+		if err.Error() == "Resource not found" {
+			return false, errors.Wrapf(err, "policy not found for resource '%s'", resourceId)
+		}
+		return false, errors.Wrapf(err, "failed to get access policy for resource '%s'", resourceId)
+	}
+
+	if policy.HasRole(
+		gcp.PolicyMember(member),
+		gcp.RoleName(role)) {
+		return false, nil
+	}
+
+	policy.AddRole(
+		gcp.PolicyMember(member),
+		gcp.RoleName(role))
+
+	if err := c.gcpClient.SetServiceAccountAccessPolicy(ctx, policy); err != nil {
+		return false, errors.Wrapf(err, "failed to update access policy for resource '%s'", resourceId)
+	}
+
+	return true, nil
 }
 
 func (c *shim) formatRoles(
@@ -664,7 +789,7 @@ func (c *shim) undeleteRole(
 // Return value indicates whether a modification occurred.
 func (c *shim) ensurePolicyBindingsForProject(
 	ctx context.Context,
-	roles []string,
+	roles []*cmv1.WifRole,
 	member string,
 	projectName string,
 ) (bool, error) {
@@ -678,11 +803,20 @@ func (c *shim) ensurePolicyBindingsForProject(
 
 	// Validate that each role exists, and add the policy binding as needed
 	for _, definedRole := range roles {
-		roleBindingAdded := c.ensureRoleBindingInPolicy(policy, definedRole)
+		// Skip if the role has resource bindings, as they are handled by resource-specific bindings
+		if definedRole.ResourceBindings() != nil {
+			continue
+		}
+		roleResourceId := c.formatRoleResourceId(definedRole)
+		roleBindingAdded := c.ensureRoleBindingInPolicy(policy, roleResourceId)
 		if roleBindingAdded {
 			needPolicyUpdate = true
 		}
-		memberAddedToRoleBinding := c.applyMemberToRoleInPolicy(policy, definedRole, member, c.addMemberToBindingForProject)
+		memberAddedToRoleBinding := c.applyMemberToRoleInPolicy(
+			policy,
+			roleResourceId,
+			member,
+			c.addMemberToBindingForProject)
 		if memberAddedToRoleBinding {
 			needPolicyUpdate = true
 		}
@@ -728,6 +862,71 @@ func (c *shim) removePolicyBindingsFromProject(
 
 	// If we made it this far there were no updates needed
 	return false, nil
+}
+
+func (c *shim) removePolicyBindingsFromServiceAccount(
+	ctx context.Context,
+	log *log.Logger,
+	role *cmv1.WifRole,
+	member string,
+	projectName string,
+) error {
+	for _, resourceBinding := range role.ResourceBindings() {
+		if resourceBinding.Type() != serviceAccountResourceType {
+			continue
+		}
+		log.Printf("Unbinding service account '%s' from resource IAM policy...", resourceBinding.Name())
+
+		resourceId := gcp.FmtSaResourceId(resourceBinding.Name(), projectName)
+		modified, err := c.unbindPolicyFromServiceAccount(
+			ctx,
+			log,
+			resourceId,
+			member,
+			c.formatRoleResourceId(role),
+		)
+		if err != nil {
+			return errors.Wrapf(err, "failed to remove member from resource binding for resource '%s'", resourceId)
+		}
+		if modified {
+			log.Printf("Unbound roles from principal '%s' on resource '%s'", member, resourceId)
+		}
+	}
+
+	return nil
+}
+
+func (c *shim) unbindPolicyFromServiceAccount(
+	ctx context.Context,
+	log *log.Logger,
+	resourceId string,
+	member string,
+	role string,
+) (bool, error) {
+	policy, err := c.gcpClient.GetServiceAccountAccessPolicy(ctx, resourceId)
+	if err != nil {
+		if err.Error() == "Resource not found" {
+			log.Printf("Policy not found for service account '%s'", resourceId)
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to get access policy for resource '%s'", resourceId)
+	}
+
+	if !policy.HasRole(
+		gcp.PolicyMember(member),
+		gcp.RoleName(role)) {
+		return false, nil
+	}
+
+	policy.RemoveRole(
+		gcp.PolicyMember(member),
+		gcp.RoleName(role))
+
+	if err := c.gcpClient.SetServiceAccountAccessPolicy(ctx, policy); err != nil {
+		return false, errors.Wrapf(err, "failed to update access policy for resource '%s'", resourceId)
+	}
+
+	return true, nil
 }
 
 // This method modifies cloud resources.
@@ -982,6 +1181,18 @@ func (c *shim) UnbindServiceAccounts(
 		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
 			log.Printf("Unbinding service account '%s'...", serviceAccount.ServiceAccountId())
 			lastErr = c.unbindRolesFromPrincipal(
+				ctx,
+				log,
+				c.formatServiceAccountId(serviceAccount),
+				serviceAccount.Roles(),
+			)
+			return lastErr != nil, lastErr
+		}, IamApiRetrySeconds, log); err != nil {
+			return errors.Wrapf(lastErr, "Failed to unbind service account '%s'", serviceAccount.ServiceAccountId())
+		}
+
+		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+			lastErr = c.unbindPoliciesFromServiceAccount(
 				ctx,
 				log,
 				c.formatServiceAccountId(serviceAccount),

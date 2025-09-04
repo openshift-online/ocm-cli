@@ -9,6 +9,17 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+func (c *gcpClient) handleApiNotFoundError(err error) error {
+	pApiError, ok := err.(*apierror.APIError)
+	if !ok {
+		return fmt.Errorf("Unexpected error")
+	}
+	if pApiError.GRPCStatus().Code() == codes.NotFound {
+		return fmt.Errorf("Resource not found")
+	}
+	return errors.New(pApiError.Details().String())
+}
+
 func (c *gcpClient) handleApiError(err error) error {
 	pApiError, ok := err.(*apierror.APIError)
 	if !ok {
