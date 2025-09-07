@@ -18,7 +18,7 @@ require (
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0
-	github.com/openshift-online/ocm-common v0.0.29
+	github.com/openshift-online/ocm-common v0.0.31
 	github.com/openshift-online/ocm-sdk-go v0.1.477
 	github.com/openshift/rosa v1.2.24
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
