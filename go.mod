@@ -1,8 +1,8 @@
 module github.com/openshift-online/ocm-cli
 
-go 1.23.0
+go 1.24.0
 
-toolchain go1.23.11
+toolchain go1.24.6
 
 require (
 	cloud.google.com/go/iam v1.1.8
@@ -110,7 +110,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/oauth2 v0.24.0 // indirect
+	golang.org/x/oauth2 v0.31.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
