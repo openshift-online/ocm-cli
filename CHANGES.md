@@ -3,6 +3,11 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.8 Sep 11 2025
+
+- feat: Add CLAUDE.md configuration file
+- support resource-scoped permissions wif-config (#860)
+
 ## 1.0.7 Aug 6 2025
 
 -8ba748b wif config name on cluster review and describe (#816)
