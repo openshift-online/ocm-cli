@@ -155,11 +155,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	} else {
 
-		availableUpgrades, err := c.GetAvailableUpgrades(
-			connection.ClustersMgmt().V1(), c.GetVersionID(cluster), cluster.Product().ID())
-		if err != nil {
-			return fmt.Errorf("Failed to find available upgrades: %v", err)
-		}
+		availableUpgrades := c.GetAvailableUpgrades(cluster.Version())
 		if len(availableUpgrades) == 0 {
 			fmt.Println("There are no available upgrades")
 			return nil
