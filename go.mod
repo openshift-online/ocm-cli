@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/iam v1.1.8
 	cloud.google.com/go/storage v1.39.1
 	github.com/AlecAivazis/survey/v2 v2.3.7
-	github.com/MicahParks/jwkset v0.7.0
+	github.com/MicahParks/jwkset v0.11.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang/glog v1.2.5
 	github.com/googleapis/gax-go/v2 v2.14.1
