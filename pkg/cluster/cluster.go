@@ -869,23 +869,8 @@ func GetVersionID(cluster *cmv1.Cluster) string {
 	return cluster.Version().ID()
 }
 
-func GetAvailableUpgrades(
-	client *cmv1.Client, versionID string, productID string) ([]string, error) {
-	response, err := client.Versions().Version(versionID).Get().Send()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to find version ID %s", versionID)
-	}
-	version := response.Body()
-	availableUpgrades := version.AvailableUpgrades()
-	if productID == "ROSA" {
-		availableUpgrades, err = filterROSAVersions(
-			client, availableUpgrades, version.ChannelGroup())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return availableUpgrades, nil
+func GetAvailableUpgrades(version *cmv1.Version) []string {
+	return version.AvailableUpgrades()
 }
 
 func createVersionID(version string, channelGroup string) string {
@@ -895,23 +880,6 @@ func createVersionID(version string, channelGroup string) string {
 	}
 	return versionID
 
-}
-
-func filterROSAVersions(
-	client *cmv1.Client, versions []string, channelGroup string) ([]string, error) {
-	enabledVersions := []string{}
-	for _, version := range versions {
-		versionID := createVersionID(version, channelGroup)
-		response, err := client.Versions().Version(versionID).Get().Send()
-		if err != nil {
-			return nil, fmt.Errorf("Failed to find version ID %s", versionID)
-		}
-		rosaEnabled := response.Body().ROSAEnabled()
-		if rosaEnabled {
-			enabledVersions = append(enabledVersions, version)
-		}
-	}
-	return enabledVersions, nil
 }
 
 func cidrIsEmpty(cidr net.IPNet) bool {
