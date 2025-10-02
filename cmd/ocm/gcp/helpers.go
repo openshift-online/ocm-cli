@@ -1,11 +1,17 @@
 package gcp
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 
+	"github.com/openshift-online/ocm-cli/pkg/gcp"
+	"github.com/openshift-online/ocm-cli/pkg/utils"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 )
@@ -13,6 +19,11 @@ import (
 const (
 	ModeAuto   = "auto"
 	ModeManual = "manual"
+	// See reference: https://cloud.google.com/monitoring/api/metrics_gcp_i_o
+	// iam_googleapis_com:workload_identity_federation_count and workload_identity_federation/key_usage_count
+	// Both metrics could be used,
+	// but the first metric was chosen because it was the default metric used by the GCP on Metrics Explorer
+	WifQuery = `sum(rate(iam_googleapis_com:workload_identity_federation_count{pool_id="%s",result="success"}[%dm]))`
 )
 
 var Modes = []string{ModeAuto, ModeManual}
@@ -110,4 +121,81 @@ func getFederatedProjectId(wifConfig *cmv1.WifConfig) string {
 		return wifConfig.Gcp().FederatedProjectId()
 	}
 	return wifConfig.Gcp().ProjectId()
+}
+
+// updateFederatedProjectIfChanged if federated project was provided,
+// and if it differs from main project, update the WIF config with the federated project.
+func updateFederatedProjectIfChanged(
+	ctx context.Context,
+	gcpClient gcp.GcpClient,
+	wifBuilder *cmv1.WifConfigBuilder,
+	wifConfig *cmv1.WifConfig,
+	federatedProject string,
+) (bool, error) {
+
+	if federatedProject == "" ||
+		wifConfig.Gcp().FederatedProjectId() == federatedProject {
+		return false, nil
+	}
+
+	projectNumInt64, err := gcpClient.ProjectNumberFromId(ctx, federatedProject)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get GCP project number from project id")
+	}
+
+	wifBuilder.Gcp(cmv1.NewWifGcp().
+		FederatedProjectId(federatedProject).
+		FederatedProjectNumber(strconv.FormatInt(projectNumInt64, 10)))
+
+	return true, nil
+}
+
+func federatedProjectPoolUsageVerification(
+	ctx context.Context,
+	log *log.Logger,
+	connection *sdk.Connection,
+	wifConfig *cmv1.WifConfig,
+	gcpShim GcpClientWifConfigShim,
+) error {
+
+	clustersAssociated, err := gcpShim.HasAssociatedClusters(ctx, connection, wifConfig.ID())
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if wif-config '%s' has associated clusters. "+
+			"Please try again or contact Red Hat support if the issue persists", wifConfig.ID())
+	}
+
+	// Only validate pool usage if there are associated clusters
+	if !clustersAssociated {
+		return nil
+	}
+
+	// Validate new pool usage
+	log.Println("Ensuring new workload identity pool has recent traffic...")
+	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+		if validationErr := gcpShim.ValidateNewWifConfigPoolUsage(ctx, wifConfig); validationErr != nil {
+			return true, validationErr
+		}
+		return false, nil
+	}, IamApiRetrySeconds, log); err != nil {
+		log.Printf("Timed out verifying workload identity pool usage\n" +
+			"Cannot determine if old identity pool may be removed." +
+			"Please consult user documentation for manually checking usage")
+		return nil
+	}
+
+	// Validate old pool usage
+	log.Println("Ensuring old workload identity pool is still there and not being used...")
+	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
+		if err := gcpShim.ValidateOldWifConfigPoolUsage(ctx, wifConfig); err != nil {
+			return true, err
+		}
+		return false, nil
+	}, IamApiRetrySeconds, log); err != nil {
+		log.Printf("Timed out verifying old workload identity pool usage\n" +
+			"Cannot determine if old identity pool may be removed." +
+			"Please consult user documentation for manually checking usage")
+		return nil
+	}
+
+	return nil
 }

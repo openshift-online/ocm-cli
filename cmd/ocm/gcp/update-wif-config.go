@@ -16,10 +16,11 @@ import (
 
 var (
 	UpdateWifConfigOpts = options{
-		Mode:             ModeAuto,
-		TargetDir:        "",
-		OpenshiftVersion: "",
-		FederatedProject: "",
+		Mode:                             ModeAuto,
+		TargetDir:                        "",
+		OpenshiftVersion:                 "",
+		FederatedProject:                 "",
+		SkipFederatedProjectVerification: false,
 	}
 )
 
@@ -62,6 +63,13 @@ the wif-config metadata and the GCP resources it represents.`,
 		"federated-project",
 		"",
 		federatedProjectFlagDescription,
+	)
+
+	updateWifConfigCmd.PersistentFlags().BoolVar(
+		&UpdateWifConfigOpts.SkipFederatedProjectVerification,
+		"skip-federated-project-verification",
+		false,
+		skipFederatedProjectVerificationFlagDescription,
 	)
 
 	return updateWifConfigCmd
@@ -117,16 +125,15 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return errors.Wrapf(err, "failed to initiate GCP client")
 	}
 
-	if UpdateWifConfigOpts.FederatedProject != "" &&
-		wifConfig.Gcp().FederatedProjectId() != UpdateWifConfigOpts.FederatedProject {
-		projectNumInt64, err := gcpClient.ProjectNumberFromId(ctx, UpdateWifConfigOpts.FederatedProject)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get GCP project number from project id")
-		}
-
-		wifBuilder.Gcp(cmv1.NewWifGcp().
-			FederatedProjectId(UpdateWifConfigOpts.FederatedProject).
-			FederatedProjectNumber(strconv.FormatInt(projectNumInt64, 10)))
+	wifProjectUpdated, err := updateFederatedProjectIfChanged(
+		ctx,
+		gcpClient,
+		wifBuilder,
+		wifConfig,
+		UpdateWifConfigOpts.FederatedProject,
+	)
+	if err != nil {
+		return err
 	}
 
 	updatedWifConfig, err := wifBuilder.Build()
@@ -195,6 +202,16 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return fmt.Errorf("Timed out verifying wif-config resources\n"+
 			"Please try 'ocm gcp update wif-config %s' again in a few minutes, "+
 			"or contact Red Hat support.", wifConfig.ID())
+	}
+
+	// If the federated project was updated and skip verification is not set,
+	// verify the pool usage
+	if wifProjectUpdated && !UpdateWifConfigOpts.SkipFederatedProjectVerification {
+		if err := federatedProjectPoolUsageVerification(
+			ctx, log, connection, wifConfig, gcpClientWifConfigShim,
+		); err != nil {
+			return err
+		}
 	}
 
 	log.Printf("wif-config '%s' updated successfully.", wifConfig.ID())
