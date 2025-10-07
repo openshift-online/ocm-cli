@@ -21,7 +21,7 @@ import (
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
-	"github.com/AlecAivazis/survey/v2"
+	survey "github.com/AlecAivazis/survey/v2"
 )
 
 func buildGoogleIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.IdentityProviderBuilder, err error) {

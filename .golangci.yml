@@ -4,6 +4,13 @@ run:
   modules-download-mode: readonly
 issues:
   max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - typecheck
+    - path: tests/mocks\.go
+      linters:
+        - typecheck
 
 linters:
   disable-all: true

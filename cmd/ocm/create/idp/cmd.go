@@ -22,7 +22,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
-	"github.com/AlecAivazis/survey/v2"
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 )
 

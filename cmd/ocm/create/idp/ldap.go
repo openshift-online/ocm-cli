@@ -21,7 +21,7 @@ import (
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
-	"github.com/AlecAivazis/survey/v2"
+	survey "github.com/AlecAivazis/survey/v2"
 )
 
 func buildLdapIdp(_ *cmv1.Cluster, idpName string) (idpBuilder cmv1.IdentityProviderBuilder, err error) {

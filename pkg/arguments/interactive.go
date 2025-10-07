@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/spf13/cobra"

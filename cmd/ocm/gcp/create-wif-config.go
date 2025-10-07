@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/AlecAivazis/survey/v2"
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"

@@ -28,7 +28,7 @@ import (
 	"strings"
 
 	"github.com/openshift-online/ocm-sdk-go/data"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 //go:embed tables

@@ -24,7 +24,7 @@ import (
 
 	"github.com/nwidger/jsoncolor"
 	"github.com/openshift-online/ocm-cli/pkg/output"
-	"gitlab.com/c0b/go-ordered-json"
+	ordered "gitlab.com/c0b/go-ordered-json"
 )
 
 // Pretty dumps the given data to the given stream so that it looks pretty. If the data is a valid

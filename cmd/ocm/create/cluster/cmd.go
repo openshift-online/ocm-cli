@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2"
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/edit/ingress"
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/billing"
