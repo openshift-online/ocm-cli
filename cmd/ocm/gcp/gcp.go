@@ -5,17 +5,18 @@ import (
 )
 
 type options struct {
-	Interactive              bool
-	Mode                     string
-	Name                     string
-	OpenshiftVersion         string
-	Project                  string
-	FederatedProject         string
-	Region                   string
-	RolePrefix               string
-	TargetDir                string
-	WorkloadIdentityPool     string
-	WorkloadIdentityProvider string
+	Interactive                      bool
+	Mode                             string
+	Name                             string
+	OpenshiftVersion                 string
+	Project                          string
+	FederatedProject                 string
+	SkipFederatedProjectVerification bool
+	Region                           string
+	RolePrefix                       string
+	TargetDir                        string
+	WorkloadIdentityPool             string
+	WorkloadIdentityProvider         string
 }
 
 // NewGcpCmd implements the "gcp" subcommand for the credentials provisioning
