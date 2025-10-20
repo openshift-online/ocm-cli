@@ -10,7 +10,6 @@ import (
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"github.com/googleapis/gax-go/v2/apierror"
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
@@ -25,12 +24,6 @@ import (
 const (
 	// The time in seconds in which IAM inconsistencies may occur.
 	IamApiRetrySeconds = 600
-)
-
-const (
-	// PromQL time range in minutes
-	newPoolUsageTimeRange = 5
-	oldPoolUsageTimeRange = 2
 )
 
 const (
@@ -50,9 +43,6 @@ type GcpClientWifConfigShim interface {
 	DeleteServiceAccounts(ctx context.Context, log *log.Logger) error
 	DeleteWorkloadIdentityPool(ctx context.Context, log *log.Logger) error
 	UnbindServiceAccounts(ctx context.Context, log *log.Logger) error
-	HasAssociatedClusters(ctx context.Context, connection *sdk.Connection, wifConfigID string) (bool, error)
-	ValidateNewWifConfigPoolUsage(ctx context.Context, wifConfig *cmv1.WifConfig) error
-	ValidateOldWifConfigPoolUsage(ctx context.Context, wifConfig *cmv1.WifConfig) error
 }
 
 type shim struct {
@@ -1213,96 +1203,5 @@ func (c *shim) UnbindServiceAccounts(
 			return errors.Wrapf(lastErr, "Failed to unbind service account '%s'", serviceAccount.ServiceAccountId())
 		}
 	}
-	return nil
-}
-
-// checkPoolUsageWithQuery executes a PromQL query and returns true if any metric has a non-zero value
-func (c *shim) checkPoolUsageWithQuery(ctx context.Context, projectId string, query string) (bool, error) {
-	response, err := c.gcpClient.QueryPrometheusTimeSeries(ctx, projectId, query)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to execute prometheus query")
-	}
-
-	// Check if the query was successful
-	if response.Status != "success" {
-		return false, errors.Errorf("prometheus query failed with status: %s", response.Status)
-	}
-
-	// Check if there are any results
-	if len(response.Data.Result) == 0 {
-		return false, nil
-	}
-
-	// Check if any result has a non-zero value
-	for _, result := range response.Data.Result {
-		value, err := result.GetFloatValue()
-		if err != nil {
-			continue
-		}
-		if value > 0 {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-// HasAssociatedClusters checks if a WIF config has any clusters associated with it
-func (c *shim) HasAssociatedClusters(
-	ctx context.Context,
-	connection *sdk.Connection,
-	wifConfigID string,
-) (bool, error) {
-	searchQuery := fmt.Sprintf("gcp.authentication.wif_config_id = '%s'", wifConfigID)
-	response, err := connection.ClustersMgmt().V1().Clusters().
-		List().
-		Search(searchQuery).
-		Send()
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to search for clusters using wif-config %s", wifConfigID)
-	}
-
-	return response.Size() > 0, nil
-}
-
-// ValidateNewWifConfigPoolUsage validates that a WIF config has recent pool usage
-func (c *shim) ValidateNewWifConfigPoolUsage(ctx context.Context, wifConfig *cmv1.WifConfig) error {
-	projectId := wifConfig.Gcp().FederatedProjectId()
-	query := fmt.Sprintf(
-		WifQuery,
-		wifConfig.Gcp().WorkloadIdentityPool().PoolId(),
-		newPoolUsageTimeRange,
-	)
-
-	hasUsage, err := c.checkPoolUsageWithQuery(ctx, projectId, query)
-	if err != nil {
-		return errors.Wrapf(err, "failed to check workload identity pool usage")
-	}
-
-	if !hasUsage {
-		return errors.Errorf("wif-config pool '%s' has no recent traffic", wifConfig.Gcp().WorkloadIdentityPool().PoolId())
-	}
-
-	return nil
-}
-
-// ValidateOldWifConfigPoolUsage validates if the old WIF config pool is still being used
-func (c *shim) ValidateOldWifConfigPoolUsage(ctx context.Context, wifConfig *cmv1.WifConfig) error {
-	projectId := wifConfig.Gcp().ProjectId()
-	query := fmt.Sprintf(
-		WifQuery,
-		wifConfig.Gcp().WorkloadIdentityPool().PoolId(),
-		oldPoolUsageTimeRange,
-	)
-
-	hasUsage, err := c.checkPoolUsageWithQuery(ctx, projectId, query)
-	if err != nil {
-		return errors.Wrapf(err, "failed to check workload identity pool usage")
-	}
-
-	if hasUsage {
-		return errors.Errorf("wif-config pool '%s' is still being used", wifConfig.Gcp().WorkloadIdentityPool().PoolId())
-	}
-
 	return nil
 }

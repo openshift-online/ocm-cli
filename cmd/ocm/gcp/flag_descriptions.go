@@ -8,8 +8,7 @@ manual:         Commands necessary to modify GCP resources will be output
                 as a script to be run manually.
 `
 
-	targetDirFlagDescription                        = `Directory to place generated files (defaults to current directory)`
-	versionFlagDescription                          = `Version of OpenShift to configure the WIF resources for`
-	federatedProjectFlagDescription                 = `ID of the Google cloud project that will host the WIF pool`
-	skipFederatedProjectVerificationFlagDescription = `Skip federated project verification`
+	targetDirFlagDescription        = `Directory to place generated files (defaults to current directory)`
+	versionFlagDescription          = `Version of OpenShift to configure the WIF resources for`
+	federatedProjectFlagDescription = `ID of the Google cloud project that will host the WIF pool`
 )
