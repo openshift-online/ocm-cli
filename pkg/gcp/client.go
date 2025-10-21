@@ -2,23 +2,15 @@ package gcp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 
 	iamadmin "cloud.google.com/go/iam/admin/apiv1"
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"cloud.google.com/go/iam/apiv1/iampb"
 	"cloud.google.com/go/storage"
-	"github.com/pkg/errors"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
 
 	iamv1 "google.golang.org/api/iam/v1"
-
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	secretmanager "google.golang.org/api/secretmanager/v1"
 )
 
@@ -45,7 +37,6 @@ type GcpClient interface {
 	UndeleteWorkloadIdentityPool(ctx context.Context, resource string, request *iamv1.UndeleteWorkloadIdentityPoolRequest) (*iamv1.Operation, error)
 	UpdateRole(context.Context, *adminpb.UpdateRoleRequest) (*adminpb.Role, error)
 	UpdateWorkloadIdentityPoolOidcIdentityProvider(ctx context.Context, provider *iamv1.WorkloadIdentityPoolProvider) error
-	QueryPrometheusTimeSeries(ctx context.Context, projectID string, promqlQuery string) (*PrometheusResponse, error)
 }
 
 type gcpClient struct {
@@ -55,7 +46,6 @@ type gcpClient struct {
 	cloudResourceManager *cloudresourcemanager.Service
 	secretManager        *secretmanager.Service
 	storageClient        *storage.Client
-	httpClient           *http.Client
 }
 
 func NewGcpClient(ctx context.Context) (GcpClient, error) {
@@ -82,19 +72,6 @@ func NewGcpClient(ctx context.Context) (GcpClient, error) {
 		return nil, err
 	}
 
-	// Get default credentials
-	creds, err := google.FindDefaultCredentials(ctx, monitoringBaseURL)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get credentials")
-	}
-
-	// Create authenticated HTTP client
-	httpClient := &http.Client{
-		Transport: &oauth2.Transport{
-			Source: creds.TokenSource,
-		},
-	}
-
 	return &gcpClient{
 		ctx:                  ctx,
 		iamClient:            iamClient,
@@ -102,7 +79,6 @@ func NewGcpClient(ctx context.Context) (GcpClient, error) {
 		secretManager:        secretManager,
 		oldIamClient:         oldIamClient,
 		storageClient:        storageClient,
-		httpClient:           httpClient,
 	}, nil
 }
 
@@ -273,48 +249,4 @@ func (c *gcpClient) UpdateWorkloadIdentityPoolOidcIdentityProvider(
 		return c.fmtGoogleApiError(err)
 	}
 	return nil
-}
-
-// Uses HTTP requests directly to the Prometheus API endpoint
-// Makes GET request to: https://monitoring.googleapis.com/v1/projects/{project}/location/global/prometheus/api/v1/query
-func (c *gcpClient) QueryPrometheusTimeSeries(
-	ctx context.Context,
-	projectID string,
-	promqlQuery string,
-) (*PrometheusResponse, error) {
-	// Use the Prometheus-compatible API endpoint via HTTP
-	u, err := url.Parse(fmt.Sprintf(promQLBaseURL, projectID))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse URL")
-	}
-
-	u.RawQuery = url.Values{"query": {promqlQuery}}.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to execute request")
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read response")
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	// Parse JSON response into structured format
-	var response PrometheusResponse
-	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse JSON response")
-	}
-
-	return &response, nil
 }
