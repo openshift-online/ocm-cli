@@ -107,20 +107,20 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	defer connection.Close()
 
-	var accessToken string
-	var refreshToken string
+	// Load the configuration file:
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("Can't load config file: %v", err)
+	}
+
+	var accessToken = cfg.AccessToken
+	var refreshToken = cfg.RefreshToken
 
 	if args.generate {
 		// Get new tokens:
 		accessToken, refreshToken, err = connection.Tokens(15 * time.Minute)
 		if err != nil {
 			return fmt.Errorf("Can't get new tokens: %v", err)
-		}
-	} else {
-		// Get the tokens:
-		accessToken, refreshToken, err = connection.Tokens()
-		if err != nil {
-			return fmt.Errorf("Can't get token: %v", err)
 		}
 	}
 
@@ -170,20 +170,15 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Fprintf(os.Stdout, "%s\n", selectedToken)
 	}
 
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+	if args.generate {
+		// Save the configuration:
+		cfg.AccessToken = accessToken
+		cfg.RefreshToken = refreshToken
+		err = config.Save(cfg)
+		if err != nil {
+			return fmt.Errorf("Can't save config file: %v", err)
+		}
 	}
 
-	// Save the configuration:
-	cfg.AccessToken = accessToken
-	cfg.RefreshToken = refreshToken
-	err = config.Save(cfg)
-	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
-	}
-
-	// Bye:
 	return nil
 }
