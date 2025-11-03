@@ -29,6 +29,10 @@ spec:
     value: 5d
   - name: dockerfile
     value: /docker/Dockerfile
+  - name: hermetic
+    value: true
+  - name: prefetch-input
+    value: '{"type": "gomod", "path": "."}'
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while reducing network traffic.

@@ -78,3 +78,14 @@ clean:
 .PHONY: build_release_images
 build_release_images:
 	bash ./hack/build_release_images.sh
+
+
+# NOTE: This requires the tool podman to be installed in the calling environment
+.PHONY: image
+image:
+	bash ./hack/build_image.sh "${IMAGE_REPOSITORY}" "${IMAGE_TAG}" "${IMAGE_NAME}"
+
+# NOTE: This requires the tool hermeto v0.41.0+ to be installed in the calling environment.
+.PHONY: hermetic_image
+hermetic_image:
+	bash ./hack/build_hermetic_image.sh "${IMAGE_REPOSITORY}" "${IMAGE_TAG}" "${IMAGE_NAME}"
