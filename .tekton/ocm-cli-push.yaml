@@ -26,7 +26,7 @@ spec:
     value: quay.io/redhat-user-workloads/ocm-cli-clients-tenant/ocm-cli/ocm-cli:{{revision}}
   - name: dockerfile
     value: /docker/Dockerfile
-  - name: HERMETIC
+  - name: hermetic
     value: true
   - name: prefetch-input
     value: '{"type": "gomod", "path": "."}'
@@ -90,7 +90,7 @@ spec:
       type: string
     - default: "false"
       description: Execute the build with network isolation
-      name: HERMETIC
+      name: hermetic
       type: string
     - default: ""
       description: Build dependencies to be prefetched
