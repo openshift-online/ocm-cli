@@ -29,7 +29,7 @@ spec:
     value: 5d
   - name: dockerfile
     value: /docker/Dockerfile
-  - name: hermetic
+  - name: HERMETIC
     value: true
   - name: prefetch-input
     value: '{"type": "gomod", "path": "."}'
@@ -93,7 +93,7 @@ spec:
       type: string
     - default: "false"
       description: Execute the build with network isolation
-      name: hermetic
+      name: HERMETIC
       type: string
     - default: ""
       description: Build dependencies to be prefetched
