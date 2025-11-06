@@ -4,17 +4,18 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/openshift-online/ocm-cli?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "main"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: ocm-cli
     appstudio.openshift.io/component: ocm-cli
     pipelines.appstudio.openshift.io/type: build
-  name: ocm-cli-on-push
+  name: ocm-cli-on-pull-request
   namespace: ocm-cli-clients-tenant
 spec:
   params:
@@ -23,7 +24,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/ocm-cli-clients-tenant/ocm-cli/ocm-cli:{{revision}}
+    value: quay.io/redhat-user-workloads/ocm-cli-clients-tenant/ocm-cli/ocm-cli:on-pr-{{revision}}
+  - name: image-expires-after
+    value: 5d
   - name: dockerfile
     value: /docker/Dockerfile
   - name: hermetic
