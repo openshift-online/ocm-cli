@@ -97,12 +97,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		groupName := group.ID()
 		for _, user := range group.Users().Slice() {
 			fmt.Fprintf(writer, "%s\t\t%s\n", groupName, user.ID())
-			err = writer.Flush()
-			if err != nil {
-				return nil
-			}
 		}
 	}
+
+	// flush ONCE at the end
+	writer.Flush()
 
 	return nil
 }
