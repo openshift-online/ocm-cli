@@ -100,8 +100,10 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
-	// flush ONCE at the end
-	writer.Flush()
+	err = writer.Flush()
+	if err != nil {
+		return fmt.Errorf("Failed to flush user output for cluster '%s': %v", clusterKey, err)
+	}
 
 	return nil
 }
