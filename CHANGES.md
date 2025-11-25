@@ -3,6 +3,20 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.9 Nov 25 2025
+
+- Update README.md
+- Build a source container (#874)
+- update wif config to enable support for federated project (#884)
+- pool usage after update (#888)
+- Revert "pool usage after update (#888)" (#901)
+- Red Hat Konflux update ocm-cli (#882)
+- update golang version (#899)
+- chore(deps): update konflux references
+- added OWNERS file (#937)
+- OCM-2093 | fix: misaligned list users result
+- OCM-2093 | fix: check eventual error raised by tabwriter's flush operation
+
 ## 1.0.8 Sep 11 2025
 
 - feat: Add CLAUDE.md configuration file
