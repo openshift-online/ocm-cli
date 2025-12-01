@@ -3,6 +3,8 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.10 Dec 1 2025
+
 ## 1.0.9 Nov 25 2025
 
 - Update README.md
