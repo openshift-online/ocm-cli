@@ -16,7 +16,7 @@ require (
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0
-	github.com/openshift-online/ocm-common v0.0.29
+	github.com/openshift-online/ocm-common v0.0.34
 	github.com/openshift-online/ocm-sdk-go v0.1.477
 	github.com/openshift/rosa v1.2.24
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
@@ -25,7 +25,6 @@ require (
 	github.com/spf13/pflag v1.0.6
 	gitlab.com/c0b/go-ordered-json v0.0.0-20201030195603-febf46534d5a
 	go.uber.org/mock v0.5.0
-	golang.org/x/oauth2 v0.24.0
 	golang.org/x/term v0.27.0
 	golang.org/x/text v0.21.0
 	google.golang.org/api v0.211.0
@@ -109,6 +108,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
