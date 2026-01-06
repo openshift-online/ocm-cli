@@ -39,8 +39,9 @@ const (
 	NetworkTypeSDN = "OpenShiftSDN"
 	NetworkTypeOVN = "OVNKubernetes"
 
-	AuthenticationWif = "Workload Identity Federation (WIF)"
-	AuthenticationKey = "Service account"
+	AuthenticationWif    = "Workload Identity Federation (WIF)"
+	AuthenticationKey    = "Service account"
+	AuthenticationRedHat = "Red Hat Cloud Account"
 )
 
 type DefaultIngressSpec struct {

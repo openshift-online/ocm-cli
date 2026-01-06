@@ -30,7 +30,10 @@ import (
 )
 
 const (
-	notAvailable string = "N/A"
+	notAvailable               string = "N/A"
+	AuthKindWifConfig          string = "WifConfig"
+	AuthKindServiceAccount     string = "ServiceAccount"
+	AuthKindRedHatCloudAccount string = "RedHatCloudAccount"
 )
 
 func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) error {
@@ -267,6 +270,10 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 			fmt.Printf(
 				"Private-Service-Connect-Subnet:	%s\n", cluster.GCP().PrivateServiceConnect().ServiceAttachmentSubnet())
 		}
+		if cluster.GCP().Authentication() != nil && cluster.GCP().Authentication().Kind() != "" {
+			fmt.Printf("Authentication Type:		%s\n",
+				getAuthenticationDisplayName(cluster.GCP().Authentication().Kind()))
+		}
 		if wifConfig.ID() != "" && wifConfig.DisplayName() != "" {
 			fmt.Printf("Wif-Config ID:          	%s\n", wifConfig.ID())
 			fmt.Printf("Wif-Config Name:          	%s\n", wifConfig.DisplayName())
@@ -392,6 +399,20 @@ func findWifConfig(connection *sdk.Connection, cluster *cmv1.Cluster) (*cmv1.Wif
 		return nil, err
 	}
 	return wifConfig.Body(), nil
+}
+
+// getAuthenticationDisplayName maps internal authentication kind values to user-friendly display names
+func getAuthenticationDisplayName(authKind string) string {
+	switch authKind {
+	case AuthKindWifConfig:
+		return AuthenticationWif
+	case AuthKindServiceAccount:
+		return AuthenticationKey
+	case AuthKindRedHatCloudAccount:
+		return AuthenticationRedHat
+	default:
+		return "Unknown type"
+	}
 }
 
 func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
