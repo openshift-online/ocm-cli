@@ -1613,16 +1613,22 @@ func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			return err
 		}
 	case c.AuthenticationKey:
-		// TODO: re-prompt when selected file is not readable / invalid JSON
-		err = arguments.PromptFilePath(fs, "service-account-file", true)
-		if err != nil {
-			return err
-		}
-
-		if args.gcpServiceAccountFile == "" {
-			return fmt.Errorf("a valid GCP service account file must be specified for CCS clusters")
-		}
-		err = constructGCPCredentials(args.gcpServiceAccountFile, &args.ccs)
+		err = arguments.PromptFilePath(fs, "service-account-file", true,
+			func(val interface{}) error {
+				gcpServiceAccountFile, ok := val.(string)
+				if !ok {
+					return fmt.Errorf("invalid file path")
+				}
+				gcpServiceAccountFile, err := arguments.ResolveRelativePath(gcpServiceAccountFile)
+				if err != nil {
+					return fmt.Errorf("invalid file path: %v", err)
+				}
+				if err := constructGCPCredentials(gcpServiceAccountFile, &args.ccs); err != nil {
+					return err
+				}
+				return nil
+			},
+		)
 		if err != nil {
 			return err
 		}
@@ -1870,9 +1876,9 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 	return
 }
 
-func constructGCPCredentials(filePath arguments.FilePath, value *c.CCS) error {
+func constructGCPCredentials(filePath string, value *c.CCS) error {
 	// Open our jsonFile
-	jsonFile, err := os.Open(filePath.String())
+	jsonFile, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}

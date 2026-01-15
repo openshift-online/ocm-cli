@@ -254,7 +254,12 @@ func PromptPassword(fs *pflag.FlagSet, flagName string) error {
 
 // PromptFilePath sets a FilePath flag value interactively, unless already set.
 // Does nothing in non-interactive mode.
-func PromptFilePath(fs *pflag.FlagSet, flagName string, required bool) error {
+func PromptFilePath(
+	fs *pflag.FlagSet,
+	flagName string,
+	required bool,
+	validators ...survey.Validator,
+) error {
 	flag := fs.Lookup(flagName)
 	if flag.Value.Type() != "filepath" {
 		return fmt.Errorf("PromptFilePath can't be used on flag %q of type %q",
@@ -277,11 +282,14 @@ func PromptFilePath(fs *pflag.FlagSet, flagName string, required bool) error {
 			if required {
 				validator = survey.WithValidator(survey.Required)
 			}
-			err := survey.AskOne(prompt, &response, validator)
+			err := survey.AskOne(prompt, &response, validator, func(options *survey.AskOptions) error {
+				options.Validators = append(options.Validators, validators...)
+				return nil
+			})
 			if err != nil {
 				return err
 			}
-			response, err = resolveRelativePath(response)
+			response, err = ResolveRelativePath(response)
 			if err != nil {
 				return err
 			}
@@ -293,7 +301,7 @@ func PromptFilePath(fs *pflag.FlagSet, flagName string, required bool) error {
 
 // Golang does not support tilde file paths https://github.com/golang/go/issues/57569
 // However, we try to resolve this by manually so user can proceed further
-func resolveRelativePath(path string) (string, error) {
+func ResolveRelativePath(path string) (string, error) {
 	if !strings.Contains(path, "~") {
 		return path, nil
 	}

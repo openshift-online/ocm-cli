@@ -3,6 +3,22 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.10 Dec 1 2025
+
+## 1.0.9 Nov 25 2025
+
+- Update README.md
+- Build a source container (#874)
+- update wif config to enable support for federated project (#884)
+- pool usage after update (#888)
+- Revert "pool usage after update (#888)" (#901)
+- Red Hat Konflux update ocm-cli (#882)
+- update golang version (#899)
+- chore(deps): update konflux references
+- added OWNERS file (#937)
+- OCM-2093 | fix: misaligned list users result
+- OCM-2093 | fix: check eventual error raised by tabwriter's flush operation
+
 ## 1.0.8 Sep 11 2025
 
 - feat: Add CLAUDE.md configuration file
@@ -10,143 +26,143 @@ This document describes the relevant changes between releases of the
 
 ## 1.0.7 Aug 6 2025
 
--8ba748b wif config name on cluster review and describe (#816)
--be14307 Add deprecation header handling
--dd6c671 Handle deprecation header in all CLI commands
--f10fefa Add Makefile target to install ginkgo and skip test in case 'pass' is not available
--8593695 Remove redundant documentation msg
--ccfbfe1 Fix linter issues
--c12b3f4 availability zone help text flag to multiple cloud providers (#815)
--53547a9 Handle deprecation header in all missed CLI commands
--90b8edc Update Konflux references
--d51c67b Revert "Handle deprecation header in all missed CLI commands"
--27e48a0 Revert "Handle deprecation header in all CLI commands"
--784b40e Fix revert conflicts
--61e3381 OCM-17277 | feat: Use deprecation transport to handle backend API deprecation
--443db81 OCM-17277 | feat: bump ocm-common and run go mod tidy
--676d290 update sdk to latest
--e8580f9 cross project wif config support (#831)
--069c3bf cross projects wif-config update for second milestone (#840)
--499d78f update tekton references
+- 8ba748b wif config name on cluster review and describe (#816)
+- be14307 Add deprecation header handling
+- dd6c671 Handle deprecation header in all CLI commands
+- f10fefa Add Makefile target to install ginkgo and skip test in case 'pass' is not available
+- 8593695 Remove redundant documentation msg
+- ccfbfe1 Fix linter issues
+- c12b3f4 availability zone help text flag to multiple cloud providers (#815)
+- 53547a9 Handle deprecation header in all missed CLI commands
+- 90b8edc Update Konflux references
+- d51c67b Revert "Handle deprecation header in all missed CLI commands"
+- 27e48a0 Revert "Handle deprecation header in all CLI commands"
+- 784b40e Fix revert conflicts
+- 61e3381 OCM-17277 | feat: Use deprecation transport to handle backend API deprecation
+- 443db81 OCM-17277 | feat: bump ocm-common and run go mod tidy
+- 676d290 update sdk to latest
+- e8580f9 cross project wif config support (#831)
+- 069c3bf cross projects wif-config update for second milestone (#840)
+- 499d78f update tekton references
 
 ## 1.0.6 Jun 4 2025
 
--f95acd1 Update github.com/golang/groupcache digest to 2c02b82
--a4c0ee2 Update github.com/jackc/pgservicefile digest to 5a60cdf
--2f87995 Update Konflux references (#734)
--4a1708e updates to konflux pipeline for 1.0.5 (#756)
--687527d Bump github.com/openshift-online/ocm-sdk-go from 0.1.463 to 0.1.465
--de7adc6 remove marketplace-rhm option from subscription-type options (#773)
--436ff34 secure-boot-for-shielded-vms flag for create machinepool (#778)
--3440bb5 OCM-15127 | Add make binary in ocm-cli image (#779)
--64ca7ac secure-boot-for-shielded-vms flag tests (#780)
--822e0f2 Bump github.com/MicahParks/jwkset from 0.5.20 to 0.7.0 (#728)
--8474de0 Update Konflux references
--2ecdf68 Bump github.com/spf13/cobra from 1.7.0 to 1.9.1 (#748)
--ea64448 Bump github.com/golang/glog from 1.2.4 to 1.2.5
+- f95acd1 Update github.com/golang/groupcache digest to 2c02b82
+- a4c0ee2 Update github.com/jackc/pgservicefile digest to 5a60cdf
+- 2f87995 Update Konflux references (#734)
+- 4a1708e updates to konflux pipeline for 1.0.5 (#756)
+- 687527d Bump github.com/openshift-online/ocm-sdk-go from 0.1.463 to 0.1.465
+- de7adc6 remove marketplace-rhm option from subscription-type options (#773)
+- 436ff34 secure-boot-for-shielded-vms flag for create machinepool (#778)
+- 3440bb5 OCM-15127 | Add make binary in ocm-cli image (#779)
+- 64ca7ac secure-boot-for-shielded-vms flag tests (#780)
+- 822e0f2 Bump github.com/MicahParks/jwkset from 0.5.20 to 0.7.0 (#728)
+- 8474de0 Update Konflux references
+- 2ecdf68 Bump github.com/spf13/cobra from 1.7.0 to 1.9.1 (#748)
+- ea64448 Bump github.com/golang/glog from 1.2.4 to 1.2.5
 
 ## 1.0.5 Apr 4 2025
 
--8e28c06 OCM-14358 | unbind service accounts when deleting wif-configs (#723)
--62f7db3 Improving UX around gcloud iam api consistency model (#725)
--a8ab357 OCM-14357 | Ensuring wif commands are resilient to GCP's consistency model (#726)
--c41ad70 Update module github.com/golang-jwt/jwt/v4 to v4.5.2 (#727)
--19bb541 Update module github.com/hashicorp/go-version to v1.7.0 (#724)
--d4b073f Update Konflux references (#712)
--3d30c1c Update module github.com/spf13/pflag to v1.0.6 (#717)
--5010823 Update module github.com/openshift-online/ocm-sdk-go to v0.1.463 (#715)
--22467d1 various cve updates (#731)
--7deabe5 display versions on wif-config describe (#732)
+- 8e28c06 OCM-14358 | unbind service accounts when deleting wif-configs (#723)
+- 62f7db3 Improving UX around gcloud iam api consistency model (#725)
+- a8ab357 OCM-14357 | Ensuring wif commands are resilient to GCP's consistency model (#726)
+- c41ad70 Update module github.com/golang-jwt/jwt/v4 to v4.5.2 (#727)
+- 19bb541 Update module github.com/hashicorp/go-version to v1.7.0 (#724)
+- d4b073f Update Konflux references (#712)
+- 3d30c1c Update module github.com/spf13/pflag to v1.0.6 (#717)
+- 5010823 Update module github.com/openshift-online/ocm-sdk-go to v0.1.463 (#715)
+- 22467d1 various cve updates (#731)
+- 7deabe5 display versions on wif-config describe (#732)
 
 ## 1.0.4 Feb 27 2025
 
--3a8ef75 OCM-12971 | 'ocm gcp update wif-config' remediates all wif-config misconfigurations (#696)
--d4deb29 Add 'version' flag to wif-config create and update commands (#698)
--f079176 updated help message for wif verification errors
--1fb1d56 Refactored GCP client operations to log user messages and optimized resource updation (#700)
--dd04c33 Update Konflux references (#697)
--c84225e OCM-11995 | feat : Add GCP KMS custom encryption support (#701)
--7ac7051 added 'availability-zone' argument to machine pool creation (#703)
--56ca538 updates to konflux_build_pipeline (#704)
--b37893c listing wif-configs shows supported versions (#706)
--7087572 Update Konflux references (#702)
--7aac46f Update Konflux references (#707)
--2045f98 Update github.com/pkg/browser digest to 5ac0b6a (#708)
--0b6615a Update module github.com/golang-jwt/jwt/v4 to v4.5.1 (#709)
--1cf3d22 Update module github.com/openshift-online/ocm-sdk-go to v0.1.459 (#711)
--579f8de Update module github.com/golang/glog to v1.2.4 (#710)
--c5c95d5 n-3 vesion supportfor  wif-update (#713)
+- 3a8ef75 OCM-12971 | 'ocm gcp update wif-config' remediates all wif-config misconfigurations (#696)
+- d4deb29 Add 'version' flag to wif-config create and update commands (#698)
+- f079176 updated help message for wif verification errors
+- 1fb1d56 Refactored GCP client operations to log user messages and optimized resource updation (#700)
+- dd04c33 Update Konflux references (#697)
+- c84225e OCM-11995 | feat : Add GCP KMS custom encryption support (#701)
+- 7ac7051 added 'availability-zone' argument to machine pool creation (#703)
+- 56ca538 updates to konflux_build_pipeline (#704)
+- b37893c listing wif-configs shows supported versions (#706)
+- 7087572 Update Konflux references (#702)
+- 7aac46f Update Konflux references (#707)
+- 2045f98 Update github.com/pkg/browser digest to 5ac0b6a (#708)
+- 0b6615a Update module github.com/golang-jwt/jwt/v4 to v4.5.1 (#709)
+- 1cf3d22 Update module github.com/openshift-online/ocm-sdk-go to v0.1.459 (#711)
+- 579f8de Update module github.com/golang/glog to v1.2.4 (#710)
+- c5c95d5 n-3 vesion supportfor  wif-update (#713)
 
 ## 1.0.3 Dec 9 2024
 
--9fbb753 Update to use addon service API for addons function
--1bafd65 Add command 'gcp verify wif-config' (#691)
--5d0bec1 Update Konflux references (#682)
--f0ed911 OCM-12467 | feat : Updates for binaries-release-pipeline (#693)
--c42c641 Update Konflux references (#694)
+- 9fbb753 Update to use addon service API for addons function
+- 1bafd65 Add command 'gcp verify wif-config' (#691)
+- 5d0bec1 Update Konflux references (#682)
+- f0ed911 OCM-12467 | feat : Updates for binaries-release-pipeline (#693)
+- c42c641 Update Konflux references (#694)
 
 ## 1.0.2 Oct 25 2024
 
--8b70707 Release v0.1.76 (#674)
--2ef1e1d Update Konflux references to 67f0290 (#676)
--c63247f Show all WIF configs in interactive dropdown (#677)
--f1d29bc adding interactive move for WifConfig creation (#675)
--1382a6c Require provider, do not default to AWS, and check for provider-specific flags (#678)
--d0b58b4 Do not default GCP authentication type (#679)
--db35759 improve psc cli UX (#681)
--862b072 OCM-11993 | Describe cluster shows WifConfig data (#683)
--4053505 Add PSC-XPN to cluster  description (#685)
--0c456f8 OCM-10728 | interface improvements (#686)
--1e27ded Add more descriptions to WIF resources (#684)
--cdf6466 update filenames in konflux release  container (#687)
--010573f remove version from shasum (#688)
+- 8b70707 Release v0.1.76 (#674)
+- 2ef1e1d Update Konflux references to 67f0290 (#676)
+- c63247f Show all WIF configs in interactive dropdown (#677)
+- f1d29bc adding interactive move for WifConfig creation (#675)
+- 1382a6c Require provider, do not default to AWS, and check for provider-specific flags (#678)
+- d0b58b4 Do not default GCP authentication type (#679)
+- db35759 improve psc cli UX (#681)
+- 862b072 OCM-11993 | Describe cluster shows WifConfig data (#683)
+- 4053505 Add PSC-XPN to cluster  description (#685)
+- 0c456f8 OCM-10728 | interface improvements (#686)
+- 1e27ded Add more descriptions to WIF resources (#684)
+- cdf6466 update filenames in konflux release  container (#687)
+- 010573f remove version from shasum (#688)
 
 ## 0.1.76 Oct 15 2024
 
--e034b6b Update Konflux references to 2418e94
--5066ea0 Filter wif configs in interactive mode (#660)
--878f5e3 Initial refactor to prepare to move the connection builder and config packages to ocm-common
--1ea2e05 lint
--2c66dc0 removes redundant api url
--65bf8cf Add role prefix flag on create wif-config (#662)
--a39ce2e Grant access to support group during WifConfig creation (#663)
--0275d67 Revert "Grant access to support group during WifConfig creation (#663)" (#664)
--7cddc94 Wif creation improvements, including logic to grant support access as part of wif creation. (#666)
--7f41626 Update Konflux references
--b9a750c UpdatesToKonflux (#668)
--e4aa770 OCM-10615 | Implement 'gcp wif-config update' command (#667)
--cf6e500 Dry-run wif config delete before tearing down cloud resources (#670)
--e18ea10 OCM-11842 | feat: Updates to support GCP-PSC clusters (#672)
--893acd5 wif-enable gcp-inquiries (#673)
--664b2c4 Replace wif dry-run flag with mode (#671)
--df87894 Update Konflux references (#669)
+- e034b6b Update Konflux references to 2418e94
+- 5066ea0 Filter wif configs in interactive mode (#660)
+- 878f5e3 Initial refactor to prepare to move the connection builder and config packages to ocm-common
+- 1ea2e05 lint
+- 2c66dc0 removes redundant api url
+- 65bf8cf Add role prefix flag on create wif-config (#662)
+- a39ce2e Grant access to support group during WifConfig creation (#663)
+- 0275d67 Revert "Grant access to support group during WifConfig creation (#663)" (#664)
+- 7cddc94 Wif creation improvements, including logic to grant support access as part of wif creation. (#666)
+- 7f41626 Update Konflux references
+- b9a750c UpdatesToKonflux (#668)
+- e4aa770 OCM-10615 | Implement 'gcp wif-config update' command (#667)
+- cf6e500 Dry-run wif config delete before tearing down cloud resources (#670)
+- e18ea10 OCM-11842 | feat: Updates to support GCP-PSC clusters (#672)
+- 893acd5 wif-enable gcp-inquiries (#673)
+- 664b2c4 Replace wif dry-run flag with mode (#671)
+- df87894 Update Konflux references (#669)
 
 ## 0.1.75 Aug 8 2024
 
--416843e OSD-24332 Adding CNI Type to the printed output.
--ca71863 Introduce gcp WIF sub-commands to manage wif-configs (#619)
--5f9697b multi arch release images (#631)
--951d7cd Red Hat Konflux update ocm-cli (#633)
--2604647 Limit Konflux Pipeline Runs (#634)
--9645301 Update Konflux references (#635)
--c797dfb Update Konflux references to 0dc3087
--28b521d support hermetic build (#636)
--3117d6b Update Konflux references to 9eee3cf
--d228140 Update Konflux references to 71270c3
--0ff233b update konflux pipeline (#641)
--ae2093b Update Konflux references
--2ae4aa0 Update Konflux references
--bdd172b Update Konflux references to f93024e
--d750acc Red Hat Konflux update ocm-cli Signed-off-by: red-hat-konflux <konflux@no-reply.konflux-ci.dev>
--0bbcf6e Update Konflux references
--21ff6b8 Replace wif models and client with sdk (#643)
--c3d52e2 Update Konflux build (#651)
--8073ef8 release_version (#652)
--e9a014d Update Konflux references
--78317e9 Add 'wif-config' flag as cluster create option
--49f4e41 Set project number on wif config creation
--e441c1b Update Konflux references
--ca8d9db Support listing and parameters in 'gcp get wif-config' (#656)
+- 416843e OSD-24332 Adding CNI Type to the printed output.
+- ca71863 Introduce gcp WIF sub-commands to manage wif-configs (#619)
+- 5f9697b multi arch release images (#631)
+- 951d7cd Red Hat Konflux update ocm-cli (#633)
+- 2604647 Limit Konflux Pipeline Runs (#634)
+- 9645301 Update Konflux references (#635)
+- c797dfb Update Konflux references to 0dc3087
+- 28b521d support hermetic build (#636)
+- 3117d6b Update Konflux references to 9eee3cf
+- d228140 Update Konflux references to 71270c3
+- 0ff233b update konflux pipeline (#641)
+- ae2093b Update Konflux references
+- 2ae4aa0 Update Konflux references
+- bdd172b Update Konflux references to f93024e
+- d750acc Red Hat Konflux update ocm-cli Signed-off-by: red-hat-konflux <konflux@no-reply.konflux-ci.dev>
+- 0bbcf6e Update Konflux references
+- 21ff6b8 Replace wif models and client with sdk (#643)
+- c3d52e2 Update Konflux build (#651)
+- 8073ef8 release_version (#652)
+- e9a014d Update Konflux references
+- 78317e9 Add 'wif-config' flag as cluster create option
+- 49f4e41 Set project number on wif config creation
+- e441c1b Update Konflux references
+- ca8d9db Support listing and parameters in 'gcp get wif-config' (#656)
 
 ## 0.1.74 Jul 2 2024
 
