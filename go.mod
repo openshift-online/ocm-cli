@@ -121,7 +121,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.440 // indirect
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.442 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.440 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20250313105119-ba97887b0a25 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
