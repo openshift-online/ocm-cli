@@ -1632,6 +1632,15 @@ func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		if err != nil {
 			return err
 		}
+
+		gcpServiceAccountFile, err := arguments.ResolveRelativePath(string(args.gcpServiceAccountFile))
+		if err != nil {
+			return fmt.Errorf("invalid file path: %v", err)
+		}
+		if err := constructGCPCredentials(gcpServiceAccountFile, &args.ccs); err != nil {
+			return err
+		}
+
 	default:
 		return fmt.Errorf("unexpected GCP authentication method %q", args.gcpAuthentication.Type)
 	}
