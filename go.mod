@@ -1,6 +1,6 @@
 module github.com/openshift-online/ocm-cli
 
-go 1.24.6
+go 1.25.0
 
 require (
 	cloud.google.com/go/iam v1.5.3
@@ -30,7 +30,7 @@ require (
 	google.golang.org/api v0.257.0
 	google.golang.org/grpc v1.77.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/apimachinery v0.34.3
+	k8s.io/apimachinery v0.35.0
 )
 
 require (
@@ -92,7 +92,6 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20251206212654-f1b79c6b8239 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
