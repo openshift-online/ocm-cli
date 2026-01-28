@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	jwt "github.com/golang-jwt/jwt/v4"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
