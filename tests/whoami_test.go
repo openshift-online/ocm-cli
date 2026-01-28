@@ -20,7 +20,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 
 	. "github.com/onsi/ginkgo/v2"                      // nolint
 	. "github.com/onsi/gomega"                         // nolint
