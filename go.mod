@@ -4,7 +4,7 @@ go 1.24.6
 
 require (
 	cloud.google.com/go/iam v1.5.3
-	cloud.google.com/go/storage v1.58.0
+	cloud.google.com/go/storage v1.59.2
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/jwkset v0.11.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
