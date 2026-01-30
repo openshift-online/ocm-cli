@@ -71,6 +71,9 @@ type Spec struct {
 	Flavour          string
 	MultiAZ          bool
 	Version          string
+	// Channel is the Y-stream update channel (e.g., "stable-4.19", "candidate-4.19").
+	// This field allows specifying the update channel independently from the version.
+	Channel          string
 	ChannelGroup     string
 	Expiration       time.Time
 	Fips             bool
@@ -372,9 +375,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		clusterBuilder = clusterBuilder.DomainPrefix(config.DomainPrefix)
 	}
 
-	clusterBuilder = clusterBuilder.Version(
-		cmv1.NewVersion().
-			ID(config.Version).ChannelGroup(config.ChannelGroup))
+	versionBuilder := cmv1.NewVersion().ID(config.Version)
+	if config.ChannelGroup != "" {
+		versionBuilder = versionBuilder.ChannelGroup(config.ChannelGroup)
+	}
+	clusterBuilder = clusterBuilder.Version(versionBuilder)
+
+	if config.Channel != "" {
+		clusterBuilder = clusterBuilder.Channel(config.Channel)
+	}
 
 	if !config.Expiration.IsZero() {
 		clusterBuilder = clusterBuilder.ExpirationTimestamp(config.Expiration)
@@ -631,6 +640,10 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 					Listening(cmv1.ListeningMethodExternal),
 			)
 		}
+	}
+
+	if config.Channel != "" {
+		clusterBuilder = clusterBuilder.Channel(config.Channel)
 	}
 
 	if config.ChannelGroup != "" {

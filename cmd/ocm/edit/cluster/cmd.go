@@ -36,6 +36,7 @@ var args struct {
 	// Networking options
 	private bool
 
+	channel      string
 	channelGroup string
 
 	clusterWideProxy c.ClusterWideProxy
@@ -81,6 +82,12 @@ func init() {
 		"Restrict master API endpoint to direct, private connectivity.",
 	)
 
+	flags.StringVar(
+		&args.channel,
+		"channel",
+		"",
+		"The channel for Y-stream version selection (for example, \"stable-4.17\").",
+	)
 	flags.StringVar(
 		&args.channelGroup,
 		"channel-group",
@@ -186,6 +193,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		private = &args.private
 	}
 
+	var channel string
+	if cmd.Flags().Changed("channel") {
+		channel = args.channel
+	}
+
 	var channelGroup string
 	if cmd.Flags().Changed("channel-group") {
 		channelGroup = args.channelGroup
@@ -260,6 +272,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterConfig := c.Spec{
 		Expiration:   expiration,
 		Private:      private,
+		Channel:      channel,
 		ChannelGroup: channelGroup,
 	}
 

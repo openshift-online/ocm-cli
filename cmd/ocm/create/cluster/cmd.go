@@ -77,6 +77,7 @@ var args struct {
 
 	region                string
 	version               string
+	channel               string
 	channelGroup          string
 	flavour               string
 	provider              string
@@ -214,6 +215,13 @@ func init() {
 			"prefix cannot be changed.",
 	)
 	arguments.SetQuestion(fs, "domain-prefix", "Domain Prefix:")
+
+	fs.StringVar(
+		&args.channel,
+		"channel",
+		"",
+		"The channel for Y-stream version selection (for example, \"stable-4.17\")",
+	)
 
 	fs.StringVar(
 		&args.channelGroup,
@@ -537,12 +545,13 @@ func GetDefaultClusterFlavors(connection *sdk.Connection, flavour string) (dMach
 }
 
 func getVersionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
-	options, _, err := getVersionOptionsWithDefault(connection, "", "", "")
+	options, _, err := getVersionOptionsWithDefault(connection, "", "", "", "")
 	return options, err
 }
 
 func getVersionOptionsWithDefault(
 	connection *sdk.Connection,
+	channel string,
 	channelGroup string,
 	gcpMarketplaceEnabled string,
 	additionalFilters string,
@@ -551,7 +560,7 @@ func getVersionOptionsWithDefault(
 ) {
 	// Check and set the cluster version
 	versionList, defaultVersion, err := c.GetEnabledVersions(
-		connection.ClustersMgmt().V1(), channelGroup, gcpMarketplaceEnabled, additionalFilters)
+		connection.ClustersMgmt().V1(), channel, channelGroup, gcpMarketplaceEnabled, additionalFilters)
 	if err != nil {
 		return
 	}
@@ -815,7 +824,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
 	}
 	additionalFilters := getVersionFilters()
-	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channelGroup,
+	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channel, args.channelGroup,
 		gcpMarketplaceEnabled, additionalFilters)
 	if err != nil {
 		return err
@@ -829,8 +838,14 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	// Validate that version is provided when channel or channel-group is specified
+	// Backend will handle conflict validation between channel and channel-group
 	if cmd.Flags().Changed("channel-group") && !cmd.Flags().Changed("version") {
 		return fmt.Errorf("Version is required for channel group '%s'", args.channelGroup)
+	}
+
+	if cmd.Flags().Changed("channel") && !cmd.Flags().Changed("version") {
+		return fmt.Errorf("Version is required for channel '%s'", args.channel)
 	}
 
 	// Retrieve valid flavours
@@ -948,6 +963,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Flavour:              args.flavour,
 		MultiAZ:              args.multiAZ,
 		Version:              clusterVersion,
+		Channel:              args.channel,
 		ChannelGroup:         args.channelGroup,
 		Expiration:           expiration,
 		ComputeMachineType:   args.computeMachineType,
