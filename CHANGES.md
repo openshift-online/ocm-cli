@@ -3,6 +3,31 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.11 Feb 10 2026
+
+- Update CHANGES.md (#944)
+- chore | updating konflux pipeline refs (#947)
+- add validation retry for gcp service account file prompts (#948)
+- add authentication type on cluster describe (#949)
+- fix(deps): update module github.com/openshift-online/ocm-common to v0.0.34 (#938)
+- fix(deps): update module github.com/openshift-online/ocm-sdk-go to v0.1.486 (#945)
+- bump konflux references (#952)
+- Bump golang.org/x/crypto from 0.31.0 to 0.45.0 (#936)
+- fix(deps): update module github.com/openshift/rosa to v1.2.60 (#950)
+- Update dependencies.
+- chore(deps): update github.com/planetscale/vtprotobuf digest to ba97887
+- chore(deps): update aws-sdk-go-v2 monorepo
+- chore(deps): update module github.com/godbus/dbus/v5 to v5.2.2
+- chore(deps): update module github.com/sirupsen/logrus to v1.9.4
+- fix(deps): update module github.com/googleapis/gax-go/v2 to v2.16.0
+- chore(deps): update module github.com/prometheus/common to v0.67.5
+- chore(deps): update module golang.org/x/tools to v0.41.0
+- chore(deps): update module golang.org/x/sys to v0.40.0 (#965)
+- chore(deps): update konflux references (#962)
+- fix(deps): update module github.com/onsi/ginkgo/v2 to v2.27.5 (#960)
+- fix missing gcp credentials when using --service-account-file (#979)
+- OCM-21962 | feat: Support create/edit clusters with channel flag (#1003)
+
 ## 1.0.10 Dec 1 2025
 
 ## 1.0.9 Nov 25 2025
