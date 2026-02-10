@@ -15,7 +15,7 @@ LABEL io.k8s.display-name="OCM CLI"
 LABEL io.openshift.tags="ocm"
 LABEL summary="Provides the ocm CLI binary"
 LABEL com.redhat.component="ocm"
-LABEL name="ocm"
+LABEL name="ocm-cli"
 
 
 COPY LICENSE.txt /licenses
