@@ -110,6 +110,9 @@ type Spec struct {
 
 	//Includes Custom KMS encryption key settings
 	GcpEncryption GcpEncryption
+
+	// DNS settings
+	DNS DNS
 }
 
 type Autoscaling struct {
@@ -135,6 +138,11 @@ type ExistingVPC struct {
 	AdditionalComputeSecurityGroupIds      []string
 	AdditionalInfraSecurityGroupIds        []string
 	AdditionalControlPlaneSecurityGroupIds []string
+}
+
+type DNS struct {
+	Enabled    bool
+	BaseDomain string
 }
 
 type ClusterWideProxy struct {
@@ -425,6 +433,14 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 					Listening(cmv1.ListeningMethodExternal),
 			)
 		}
+	}
+
+	// DNS settings
+	if config.DNS.Enabled {
+		if strings.TrimSpace(config.DNS.BaseDomain) == "" {
+			return nil, fmt.Errorf("Base domain should not be empty")
+		}
+		clusterBuilder = clusterBuilder.DNS(cmv1.NewDNS().BaseDomain(config.DNS.BaseDomain))
 	}
 
 	gcpBuilder := cmv1.NewGCP()
