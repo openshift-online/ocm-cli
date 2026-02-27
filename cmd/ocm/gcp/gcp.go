@@ -52,6 +52,7 @@ methods needed to create these resources on behalf of the user.`,
 	}
 
 	createCmd.AddCommand(NewCreateWorkloadIdentityConfiguration())
+	createCmd.AddCommand(NewCreateDnsZone())
 
 	return createCmd
 }
@@ -81,6 +82,7 @@ func NewDeleteCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 	deleteCmd.AddCommand(NewDeleteWorkloadIdentityConfiguration())
+	deleteCmd.AddCommand(NewDeleteDnsZone())
 	return deleteCmd
 }
 
@@ -93,6 +95,7 @@ func NewGetCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 	getCmd.AddCommand(NewGetWorkloadIdentityConfiguration())
+	getCmd.AddCommand(NewGetDnsZone())
 	return getCmd
 }
 
@@ -105,6 +108,7 @@ func NewListCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 	listCmd.AddCommand(NewListWorkloadIdentityConfiguration())
+	listCmd.AddCommand(NewListDnsZone())
 	return listCmd
 }
 
@@ -117,6 +121,7 @@ func NewDescribeCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 	describeCmd.AddCommand(NewDescribeWorkloadIdentityConfiguration())
+	describeCmd.AddCommand(NewDescribeDnsZone())
 	return describeCmd
 }
 

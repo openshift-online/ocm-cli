@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	ModeAuto   = "auto"
-	ModeManual = "manual"
+	ModeAuto           = "auto"
+	ModeManual         = "manual"
+	ProviderGCP        = "gcp"
+	ClusterArchClassic = "classic"
 )
 
 var Modes = []string{ModeAuto, ModeManual}

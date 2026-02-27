@@ -1,0 +1,9 @@
+columns:
+- name: id
+  header: ID|BASE DOMAIN
+- name: gcp.domain_prefix
+  header: DOMAIN PREFIX
+- name: gcp.project_id
+  header: PROJECT ID
+- name: gcp.network_id
+  header: NETWORK ID
