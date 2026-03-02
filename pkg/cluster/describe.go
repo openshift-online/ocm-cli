@@ -248,6 +248,11 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		)
 	}
 
+	// DNS settings
+	if cluster.DNS().BaseDomain() != "" {
+		fmt.Printf("DNS Base Domain:          	%s\n", cluster.DNS().BaseDomain())
+	}
+
 	// GCP-specific info
 	if cluster.CloudProvider().ID() == ProviderGCP {
 		if cluster.GCP().Security().SecureBoot() {
