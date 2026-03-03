@@ -57,6 +57,11 @@ func deleteDnsZoneCmd(cmd *cobra.Command, argv []string) error {
 		return errors.Wrapf(err, "failed to get dns-domain")
 	}
 
+	// If the dns-domain is associated with a cluster, return an error
+	if dnsDomain.Cluster() != nil {
+		return errors.New("dns-domain is associated with a cluster, cannot delete")
+	}
+
 	// If the dns-domain is not associated with a GCP project, skip the GCP deletion
 	if dnsDomain.Gcp().ProjectId() != "" {
 		// Delete the DNS zone from GCP (no-op if not found)
