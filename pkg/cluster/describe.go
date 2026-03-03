@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -255,6 +256,9 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 
 	// GCP-specific info
 	if cluster.CloudProvider().ID() == ProviderGCP {
+		if err := printManagedZone(connection, cluster.DNS().BaseDomain()); err != nil {
+			return err
+		}
 		if cluster.GCP().Security().SecureBoot() {
 			fmt.Printf("SecureBoot:             	%t\n", cluster.GCP().Security().SecureBoot())
 		}
@@ -431,5 +435,19 @@ func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) err
 		}
 		return true
 	})
+	return nil
+}
+
+func printManagedZone(connection *sdk.Connection, zoneId string) error {
+	resp, err := connection.ClustersMgmt().V1().DNSDomains().DNSDomain(zoneId).Get().Send()
+	if err != nil {
+		return fmt.Errorf("failed to get DNS domain '%s': %v", zoneId, err)
+	}
+	dnsDomain := resp.Body()
+	// If there is no gcp structure, this base domain is not linked to a zone.
+	if dnsDomain.Gcp() != nil {
+		fmt.Printf("Managed Zone ID:          	%s\n",
+			gcp.FmtDnsZoneName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID()))
+	}
 	return nil
 }

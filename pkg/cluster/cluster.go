@@ -141,8 +141,8 @@ type ExistingVPC struct {
 }
 
 type DNS struct {
-	Enabled    bool
-	BaseDomain string
+	Enabled   bool
+	DnsZoneId string
 }
 
 type ClusterWideProxy struct {
@@ -437,10 +437,10 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	// DNS settings
 	if config.DNS.Enabled {
-		if strings.TrimSpace(config.DNS.BaseDomain) == "" {
-			return nil, fmt.Errorf("Base domain should not be empty")
+		if strings.TrimSpace(config.DNS.DnsZoneId) == "" {
+			return nil, fmt.Errorf("DNS zone ID should not be empty")
 		}
-		clusterBuilder = clusterBuilder.DNS(cmv1.NewDNS().BaseDomain(config.DNS.BaseDomain))
+		clusterBuilder = clusterBuilder.DNS(cmv1.NewDNS().BaseDomain(config.DNS.DnsZoneId))
 	}
 
 	gcpBuilder := cmv1.NewGCP()
