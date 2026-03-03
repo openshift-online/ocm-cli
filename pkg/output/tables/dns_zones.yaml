@@ -1,9 +1,13 @@
 columns:
 - name: id
   header: ID|BASE DOMAIN
+  width: 36
 - name: gcp.domain_prefix
   header: DOMAIN PREFIX
+  width: 24
 - name: gcp.project_id
   header: PROJECT ID
+  width: 30
 - name: gcp.network_id
   header: NETWORK ID
+  width: 36
