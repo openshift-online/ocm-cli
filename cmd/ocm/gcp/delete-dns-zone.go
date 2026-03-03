@@ -57,14 +57,16 @@ func deleteDnsZoneCmd(cmd *cobra.Command, argv []string) error {
 		return errors.Wrapf(err, "failed to get dns-domain")
 	}
 
-	// Delete the DNS zone from GCP (no-op if not found)
-	err = gcpClient.DeleteDnsZone(ctx, dnsDomain)
-	if err != nil {
-		return errors.Wrapf(err, "failed to delete dns-zone")
+	// If the dns-domain is not associated with a GCP project, skip the GCP deletion
+	if dnsDomain.Gcp().ProjectId() != "" {
+		// Delete the DNS zone from GCP (no-op if not found)
+		err = gcpClient.DeleteDnsZone(ctx, dnsDomain)
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete dns-zone")
+		}
+		log.Printf("gcp dns-zone '%s' deleted successfully.",
+			gcp.FmtDnsZoneName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID()))
 	}
-
-	log.Printf("gcp dns-zone '%s' deleted successfully.",
-		gcp.FmtDnsZoneName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID()))
 
 	// Delete the DNS domain from OCM
 	err = deleteDnsDomain(
