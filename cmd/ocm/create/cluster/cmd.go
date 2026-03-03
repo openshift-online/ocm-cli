@@ -1601,7 +1601,7 @@ func getDnsDomainOptions(connection *sdk.Connection) ([]arguments.Option, error)
 	page, size := 1, 100
 	for {
 		response, err := collection.List().
-			Search(fmt.Sprintf("cloud_provider = '%s' AND cluster.id = ''", args.provider)).
+			Search(fmt.Sprintf("user_defined = true AND cloud_provider = '%s' AND cluster.id = ''", args.provider)).
 			Page(page).
 			Size(size).
 			Send()
