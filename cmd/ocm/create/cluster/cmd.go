@@ -431,12 +431,12 @@ func init() {
 	addGcpEncryptionFlags(fs, &args.gcpEncryption)
 
 	fs.StringVar(
-		&args.dns.BaseDomain,
-		"base-domain",
+		&args.dns.DnsZoneId,
+		"dns-zone-id",
 		"",
-		"The DNS base domain for the cluster.",
+		"Specifies the DNS zone ID to use for the cluster.",
 	)
-	arguments.SetQuestion(fs, "base-domain", "DNS Base Domain:")
+	arguments.SetQuestion(fs, "dns-zone-id", "DNS Zone ID:")
 
 }
 
@@ -914,9 +914,13 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	err = promptDNS(fs, connection)
-	if err != nil {
-		return err
+	if args.provider == c.ProviderGCP {
+		err = promptDNS(fs, connection)
+		if err != nil {
+			return err
+		}
+	} else if args.dns.DnsZoneId != "" {
+		return fmt.Errorf("this cli only supports 'dns-zone-id' for GCP clusters")
 	}
 
 	err = promptPrivateServiceConnect(fs)
@@ -1558,13 +1562,13 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 
 func promptDNS(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	var err error
-	if args.dns.BaseDomain != "" {
+	if args.dns.DnsZoneId != "" {
 		args.dns.Enabled = true
 	}
 	if !args.dns.Enabled && args.interactive {
 		args.dns.Enabled, err = interactive.GetBool(interactive.Input{
-			Question: "Use a predefined DNS base domain",
-			Help:     "If specified, the created cluster will use the provided DNS base domain.",
+			Question: "Use a predefined DNS managed zone",
+			Help:     "If specified, the created cluster will use the provided DNS Zone ID.",
 			Default:  args.dns.Enabled,
 		})
 		if err != nil {
@@ -1577,17 +1581,17 @@ func promptDNS(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			return err
 		}
 
-		flag := fs.Lookup("base-domain")
+		flag := fs.Lookup("dns-zone-id")
 		// If the flag was set, validate the value
 		if flag.Changed {
-			if err := arguments.CheckOneOf(fs, "base-domain", dnsDomains); err != nil {
+			if err := arguments.CheckOneOf(fs, "dns-zone-id", dnsDomains); err != nil {
 				return err
 			}
 			return nil
 		}
 
 		// If the flag was not set, prompt the user
-		err = arguments.PromptOneOf(fs, "base-domain", dnsDomains)
+		err = arguments.PromptOneOf(fs, "dns-zone-id", dnsDomains)
 		if err != nil {
 			return err
 		}
