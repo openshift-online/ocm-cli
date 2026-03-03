@@ -90,7 +90,8 @@ func listDnsZoneCmd(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Create the request
-	request := connection.ClustersMgmt().V1().DNSDomains().List()
+	request := connection.ClustersMgmt().V1().DNSDomains().List().
+		Parameter("search", "user_defined=true AND cloud_provider='gcp'")
 
 	size := 100
 	index := 1
