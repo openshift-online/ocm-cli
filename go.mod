@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/storage v1.58.0
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/jwkset v0.11.0
-	github.com/golang-jwt/jwt/v4 v4.5.2
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang/glog v1.2.5
 	github.com/googleapis/gax-go/v2 v2.16.0
 	github.com/hashicorp/go-version v1.8.0
@@ -93,6 +93,7 @@ require (
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20251206212654-f1b79c6b8239 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
