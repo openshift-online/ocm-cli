@@ -3,6 +3,21 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.12 Mar 9 2026
+
+- updated name label to conform with the release pipeline (#1008)
+- updated name label to conform with the release pipeline (#1018)
+- added cpe label to comply with release pipeline requirements (#1019)
+- OCM-21265 | feat: cli gcp dns zone commands (#1021)
+- OCM-21266 | feat: cli cluster creation with predefined dns zones (#1022)
+- OCM-22579 | fix: ocm gcp delete dns-zone fails when project is none (#1028)
+- OCM-22578 | fix: ocm gcp list dns-zone output width columns (#1029)
+- OCM-21266 | fix: only list gcp dns zones defined by the user (#1031)
+- OCM-22604 | fix: cli dns zone deletion protection when clusters are still linked (#1032)
+- OCM-22016 | fix: go version 1.24.13 (#1033)
+-  OCM-21266 | fix: changed dns zone flag name and limited support for gcp (#1030)
+- OCM-21267 | fix: update konflux references (#1034)
+
 ## 1.0.11 Feb 10 2026
 
 - Update CHANGES.md (#944)
