@@ -37,6 +37,10 @@ const (
 	AuthKindRedHatCloudAccount string = "RedHatCloudAccount"
 )
 
+// PrintClusterDescription outputs detailed information about a cluster including its ID,
+// name, state, API endpoints, node configuration, and associated subscription details.
+// It retrieves subscription, account, and shard information via the provided OCM SDK
+// connection and formats them for console display.
 func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) error {
 	// Get API URL:
 	api := cluster.API()
@@ -289,10 +293,16 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		}
 	}
 
+	channel := cluster.Channel()
+	if channel == "" {
+		channel = notAvailable
+	}
+
 	fmt.Printf("CCS:				%t\n"+
 		"HCP:				%t\n"+
 		"Existing VPC:			%s\n"+
 		"Channel Group:			%v\n"+
+		"Channel:			%v\n"+
 		"Cluster Admin:			%t\n"+
 		"Organization:			%s\n"+
 		"Creator:			%s\n"+
@@ -303,6 +313,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.Hypershift().Enabled(),
 		isExistingVPC,
 		cluster.Version().ChannelGroup(),
+		channel,
 		clusterAdminEnabled,
 		organization,
 		creator,
@@ -424,17 +435,33 @@ func getAuthenticationDisplayName(authKind string) string {
 	}
 }
 
+// PrintClusterWarnings retrieves and displays warning-level service log entries for
+// a cluster. It queries the Service Logs API across all pages and outputs any warning
+// messages with their summary and description.
 func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
-	serviceLogs, err := connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()).Send()
-	if err != nil {
-		return err
-	}
-	serviceLogs.Items().Each(func(entry *slv1.LogEntry) bool {
-		if entry.Severity() == slv1.SeverityWarning {
-			fmt.Printf("⚠️ WARNING:\n%s\n%s\n", entry.Summary(), entry.Description())
+	// Iterate through all pages of service logs
+	for page := 1; ; page++ {
+		serviceLogs, err := connection.ServiceLogs().V1().Clusters().ClusterLogs().List().
+			ClusterID(cluster.ID()).
+			Page(page).
+			Send()
+		if err != nil {
+			return err
 		}
-		return true
-	})
+
+		// Break if no more items
+		if serviceLogs.Items().Len() == 0 {
+			break
+		}
+
+		// Process warning entries from this page
+		serviceLogs.Items().Each(func(entry *slv1.LogEntry) bool {
+			if entry.Severity() == slv1.SeverityWarning {
+				fmt.Printf("⚠️ WARNING:\n%s\n%s\n", entry.Summary(), entry.Description())
+			}
+			return true
+		})
+	}
 	return nil
 }
 
