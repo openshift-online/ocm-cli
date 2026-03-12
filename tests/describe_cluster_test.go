@@ -319,6 +319,173 @@ var _ = Describe("Describe clusters", func() {
 
 		})
 
+		It("Describe a cluster with channel field", func() {
+			// Prepare the server:
+			apiServer.AppendHandlers(
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"kind": "SubscriptionList",
+						"page": 1,
+						"size": 1,
+						"total": 1,
+						"items": [
+						  {
+							"id": "222",
+							"kind": "Subscription",
+							"href": "/api/accounts_mgmt/v1/subscriptions/222",
+							"display_name": "test-cluster-with-channel",
+							"plan": {
+							  "id": "OSD",
+							  "kind": "Plan",
+							  "href": "/api/accounts_mgmt/v1/plans/OSD",
+							  "type": "OSD"
+							},
+							"creator": {
+								"id": "222",
+								"kind": "Account",
+								"href": "/api/accounts_mgmt/v1/accounts/222"
+							  },
+							"status": "Active",
+							"cluster_id": "222"
+						  }
+						]
+					  }`,
+				),
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"kind": "Cluster",
+						"id": "222",
+						"href": "/api/clusters_mgmt/v1/clusters/222",
+						"name": "test-with-channel",
+						"external_id": "77e5d48c-7afd-475f-9236-e862071f899f",
+						"infra_id": "test-channel-abc",
+						"creation_timestamp": "2026-03-10T10:00:00Z",
+						"cloud_provider": {
+						  "kind": "CloudProviderLink",
+						  "id": "aws",
+						  "href": "/api/clusters_mgmt/v1/cloud_providers/aws"
+						},
+						"openshift_version": "4.16.1",
+						"channel": "stable-4.16",
+						"subscription": {
+							"kind": "SubscriptionLink",
+							"id": "222",
+							"href": "/api/accounts_mgmt/v1/subscriptions/222"
+						},
+						"region": {
+						  "kind": "CloudRegionLink",
+						  "id": "us-east-1",
+						  "href": "/api/clusters_mgmt/v1/cloud_providers/aws/regions/us-east-1"
+						},
+						"console": {
+						  "url": "https://console-openshift-console.apps.test-channel.example.org"
+						},
+						"api": {
+						  "url": "https://api.test-channel.example.org:6443",
+						  "listening": "external"
+						},
+						"nodes": {
+						  "master": 3,
+						  "infra": 2,
+						  "compute": 2
+						},
+						"state": "ready",
+						"flavour": {
+						  "kind": "FlavourLink",
+						  "id": "osd-4",
+						  "href": "/api/clusters_mgmt/v1/flavours/osd-4"
+						},
+						"aws": {
+						  "private_link": false
+						},
+						"multi_az": true,
+						"managed": true,
+						"ccs": {
+						  "enabled": true
+						},
+						"version": {
+						  "kind": "Version",
+						  "id": "openshift-v4.16.1",
+						  "href": "/api/clusters_mgmt/v1/versions/openshift-v4.16.1",
+						  "channel_group": "stable"
+						},
+						"product": {
+						  "kind": "ProductLink",
+						  "id": "osd",
+						  "href": "/api/clusters_mgmt/v1/products/osd"
+						},
+						"status": {
+						  "state": "ready"
+						},
+						"network": {
+						  "type": "OVNKubernetes"
+						}
+					  }`,
+				),
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"id": "222",
+						"kind": "Subscription",
+						"href": "/api/accounts_mgmt/v1/subscriptions/222",
+						"display_name": "test-cluster-with-channel",
+						"creator": {
+						  "id": "222",
+						  "kind": "Account",
+						  "href": "/api/accounts_mgmt/v1/accounts/222"
+						},
+						"managed": true,
+						"status": "Active"
+					  }`,
+				),
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"id": "222",
+						"kind": "Account",
+						"href": "/api/accounts_mgmt/v1/accounts/222",
+						"username": "testuser",
+						"email": "testuser@example.com",
+						"organization": {
+						  "id": "222",
+						  "kind": "Organization",
+						  "href": "/api/accounts_mgmt/v1/organizations/222",
+						  "name": "Test Org With Channel"
+						}
+					  }`,
+				),
+				RespondWithJSON(
+					http.StatusOK,
+					`{
+						"kind": "ProvisionShard",
+						"id": "222",
+						"href": "/api/clusters_mgmt/v1/provision_shards/222",
+						"hive_config": {
+						  "server": "https://api.shard2.example.com:6443"
+						}
+					  }`,
+				),
+			)
+
+			// Run the command:
+			result := NewCommand().
+				ConfigString(config).
+				Args(
+					"describe", "cluster", "test-with-channel",
+				).
+				Run(ctx)
+			Expect(result.ExitCode()).To(BeZero())
+			Expect(result.ErrString()).To(BeEmpty())
+
+			// Verify Channel Group is displayed with correct value
+			Expect(result.OutString()).To(MatchRegexp(`(?m)^\s*Channel Group:\s+stable\s*$`))
+
+			// Verify Channel is displayed with correct value
+			Expect(result.OutString()).To(MatchRegexp(`(?m)^\s*Channel:\s+stable-4\.16\s*$`))
+		})
+
 		It("Describe a cluster with multiple matching subscriptions", func() {
 			// Prepare the server:
 			apiServer.AppendHandlers(
