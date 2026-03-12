@@ -17,6 +17,7 @@ import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/idp"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/ingress"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/create/kubeletconfig"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/machinepool"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/upgradepolicy"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/create/user"
@@ -34,6 +35,7 @@ func init() {
 	Cmd.AddCommand(cluster.Cmd)
 	Cmd.AddCommand(idp.Cmd)
 	Cmd.AddCommand(ingress.Cmd)
+	Cmd.AddCommand(kubeletconfig.Cmd)
 	Cmd.AddCommand(machinepool.Cmd)
 	Cmd.AddCommand(upgradepolicy.Cmd)
 	Cmd.AddCommand(user.Cmd)

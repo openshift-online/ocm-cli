@@ -16,6 +16,7 @@ package describe
 import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/describe/cluster"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/describe/ingress"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/describe/kubeletconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -28,4 +29,5 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(cluster.Cmd)
 	Cmd.AddCommand(ingress.Cmd)
+	Cmd.AddCommand(kubeletconfig.Cmd)
 }
