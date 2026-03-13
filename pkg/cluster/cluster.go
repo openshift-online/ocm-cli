@@ -45,16 +45,18 @@ const (
 )
 
 type DefaultIngressSpec struct {
-	RouteSelectors           map[string]string
-	ExcludedNamespaces       []string
-	WildcardPolicy           string
-	NamespaceOwnershipPolicy string
+	RouteSelectors             map[string]string
+	ExcludedNamespaces         []string
+	ExcludedNamespaceSelectors map[string][]string
+	WildcardPolicy             string
+	NamespaceOwnershipPolicy   string
 }
 
 func NewDefaultIngressSpec() DefaultIngressSpec {
 	defaultIngressSpec := DefaultIngressSpec{}
 	defaultIngressSpec.RouteSelectors = map[string]string{}
 	defaultIngressSpec.ExcludedNamespaces = []string{}
+	defaultIngressSpec.ExcludedNamespaceSelectors = map[string][]string{}
 	return defaultIngressSpec
 }
 
@@ -573,6 +575,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		}
 		if len(config.DefaultIngress.ExcludedNamespaces) != 0 {
 			defaultIngress.ExcludedNamespaces(config.DefaultIngress.ExcludedNamespaces...)
+		}
+		if len(config.DefaultIngress.ExcludedNamespaceSelectors) != 0 {
+			namespaceSelectors := []*cmv1.NamespaceSelectorBuilder{}
+			for selectorKey, selectorValues := range config.DefaultIngress.ExcludedNamespaceSelectors {
+				namespaceSelectors = append(namespaceSelectors,
+					cmv1.NewNamespaceSelector().Key(selectorKey).Values(selectorValues...),
+				)
+			}
+			defaultIngress.ExcludedNamespaceSelectors(namespaceSelectors...)
 		}
 		if config.DefaultIngress.WildcardPolicy != "" {
 			defaultIngress.RouteWildcardPolicy(cmv1.WildcardPolicy(config.DefaultIngress.WildcardPolicy))

@@ -32,6 +32,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/billing"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
+	ingresspkg "github.com/openshift-online/ocm-cli/pkg/ingress"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/provider"
 	"github.com/openshift-online/ocm-cli/pkg/utils"
@@ -43,11 +44,12 @@ import (
 )
 
 const (
-	defaultIngressRouteSelectorFlag            = "default-ingress-route-selector"
-	defaultIngressExcludedNamespacesFlag       = "default-ingress-excluded-namespaces"
-	defaultIngressWildcardPolicyFlag           = "default-ingress-wildcard-policy"
-	defaultIngressNamespaceOwnershipPolicyFlag = "default-ingress-namespace-ownership-policy"
-	gcpTermsAgreementsHyperlink                = "https://console.cloud.google.com" +
+	defaultIngressRouteSelectorFlag              = "default-ingress-route-selector"
+	defaultIngressExcludedNamespacesFlag         = "default-ingress-excluded-namespaces"
+	defaultIngressExcludedNamespaceSelectorsFlag = "default-ingress-excluded-namespace-selectors"
+	defaultIngressWildcardPolicyFlag             = "default-ingress-wildcard-policy"
+	defaultIngressNamespaceOwnershipPolicyFlag   = "default-ingress-namespace-ownership-policy"
+	gcpTermsAgreementsHyperlink                  = "https://console.cloud.google.com" +
 		"/marketplace/agreements/redhat-marketplace/red-hat-openshift-dedicated"
 	gcpTermsAgreementInteractiveError    = "Please accept Google Terms and Agreements in order to proceed"
 	gcpTermsAgreementNonInteractiveError = "Review and accept Google Terms and Agreements on " +
@@ -115,10 +117,11 @@ var args struct {
 	dns c.DNS
 
 	// Default Ingress Attributes
-	defaultIngressRouteSelectors           string
-	defaultIngressExcludedNamespaces       string
-	defaultIngressWildcardPolicy           string
-	defaultIngressNamespaceOwnershipPolicy string
+	defaultIngressRouteSelectors             string
+	defaultIngressExcludedNamespaces         string
+	defaultIngressExcludedNamespaceSelectors string
+	defaultIngressWildcardPolicy             string
+	defaultIngressNamespaceOwnershipPolicy   string
 }
 
 const clusterNameHelp = "The name can be used as the identifier of the cluster." +
@@ -367,6 +370,14 @@ func init() {
 		"",
 		"Excluded namespaces for ingress. Format should be a comma-separated list 'value1, value2...'. "+
 			"If no values are specified, all namespaces will be exposed.",
+	)
+
+	fs.StringVar(
+		&args.defaultIngressExcludedNamespaceSelectors,
+		defaultIngressExcludedNamespaceSelectorsFlag,
+		"",
+		"Excluded namespace selectors for ingress. Format should be a comma-separated list of 'key=value'. "+
+			"Multiple values with the same key are allowed.",
 	)
 
 	fs.StringVar(
@@ -1042,6 +1053,15 @@ func buildDefaultIngressSpec() (c.DefaultIngressSpec, error) {
 
 	if args.defaultIngressExcludedNamespaces != "" {
 		defaultIngress.ExcludedNamespaces = ingress.GetExcludedNamespaces(args.defaultIngressExcludedNamespaces)
+	}
+
+	if args.defaultIngressExcludedNamespaceSelectors != "" {
+		excludedNamespaceSelectors, err := ingresspkg.ExtractExcludedNamespaceSelectors(
+			args.defaultIngressExcludedNamespaceSelectors)
+		if err != nil {
+			return defaultIngress, err
+		}
+		defaultIngress.ExcludedNamespaceSelectors = excludedNamespaceSelectors
 	}
 
 	if args.defaultIngressWildcardPolicy != "" {
