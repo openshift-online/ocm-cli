@@ -22,9 +22,9 @@ var _ = Describe("ExcludedNamespaceSelectors", func() {
 			spec.ErrCheck(err)
 		}
 	},
-		Entry("returns nil for empty string", testSpec{
+		Entry("returns empty map for empty string", testSpec{
 			SelectorsStr: "",
-			MapCheck:     func(selectors map[string][]string) { Expect(selectors).To(BeNil()) },
+			MapCheck:     func(selectors map[string][]string) { Expect(selectors).To(Equal(map[string][]string{})) },
 			ErrCheck:     func(err error) { Expect(err).ToNot(HaveOccurred()) },
 		}),
 		Entry("returns error for invalid string", testSpec{
