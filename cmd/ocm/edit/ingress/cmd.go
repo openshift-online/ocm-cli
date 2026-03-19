@@ -301,15 +301,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		if err != nil {
 			return err
 		}
-		if excludedNamespaceSelectors != nil {
-			namespaceSelectors := []*cmv1.NamespaceSelectorBuilder{}
-			for selectorKey, selectorValues := range excludedNamespaceSelectors {
-				namespaceSelectors = append(namespaceSelectors,
-					cmv1.NewNamespaceSelector().Key(selectorKey).Values(selectorValues...),
-				)
-			}
-			ingressBuilder = ingressBuilder.ExcludedNamespaceSelectors(namespaceSelectors...)
+		namespaceSelectors := []*cmv1.NamespaceSelectorBuilder{}
+		for selectorKey, selectorValues := range excludedNamespaceSelectors {
+			namespaceSelectors = append(namespaceSelectors,
+				cmv1.NewNamespaceSelector().Key(selectorKey).Values(selectorValues...),
+			)
 		}
+		ingressBuilder = ingressBuilder.ExcludedNamespaceSelectors(namespaceSelectors...)
 	}
 
 	if cmd.Flags().Changed(wildcardPolicyFlag) {

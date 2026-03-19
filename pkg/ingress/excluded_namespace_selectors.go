@@ -20,7 +20,7 @@ import (
 
 func ExtractExcludedNamespaceSelectors(selectorsStr string) (map[string][]string, error) {
 	if len(selectorsStr) == 0 {
-		return nil, nil
+		return map[string][]string{}, nil
 	}
 	excludedNamespaceSelectors := make(map[string][]string)
 	for _, selector := range strings.Split(selectorsStr, ",") {
