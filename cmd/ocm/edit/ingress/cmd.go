@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
+	ingresspkg "github.com/openshift-online/ocm-cli/pkg/ingress"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -48,26 +49,28 @@ var args struct {
 	routeSelector string
 	lbType        string
 
-	excludedNamespaces        string
-	wildcardPolicy            string
-	namespaceOwnershipPolicy  string
-	clusterRoutesHostname     string
-	clusterRoutesTlsSecretRef string
+	excludedNamespaces         string
+	excludedNamespaceSelectors string
+	wildcardPolicy             string
+	namespaceOwnershipPolicy   string
+	clusterRoutesHostname      string
+	clusterRoutesTlsSecretRef  string
 
 	componentRoutes string
 }
 
 const (
-	privateFlag                   = "private"
-	labelMatchFlag                = "label-match"
-	lbTypeFlag                    = "lb-type"
-	routeSelectorFlag             = "route-selector"
-	excludedNamespacesFlag        = "excluded-namespaces"
-	wildcardPolicyFlag            = "wildcard-policy"
-	namespaceOwnershipPolicyFlag  = "namespace-ownership-policy"
-	clusterRoutesHostnameFlag     = "cluster-routes-hostname"
-	clusterRoutesTlsSecretRefFlag = "cluster-routes-tls-secret-ref"
-	componentRoutesFlag           = "component-routes"
+	privateFlag                    = "private"
+	labelMatchFlag                 = "label-match"
+	lbTypeFlag                     = "lb-type"
+	routeSelectorFlag              = "route-selector"
+	excludedNamespacesFlag         = "excluded-namespaces"
+	excludedNamespaceSelectorsFlag = "excluded-namespace-selectors"
+	wildcardPolicyFlag             = "wildcard-policy"
+	namespaceOwnershipPolicyFlag   = "namespace-ownership-policy"
+	clusterRoutesHostnameFlag      = "cluster-routes-hostname"
+	clusterRoutesTlsSecretRefFlag  = "cluster-routes-tls-secret-ref"
+	componentRoutesFlag            = "component-routes"
 
 	expectedLengthOfParsedComponent = 2
 	hostnameParameter               = "hostname"
@@ -136,6 +139,14 @@ func init() {
 		"",
 		"Excluded namespaces for ingress. Format should be a comma-separated list 'value1, value2...'. "+
 			"If no values are specified, all namespaces will be exposed.",
+	)
+
+	flags.StringVar(
+		&args.excludedNamespaceSelectors,
+		excludedNamespaceSelectorsFlag,
+		"",
+		"Excluded namespace selectors for ingress. Format should be a comma-separated list of 'key=value'. "+
+			"Multiple values with the same key are allowed.",
 	)
 
 	flags.StringVar(
@@ -280,6 +291,23 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 		_excludedNamespaces := GetExcludedNamespaces(args.excludedNamespaces)
 		ingressBuilder = ingressBuilder.ExcludedNamespaces(_excludedNamespaces...)
+	}
+
+	if cmd.Flags().Changed(excludedNamespaceSelectorsFlag) {
+		if cluster.Hypershift().Enabled() {
+			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", excludedNamespaceSelectorsFlag)
+		}
+		excludedNamespaceSelectors, err := ingresspkg.ExtractExcludedNamespaceSelectors(args.excludedNamespaceSelectors)
+		if err != nil {
+			return err
+		}
+		namespaceSelectors := []*cmv1.NamespaceSelectorBuilder{}
+		for selectorKey, selectorValues := range excludedNamespaceSelectors {
+			namespaceSelectors = append(namespaceSelectors,
+				cmv1.NewNamespaceSelector().Key(selectorKey).Values(selectorValues...),
+			)
+		}
+		ingressBuilder = ingressBuilder.ExcludedNamespaceSelectors(namespaceSelectors...)
 	}
 
 	if cmd.Flags().Changed(wildcardPolicyFlag) {

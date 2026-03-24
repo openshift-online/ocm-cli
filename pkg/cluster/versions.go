@@ -42,7 +42,19 @@ func EnsureOpenshiftVPrefix(v string) string {
 // GetEnabledVersions returns the versions with enabled=true, and the one that has default=true.
 // The returned strings are the IDs without "openshift-v" prefix (e.g. "4.6.0-rc.4-candidate")
 // sorted in approximate SemVer order (handling of text parts is somewhat arbitrary).
+//
+// Parameters:
+//   - channel: Y-stream update channel (e.g., "stable-4.19"). Takes precedence over channelGroup.
+//   - channelGroup: Channel group name (e.g., "stable"). Used if channel is not provided (deprecated).
+//   - gcpMarketplaceEnabled: Filter for GCP marketplace support ("true"/"false").
+//   - additionalFilters: Additional filter expressions to apply.
+//
+// Returns:
+//   - versions: List of enabled version IDs without "openshift-v" prefix, sorted by semver.
+//   - defaultVersion: The version marked as default.
+//   - err: Error if the API request fails.
 func GetEnabledVersions(client *cmv1.Client,
+	channel string,
 	channelGroup string,
 	gcpMarketplaceEnabled string,
 	additionalFilters string,
@@ -55,8 +67,24 @@ func GetEnabledVersions(client *cmv1.Client,
 	if gcpMarketplaceEnabled != "" {
 		filter = fmt.Sprintf("%s AND gcp_marketplace_enabled = '%s'", filter, gcpMarketplaceEnabled)
 	}
-	if channelGroup != "" {
-		filter = fmt.Sprintf("%s AND channel_group = '%s'", filter, channelGroup)
+	// Handle channel and channelGroup parameters
+	// Channel format is "{channel_group}-{major}.{minor}" (e.g., "stable-4.19")
+	// Extract channel_group from channel since Version API only supports filtering by channel_group
+	var effectiveChannelGroup string
+	if channel != "" {
+		// Prefer channel over channelGroup (channel is the new field)
+		// Extract channel group from channel (e.g., "stable" from "stable-4.19")
+		parts := strings.Split(channel, "-")
+		if len(parts) > 0 {
+			effectiveChannelGroup = parts[0]
+		}
+	} else if channelGroup != "" {
+		// Fall back to channelGroup if channel not provided
+		effectiveChannelGroup = channelGroup
+	}
+
+	if effectiveChannelGroup != "" {
+		filter = fmt.Sprintf("%s AND channel_group = '%s'", filter, effectiveChannelGroup)
 	}
 	if additionalFilters != "" {
 		filter = fmt.Sprintf("%s %s", filter, additionalFilters)

@@ -1,4 +1,4 @@
-package ingress
+package ingress_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestEditCluster(t *testing.T) {
+func TestIngress(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Describe ingress suite")
+	RunSpecs(t, "Ingress Suite")
 }

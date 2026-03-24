@@ -97,11 +97,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		groupName := group.ID()
 		for _, user := range group.Users().Slice() {
 			fmt.Fprintf(writer, "%s\t\t%s\n", groupName, user.ID())
-			err = writer.Flush()
-			if err != nil {
-				return nil
-			}
 		}
+	}
+
+	err = writer.Flush()
+	if err != nil {
+		return fmt.Errorf("Failed to flush user output for cluster '%s': %v", clusterKey, err)
 	}
 
 	return nil

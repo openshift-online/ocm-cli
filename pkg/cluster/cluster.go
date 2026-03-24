@@ -39,21 +39,24 @@ const (
 	NetworkTypeSDN = "OpenShiftSDN"
 	NetworkTypeOVN = "OVNKubernetes"
 
-	AuthenticationWif = "Workload Identity Federation (WIF)"
-	AuthenticationKey = "Service account"
+	AuthenticationWif    = "Workload Identity Federation (WIF)"
+	AuthenticationKey    = "Service account"
+	AuthenticationRedHat = "Red Hat Cloud Account"
 )
 
 type DefaultIngressSpec struct {
-	RouteSelectors           map[string]string
-	ExcludedNamespaces       []string
-	WildcardPolicy           string
-	NamespaceOwnershipPolicy string
+	RouteSelectors             map[string]string
+	ExcludedNamespaces         []string
+	ExcludedNamespaceSelectors map[string][]string
+	WildcardPolicy             string
+	NamespaceOwnershipPolicy   string
 }
 
 func NewDefaultIngressSpec() DefaultIngressSpec {
 	defaultIngressSpec := DefaultIngressSpec{}
 	defaultIngressSpec.RouteSelectors = map[string]string{}
 	defaultIngressSpec.ExcludedNamespaces = []string{}
+	defaultIngressSpec.ExcludedNamespaceSelectors = map[string][]string{}
 	return defaultIngressSpec
 }
 
@@ -70,6 +73,9 @@ type Spec struct {
 	Flavour          string
 	MultiAZ          bool
 	Version          string
+	// Channel is the Y-stream update channel (e.g., "stable-4.19", "candidate-4.19").
+	// This field allows specifying the update channel independently from the version.
+	Channel          string
 	ChannelGroup     string
 	Expiration       time.Time
 	Fips             bool
@@ -106,6 +112,9 @@ type Spec struct {
 
 	//Includes Custom KMS encryption key settings
 	GcpEncryption GcpEncryption
+
+	// DNS settings
+	DNS DNS
 }
 
 type Autoscaling struct {
@@ -131,6 +140,11 @@ type ExistingVPC struct {
 	AdditionalComputeSecurityGroupIds      []string
 	AdditionalInfraSecurityGroupIds        []string
 	AdditionalControlPlaneSecurityGroupIds []string
+}
+
+type DNS struct {
+	Enabled   bool
+	DnsZoneId string
 }
 
 type ClusterWideProxy struct {
@@ -371,9 +385,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		clusterBuilder = clusterBuilder.DomainPrefix(config.DomainPrefix)
 	}
 
-	clusterBuilder = clusterBuilder.Version(
-		cmv1.NewVersion().
-			ID(config.Version).ChannelGroup(config.ChannelGroup))
+	versionBuilder := cmv1.NewVersion().ID(config.Version)
+	if config.ChannelGroup != "" {
+		versionBuilder = versionBuilder.ChannelGroup(config.ChannelGroup)
+	}
+	clusterBuilder = clusterBuilder.Version(versionBuilder)
+
+	if config.Channel != "" {
+		clusterBuilder = clusterBuilder.Channel(config.Channel)
+	}
 
 	if !config.Expiration.IsZero() {
 		clusterBuilder = clusterBuilder.ExpirationTimestamp(config.Expiration)
@@ -415,6 +435,14 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 					Listening(cmv1.ListeningMethodExternal),
 			)
 		}
+	}
+
+	// DNS settings
+	if config.DNS.Enabled {
+		if strings.TrimSpace(config.DNS.DnsZoneId) == "" {
+			return nil, fmt.Errorf("DNS zone ID should not be empty")
+		}
+		clusterBuilder = clusterBuilder.DNS(cmv1.NewDNS().BaseDomain(config.DNS.DnsZoneId))
 	}
 
 	gcpBuilder := cmv1.NewGCP()
@@ -548,6 +576,15 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 		if len(config.DefaultIngress.ExcludedNamespaces) != 0 {
 			defaultIngress.ExcludedNamespaces(config.DefaultIngress.ExcludedNamespaces...)
 		}
+		if len(config.DefaultIngress.ExcludedNamespaceSelectors) != 0 {
+			namespaceSelectors := []*cmv1.NamespaceSelectorBuilder{}
+			for selectorKey, selectorValues := range config.DefaultIngress.ExcludedNamespaceSelectors {
+				namespaceSelectors = append(namespaceSelectors,
+					cmv1.NewNamespaceSelector().Key(selectorKey).Values(selectorValues...),
+				)
+			}
+			defaultIngress.ExcludedNamespaceSelectors(namespaceSelectors...)
+		}
 		if config.DefaultIngress.WildcardPolicy != "" {
 			defaultIngress.RouteWildcardPolicy(cmv1.WildcardPolicy(config.DefaultIngress.WildcardPolicy))
 		}
@@ -630,6 +667,10 @@ func UpdateCluster(client *cmv1.ClustersClient, clusterID string, config Spec) e
 					Listening(cmv1.ListeningMethodExternal),
 			)
 		}
+	}
+
+	if config.Channel != "" {
+		clusterBuilder = clusterBuilder.Channel(config.Channel)
 	}
 
 	if config.ChannelGroup != "" {

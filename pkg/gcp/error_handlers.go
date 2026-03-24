@@ -39,6 +39,12 @@ func (c *gcpClient) handleDeleteServiceAccountError(err error, allowMissing bool
 	return errors.New(pApiError.Details().String())
 }
 
+// isNotFound checks if the error is a Google API 404 Not Found error.
+func isNotFound(err error) bool {
+	var gError *googleapi.Error
+	return errors.As(err, &gError) && gError.Code == 404
+}
+
 // Extracts the text from google api errors for simpler processing
 func (c *gcpClient) fmtGoogleApiError(err error) error {
 	gError, ok := err.(*googleapi.Error)

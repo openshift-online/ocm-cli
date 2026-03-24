@@ -8,7 +8,9 @@ import (
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"cloud.google.com/go/iam/apiv1/iampb"
 	"cloud.google.com/go/storage"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
+	"google.golang.org/api/dns/v1"
 
 	iamv1 "google.golang.org/api/iam/v1"
 	secretmanager "google.golang.org/api/secretmanager/v1"
@@ -37,6 +39,9 @@ type GcpClient interface {
 	UndeleteWorkloadIdentityPool(ctx context.Context, resource string, request *iamv1.UndeleteWorkloadIdentityPoolRequest) (*iamv1.Operation, error)
 	UpdateRole(context.Context, *adminpb.UpdateRoleRequest) (*adminpb.Role, error)
 	UpdateWorkloadIdentityPoolOidcIdentityProvider(ctx context.Context, provider *iamv1.WorkloadIdentityPoolProvider) error
+	CreateDnsZone(ctx context.Context, dnsDomain *cmv1.DNSDomain, hostProjectId string) (*dns.ManagedZone, error)
+	DeleteDnsZone(ctx context.Context, dnsDomain *cmv1.DNSDomain) error
+	GetDnsZone(ctx context.Context, dnsZone *cmv1.DNSDomain) (*dns.ManagedZone, error)
 }
 
 type gcpClient struct {
@@ -44,6 +49,7 @@ type gcpClient struct {
 	iamClient            *iamadmin.IamClient
 	oldIamClient         *iamv1.Service
 	cloudResourceManager *cloudresourcemanager.Service
+	dnsClient            *dns.Service
 	secretManager        *secretmanager.Service
 	storageClient        *storage.Client
 }
@@ -54,6 +60,10 @@ func NewGcpClient(ctx context.Context) (GcpClient, error) {
 		return nil, err
 	}
 	cloudResourceManager, err := cloudresourcemanager.NewService(ctx)
+	if err != nil {
+		return nil, err
+	}
+	dnsClient, err := dns.NewService(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +86,7 @@ func NewGcpClient(ctx context.Context) (GcpClient, error) {
 		ctx:                  ctx,
 		iamClient:            iamClient,
 		cloudResourceManager: cloudResourceManager,
+		dnsClient:            dnsClient,
 		secretManager:        secretManager,
 		oldIamClient:         oldIamClient,
 		storageClient:        storageClient,
@@ -249,4 +260,56 @@ func (c *gcpClient) UpdateWorkloadIdentityPoolOidcIdentityProvider(
 		return c.fmtGoogleApiError(err)
 	}
 	return nil
+}
+
+func (c *gcpClient) CreateDnsZone(
+	ctx context.Context,
+	dnsDomain *cmv1.DNSDomain,
+	hostProjectId string,
+) (*dns.ManagedZone, error) {
+	zone, err := c.dnsClient.ManagedZones.Create(dnsDomain.Gcp().ProjectId(), &dns.ManagedZone{
+		Name:        FmtDnsZoneName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID()),
+		Description: "Cloud DNS Zone created by OCM",
+		DnsName:     FmtDnsName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID()),
+		Visibility:  "private",
+		PrivateVisibilityConfig: &dns.ManagedZonePrivateVisibilityConfig{
+			Networks: []*dns.ManagedZonePrivateVisibilityConfigNetwork{
+				{NetworkUrl: FmtNetworkResourceId(hostProjectId, dnsDomain.Gcp().NetworkId())},
+			},
+		},
+	}).Context(ctx).Do()
+	if err != nil {
+		return nil, c.fmtGoogleApiError(err)
+	}
+	return zone, nil
+}
+
+func (c *gcpClient) DeleteDnsZone(
+	ctx context.Context,
+	dnsDomain *cmv1.DNSDomain,
+) error {
+	dnsZoneName := FmtDnsZoneName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID())
+	err := c.dnsClient.ManagedZones.Delete(dnsDomain.Gcp().ProjectId(), dnsZoneName).Context(ctx).Do()
+	if err != nil {
+		if isNotFound(err) {
+			return nil
+		}
+		return c.fmtGoogleApiError(err)
+	}
+	return nil
+}
+
+func (c *gcpClient) GetDnsZone(
+	ctx context.Context,
+	dnsDomain *cmv1.DNSDomain,
+) (*dns.ManagedZone, error) {
+	dnsName := FmtDnsName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID())
+	zone, err := c.dnsClient.ManagedZones.List(dnsDomain.Gcp().ProjectId()).DnsName(dnsName).Context(ctx).Do()
+	if err != nil {
+		return nil, c.fmtGoogleApiError(err)
+	}
+	if len(zone.ManagedZones) == 0 {
+		return nil, fmt.Errorf("DNS zone not found")
+	}
+	return zone.ManagedZones[0], nil
 }

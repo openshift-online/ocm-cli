@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -30,9 +31,16 @@ import (
 )
 
 const (
-	notAvailable string = "N/A"
+	notAvailable               string = "N/A"
+	AuthKindWifConfig          string = "WifConfig"
+	AuthKindServiceAccount     string = "ServiceAccount"
+	AuthKindRedHatCloudAccount string = "RedHatCloudAccount"
 )
 
+// PrintClusterDescription outputs detailed information about a cluster including its ID,
+// name, state, API endpoints, node configuration, and associated subscription details.
+// It retrieves subscription, account, and shard information via the provided OCM SDK
+// connection and formats them for console display.
 func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) error {
 	// Get API URL:
 	api := cluster.API()
@@ -245,8 +253,16 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		)
 	}
 
+	// DNS settings
+	if cluster.DNS().BaseDomain() != "" {
+		fmt.Printf("DNS Base Domain:          	%s\n", cluster.DNS().BaseDomain())
+	}
+
 	// GCP-specific info
 	if cluster.CloudProvider().ID() == ProviderGCP {
+		if err := printManagedZone(connection, cluster.DNS().BaseDomain()); err != nil {
+			return err
+		}
 		if cluster.GCP().Security().SecureBoot() {
 			fmt.Printf("SecureBoot:             	%t\n", cluster.GCP().Security().SecureBoot())
 		}
@@ -267,16 +283,26 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 			fmt.Printf(
 				"Private-Service-Connect-Subnet:	%s\n", cluster.GCP().PrivateServiceConnect().ServiceAttachmentSubnet())
 		}
+		if cluster.GCP().Authentication() != nil && cluster.GCP().Authentication().Kind() != "" {
+			fmt.Printf("Authentication Type:		%s\n",
+				getAuthenticationDisplayName(cluster.GCP().Authentication().Kind()))
+		}
 		if wifConfig.ID() != "" && wifConfig.DisplayName() != "" {
 			fmt.Printf("Wif-Config ID:          	%s\n", wifConfig.ID())
 			fmt.Printf("Wif-Config Name:          	%s\n", wifConfig.DisplayName())
 		}
 	}
 
+	channel := cluster.Channel()
+	if channel == "" {
+		channel = notAvailable
+	}
+
 	fmt.Printf("CCS:				%t\n"+
 		"HCP:				%t\n"+
 		"Existing VPC:			%s\n"+
 		"Channel Group:			%v\n"+
+		"Channel:			%v\n"+
 		"Cluster Admin:			%t\n"+
 		"Organization:			%s\n"+
 		"Creator:			%s\n"+
@@ -287,6 +313,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		cluster.Hypershift().Enabled(),
 		isExistingVPC,
 		cluster.Version().ChannelGroup(),
+		channel,
 		clusterAdminEnabled,
 		organization,
 		creator,
@@ -394,16 +421,60 @@ func findWifConfig(connection *sdk.Connection, cluster *cmv1.Cluster) (*cmv1.Wif
 	return wifConfig.Body(), nil
 }
 
-func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
-	serviceLogs, err := connection.ServiceLogs().V1().Clusters().ClusterLogs().List().ClusterID(cluster.ID()).Send()
-	if err != nil {
-		return err
+// getAuthenticationDisplayName maps internal authentication kind values to user-friendly display names
+func getAuthenticationDisplayName(authKind string) string {
+	switch authKind {
+	case AuthKindWifConfig:
+		return AuthenticationWif
+	case AuthKindServiceAccount:
+		return AuthenticationKey
+	case AuthKindRedHatCloudAccount:
+		return AuthenticationRedHat
+	default:
+		return "Unknown type"
 	}
-	serviceLogs.Items().Each(func(entry *slv1.LogEntry) bool {
-		if entry.Severity() == slv1.SeverityWarning {
-			fmt.Printf("⚠️ WARNING:\n%s\n%s\n", entry.Summary(), entry.Description())
+}
+
+// PrintClusterWarnings retrieves and displays warning-level service log entries for
+// a cluster. It queries the Service Logs API across all pages and outputs any warning
+// messages with their summary and description.
+func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) error {
+	// Iterate through all pages of service logs
+	for page := 1; ; page++ {
+		serviceLogs, err := connection.ServiceLogs().V1().Clusters().ClusterLogs().List().
+			ClusterID(cluster.ID()).
+			Page(page).
+			Send()
+		if err != nil {
+			return err
 		}
-		return true
-	})
+
+		// Break if no more items
+		if serviceLogs.Items().Len() == 0 {
+			break
+		}
+
+		// Process warning entries from this page
+		serviceLogs.Items().Each(func(entry *slv1.LogEntry) bool {
+			if entry.Severity() == slv1.SeverityWarning {
+				fmt.Printf("⚠️ WARNING:\n%s\n%s\n", entry.Summary(), entry.Description())
+			}
+			return true
+		})
+	}
+	return nil
+}
+
+func printManagedZone(connection *sdk.Connection, zoneId string) error {
+	resp, err := connection.ClustersMgmt().V1().DNSDomains().DNSDomain(zoneId).Get().Send()
+	if err != nil {
+		return fmt.Errorf("failed to get DNS domain '%s': %v", zoneId, err)
+	}
+	dnsDomain := resp.Body()
+	// If there is no gcp structure, this base domain is not linked to a zone.
+	if dnsDomain.Gcp() != nil {
+		fmt.Printf("Managed Zone ID:          	%s\n",
+			gcp.FmtDnsZoneName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID()))
+	}
 	return nil
 }

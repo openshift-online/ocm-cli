@@ -32,6 +32,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/arguments"
 	"github.com/openshift-online/ocm-cli/pkg/billing"
 	c "github.com/openshift-online/ocm-cli/pkg/cluster"
+	ingresspkg "github.com/openshift-online/ocm-cli/pkg/ingress"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
 	"github.com/openshift-online/ocm-cli/pkg/provider"
 	"github.com/openshift-online/ocm-cli/pkg/utils"
@@ -43,11 +44,12 @@ import (
 )
 
 const (
-	defaultIngressRouteSelectorFlag            = "default-ingress-route-selector"
-	defaultIngressExcludedNamespacesFlag       = "default-ingress-excluded-namespaces"
-	defaultIngressWildcardPolicyFlag           = "default-ingress-wildcard-policy"
-	defaultIngressNamespaceOwnershipPolicyFlag = "default-ingress-namespace-ownership-policy"
-	gcpTermsAgreementsHyperlink                = "https://console.cloud.google.com" +
+	defaultIngressRouteSelectorFlag              = "default-ingress-route-selector"
+	defaultIngressExcludedNamespacesFlag         = "default-ingress-excluded-namespaces"
+	defaultIngressExcludedNamespaceSelectorsFlag = "default-ingress-excluded-namespace-selectors"
+	defaultIngressWildcardPolicyFlag             = "default-ingress-wildcard-policy"
+	defaultIngressNamespaceOwnershipPolicyFlag   = "default-ingress-namespace-ownership-policy"
+	gcpTermsAgreementsHyperlink                  = "https://console.cloud.google.com" +
 		"/marketplace/agreements/redhat-marketplace/red-hat-openshift-dedicated"
 	gcpTermsAgreementInteractiveError    = "Please accept Google Terms and Agreements in order to proceed"
 	gcpTermsAgreementNonInteractiveError = "Review and accept Google Terms and Agreements on " +
@@ -77,6 +79,7 @@ var args struct {
 
 	region                string
 	version               string
+	channel               string
 	channelGroup          string
 	flavour               string
 	provider              string
@@ -110,11 +113,15 @@ var args struct {
 	serviceCIDR net.IPNet
 	podCIDR     net.IPNet
 
+	// DNS options
+	dns c.DNS
+
 	// Default Ingress Attributes
-	defaultIngressRouteSelectors           string
-	defaultIngressExcludedNamespaces       string
-	defaultIngressWildcardPolicy           string
-	defaultIngressNamespaceOwnershipPolicy string
+	defaultIngressRouteSelectors             string
+	defaultIngressExcludedNamespaces         string
+	defaultIngressExcludedNamespaceSelectors string
+	defaultIngressWildcardPolicy             string
+	defaultIngressNamespaceOwnershipPolicy   string
 }
 
 const clusterNameHelp = "The name can be used as the identifier of the cluster." +
@@ -214,6 +221,13 @@ func init() {
 			"prefix cannot be changed.",
 	)
 	arguments.SetQuestion(fs, "domain-prefix", "Domain Prefix:")
+
+	fs.StringVar(
+		&args.channel,
+		"channel",
+		"",
+		"The channel for Y-stream version selection (for example, \"stable-4.17\")",
+	)
 
 	fs.StringVar(
 		&args.channelGroup,
@@ -359,6 +373,14 @@ func init() {
 	)
 
 	fs.StringVar(
+		&args.defaultIngressExcludedNamespaceSelectors,
+		defaultIngressExcludedNamespaceSelectorsFlag,
+		"",
+		"Excluded namespace selectors for ingress. Format should be a comma-separated list of 'key=value'. "+
+			"Multiple values with the same key are allowed.",
+	)
+
+	fs.StringVar(
 		&args.defaultIngressWildcardPolicy,
 		defaultIngressWildcardPolicyFlag,
 		"",
@@ -418,6 +440,14 @@ func init() {
 	Cmd.RegisterFlagCompletionFunc("wif-config", arguments.MakeCompleteFunc(getWifConfigNameOptions))
 
 	addGcpEncryptionFlags(fs, &args.gcpEncryption)
+
+	fs.StringVar(
+		&args.dns.DnsZoneId,
+		"dns-zone-id",
+		"",
+		"Specifies the DNS zone ID to use for the cluster.",
+	)
+	arguments.SetQuestion(fs, "dns-zone-id", "DNS Zone ID:")
 
 }
 
@@ -537,12 +567,13 @@ func GetDefaultClusterFlavors(connection *sdk.Connection, flavour string) (dMach
 }
 
 func getVersionOptions(connection *sdk.Connection) ([]arguments.Option, error) {
-	options, _, err := getVersionOptionsWithDefault(connection, "", "", "")
+	options, _, err := getVersionOptionsWithDefault(connection, "", "", "", "")
 	return options, err
 }
 
 func getVersionOptionsWithDefault(
 	connection *sdk.Connection,
+	channel string,
 	channelGroup string,
 	gcpMarketplaceEnabled string,
 	additionalFilters string,
@@ -551,7 +582,7 @@ func getVersionOptionsWithDefault(
 ) {
 	// Check and set the cluster version
 	versionList, defaultVersion, err := c.GetEnabledVersions(
-		connection.ClustersMgmt().V1(), channelGroup, gcpMarketplaceEnabled, additionalFilters)
+		connection.ClustersMgmt().V1(), channel, channelGroup, gcpMarketplaceEnabled, additionalFilters)
 	if err != nil {
 		return
 	}
@@ -815,7 +846,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
 	}
 	additionalFilters := getVersionFilters()
-	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channelGroup,
+	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channel, args.channelGroup,
 		gcpMarketplaceEnabled, additionalFilters)
 	if err != nil {
 		return err
@@ -829,8 +860,14 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	// Validate that version is provided when channel or channel-group is specified
+	// Backend will handle conflict validation between channel and channel-group
 	if cmd.Flags().Changed("channel-group") && !cmd.Flags().Changed("version") {
 		return fmt.Errorf("Version is required for channel group '%s'", args.channelGroup)
+	}
+
+	if cmd.Flags().Changed("channel") && !cmd.Flags().Changed("version") {
+		return fmt.Errorf("Version is required for channel '%s'", args.channel)
 	}
 
 	// Retrieve valid flavours
@@ -886,6 +923,15 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	err = promptExistingVPC(fs, connection)
 	if err != nil {
 		return err
+	}
+
+	if args.provider == c.ProviderGCP {
+		err = promptDNS(fs, connection)
+		if err != nil {
+			return err
+		}
+	} else if args.dns.DnsZoneId != "" {
+		return fmt.Errorf("this cli only supports 'dns-zone-id' for GCP clusters")
 	}
 
 	err = promptPrivateServiceConnect(fs)
@@ -944,10 +990,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		Provider:             args.provider,
 		CCS:                  args.ccs,
 		ExistingVPC:          args.existingVPC,
+		DNS:                  args.dns,
 		ClusterWideProxy:     args.clusterWideProxy,
 		Flavour:              args.flavour,
 		MultiAZ:              args.multiAZ,
 		Version:              clusterVersion,
+		Channel:              args.channel,
 		ChannelGroup:         args.channelGroup,
 		Expiration:           expiration,
 		ComputeMachineType:   args.computeMachineType,
@@ -1005,6 +1053,15 @@ func buildDefaultIngressSpec() (c.DefaultIngressSpec, error) {
 
 	if args.defaultIngressExcludedNamespaces != "" {
 		defaultIngress.ExcludedNamespaces = ingress.GetExcludedNamespaces(args.defaultIngressExcludedNamespaces)
+	}
+
+	if args.defaultIngressExcludedNamespaceSelectors != "" {
+		excludedNamespaceSelectors, err := ingresspkg.ExtractExcludedNamespaceSelectors(
+			args.defaultIngressExcludedNamespaceSelectors)
+		if err != nil {
+			return defaultIngress, err
+		}
+		defaultIngress.ExcludedNamespaceSelectors = excludedNamespaceSelectors
 	}
 
 	if args.defaultIngressWildcardPolicy != "" {
@@ -1523,6 +1580,76 @@ func promptExistingVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 	return err
 }
 
+func promptDNS(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	var err error
+	if args.dns.DnsZoneId != "" {
+		args.dns.Enabled = true
+	}
+	if !args.dns.Enabled && args.interactive {
+		args.dns.Enabled, err = interactive.GetBool(interactive.Input{
+			Question: "Use a predefined DNS managed zone",
+			Help:     "If specified, the created cluster will use the provided DNS Zone ID.",
+			Default:  args.dns.Enabled,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	if args.dns.Enabled {
+		dnsDomains, err := getDnsDomainOptions(connection)
+		if err != nil {
+			return err
+		}
+
+		flag := fs.Lookup("dns-zone-id")
+		// If the flag was set, validate the value
+		if flag.Changed {
+			if err := arguments.CheckOneOf(fs, "dns-zone-id", dnsDomains); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		// If the flag was not set, prompt the user
+		err = arguments.PromptOneOf(fs, "dns-zone-id", dnsDomains)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getDnsDomainOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+	var dnsDomains []arguments.Option
+	collection := connection.ClustersMgmt().V1().DNSDomains()
+	page, size := 1, 100
+	for {
+		response, err := collection.List().
+			Search(fmt.Sprintf("user_defined = true AND cloud_provider = '%s' AND cluster.id = ''", args.provider)).
+			Page(page).
+			Size(size).
+			Send()
+		if err != nil {
+			return nil, fmt.Errorf("failed to list DNS domains: %v", err)
+		}
+
+		for _, domain := range response.Items().Slice() {
+			dnsDomains = append(dnsDomains, arguments.Option{
+				Value: domain.ID(),
+			})
+		}
+
+		if response.Size() < size {
+			break
+		}
+		page++
+	}
+	if len(dnsDomains) == 0 {
+		return nil, fmt.Errorf("no available DNS domains found")
+	}
+	return dnsDomains, nil
+}
+
 func promptClusterPrivacy(fs *pflag.FlagSet) error {
 	return arguments.PromptBool(fs, privateFlag)
 }
@@ -1613,19 +1740,34 @@ func promptGcpAuth(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			return err
 		}
 	case c.AuthenticationKey:
-		// TODO: re-prompt when selected file is not readable / invalid JSON
-		err = arguments.PromptFilePath(fs, "service-account-file", true)
+		err = arguments.PromptFilePath(fs, "service-account-file", true,
+			func(val interface{}) error {
+				gcpServiceAccountFile, ok := val.(string)
+				if !ok {
+					return fmt.Errorf("invalid file path")
+				}
+				gcpServiceAccountFile, err := arguments.ResolveRelativePath(gcpServiceAccountFile)
+				if err != nil {
+					return fmt.Errorf("invalid file path: %v", err)
+				}
+				if err := constructGCPCredentials(gcpServiceAccountFile, &args.ccs); err != nil {
+					return err
+				}
+				return nil
+			},
+		)
 		if err != nil {
 			return err
 		}
 
-		if args.gcpServiceAccountFile == "" {
-			return fmt.Errorf("a valid GCP service account file must be specified for CCS clusters")
-		}
-		err = constructGCPCredentials(args.gcpServiceAccountFile, &args.ccs)
+		gcpServiceAccountFile, err := arguments.ResolveRelativePath(string(args.gcpServiceAccountFile))
 		if err != nil {
+			return fmt.Errorf("invalid file path: %v", err)
+		}
+		if err := constructGCPCredentials(gcpServiceAccountFile, &args.ccs); err != nil {
 			return err
 		}
+
 	default:
 		return fmt.Errorf("unexpected GCP authentication method %q", args.gcpAuthentication.Type)
 	}
@@ -1870,9 +2012,9 @@ func fetchFlavours(client *cmv1.Client) (flavours []*cmv1.Flavour, err error) {
 	return
 }
 
-func constructGCPCredentials(filePath arguments.FilePath, value *c.CCS) error {
+func constructGCPCredentials(filePath string, value *c.CCS) error {
 	// Open our jsonFile
-	jsonFile, err := os.Open(filePath.String())
+	jsonFile, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
