@@ -66,6 +66,12 @@ func generateEntriesOutput(cluster *cmv1.Cluster, ingress *cmv1.Ingress) map[str
 	if excludedNamespaces != "" {
 		entries["Excluded Namespaces"] = excludedNamespaces
 	}
+
+	excludedNamespaceSelectors := utils.MapToSortedString(
+		mapExcludedNamespaceSelectors(ingress.ExcludedNamespaceSelectors()))
+	if excludedNamespaceSelectors != "" {
+		entries["Excluded Namespace Selectors"] = excludedNamespaceSelectors
+	}
 	componentRoutes := ""
 	componentKeys := utils.MapKeys(ingress.ComponentRoutes())
 	sort.Strings(componentKeys)
@@ -97,4 +103,19 @@ func generateEntriesOutput(cluster *cmv1.Cluster, ingress *cmv1.Ingress) map[str
 		entries["Component Routes"] = componentRoutes
 	}
 	return entries
+}
+
+func mapExcludedNamespaceSelectors(selectors []*cmv1.NamespaceSelector) map[string][]string {
+	if len(selectors) == 0 {
+		return nil
+	}
+	output := map[string][]string{}
+	for _, selector := range selectors {
+		if selector == nil {
+			continue
+		}
+		output[selector.Key()] = selector.Values()
+	}
+	return output
+
 }
