@@ -3,6 +3,21 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.13 Apr 2 2026
+
+- OCM-21285 | feat: day-1 support for default ingress excluded namespace selectors
+- OCM-22568 | fix: show channel field in cluster describe output (#1041)
+- OCM-21286 | feat: day-2 support for ingress excluded namespace selectors
+- OCM-22804 | feat: add describe, create, and edit kubeletconfig commands (#1042)
+- OCM-22964 | fix: support clearing excluded namespace selectors
+- Update OWNERS (#1056)
+- chore: bump pipeline refs (#1058)
+- Red Hat Konflux update ocm-cli (#1059)
+- konflux: hermetic builds (#1061)
+- OCM-23143 | fix: describe clusters with missing dns_domain records (#1060)
+- OCM-21289 | feat: display excluded namespace selectors in ingress describe
+- OCM-22967 | chore: bump ocm-sdk-go
+
 ## 1.0.12 Mar 9 2026
 
 - updated name label to conform with the release pipeline (#1008)
