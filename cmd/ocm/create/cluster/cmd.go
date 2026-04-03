@@ -25,6 +25,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -130,6 +131,111 @@ const clusterNameHelp = "The name can be used as the identifier of the cluster."
 const subnetTemplate = "%s (%s)"
 
 const subscriptionTypeTemplate = "%s (%s)"
+
+// prefetchCache holds results from background prefetch operations
+type prefetchCache struct {
+	mu sync.Mutex
+
+	// Version options
+	versionOptions      []arguments.Option
+	defaultVersion      string
+	versionErr          error
+	versionFetched      bool
+	versionFetchStarted bool
+
+	// Machine type options
+	machineTypeOptions      []arguments.Option
+	machineTypeErr          error
+	machineTypeFetched      bool
+	machineTypeFetchStarted bool
+}
+
+// Global prefetch cache for the current command execution
+var prefetch = &prefetchCache{}
+
+// startPrefetchVersions starts fetching version options in the background
+func (p *prefetchCache) startPrefetchVersions(
+	connection *sdk.Connection,
+	channel string,
+	channelGroup string,
+	gcpMarketplaceEnabled string,
+	additionalFilters string,
+) {
+	p.mu.Lock()
+	if p.versionFetchStarted {
+		p.mu.Unlock()
+		return
+	}
+	p.versionFetchStarted = true
+	p.mu.Unlock()
+
+	go func() {
+		options, defaultVer, err := getVersionOptionsWithDefault(
+			connection, channel, channelGroup, gcpMarketplaceEnabled, additionalFilters)
+
+		p.mu.Lock()
+		p.versionOptions = options
+		p.defaultVersion = defaultVer
+		p.versionErr = err
+		p.versionFetched = true
+		p.mu.Unlock()
+	}()
+}
+
+// getVersionOptionsFromCache returns cached version options or fetches them if not available
+func (p *prefetchCache) getVersionOptionsFromCache(
+	connection *sdk.Connection,
+	channel string,
+	channelGroup string,
+	gcpMarketplaceEnabled string,
+	additionalFilters string,
+) ([]arguments.Option, string, error) {
+	p.mu.Lock()
+	if p.versionFetched {
+		options, defaultVer, err := p.versionOptions, p.defaultVersion, p.versionErr
+		p.mu.Unlock()
+		return options, defaultVer, err
+	}
+	p.mu.Unlock()
+
+	// Not prefetched, fetch now
+	return getVersionOptionsWithDefault(connection, channel, channelGroup, gcpMarketplaceEnabled, additionalFilters)
+}
+
+// startPrefetchMachineTypes starts fetching machine type options in the background
+func (p *prefetchCache) startPrefetchMachineTypes(connection *sdk.Connection) {
+	p.mu.Lock()
+	if p.machineTypeFetchStarted {
+		p.mu.Unlock()
+		return
+	}
+	p.machineTypeFetchStarted = true
+	p.mu.Unlock()
+
+	go func() {
+		options, err := getMachineTypeOptions(connection)
+
+		p.mu.Lock()
+		p.machineTypeOptions = options
+		p.machineTypeErr = err
+		p.machineTypeFetched = true
+		p.mu.Unlock()
+	}()
+}
+
+// getMachineTypeOptionsFromCache returns cached machine type options or fetches them if not available
+func (p *prefetchCache) getMachineTypeOptionsFromCache(connection *sdk.Connection) ([]arguments.Option, error) {
+	p.mu.Lock()
+	if p.machineTypeFetched {
+		options, err := p.machineTypeOptions, p.machineTypeErr
+		p.mu.Unlock()
+		return options, err
+	}
+	p.mu.Unlock()
+
+	// Not prefetched, fetch now
+	return getMachineTypeOptions(connection)
+}
 
 // Creates a subnet options using a predefined template.
 func setSubnetOption(subnet, zone string) string {
@@ -731,6 +837,10 @@ func minComputeNodes(ccs bool, multiAZ bool) (min int) {
 
 func preRun(cmd *cobra.Command, argv []string) error {
 	var err error
+
+	// Reset prefetch cache for this command execution
+	prefetch = &prefetchCache{}
+
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
@@ -802,9 +912,27 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	// Start prefetching machine types in background if interactive mode
+	// Dependencies ready: provider, ccs.Enabled
+	if args.interactive {
+		prefetch.startPrefetchMachineTypes(connection)
+	}
+
 	err = promptAuthentication(fs, connection)
 	if err != nil {
 		return err
+	}
+
+	// Start prefetching versions in background if interactive mode
+	// Dependencies ready: subscription type, provider, authentication
+	if args.interactive {
+		var gcpMarketplaceEnabled string
+		if isGcpMarketplace {
+			gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
+		}
+		additionalFilters := getVersionFilters()
+		prefetch.startPrefetchVersions(connection, args.channel, args.channelGroup,
+			gcpMarketplaceEnabled, additionalFilters)
 	}
 
 	regions, err := getRegionOptions(connection)
@@ -846,7 +974,8 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
 	}
 	additionalFilters := getVersionFilters()
-	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channel, args.channelGroup,
+	// Use cached version options if available (from background prefetch)
+	versions, defaultVersion, err := prefetch.getVersionOptionsFromCache(connection, args.channel, args.channelGroup,
 		gcpMarketplaceEnabled, additionalFilters)
 	if err != nil {
 		return err
@@ -881,7 +1010,8 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Compute node instance type:
-	machineTypes, err := getMachineTypeOptions(connection)
+	// Use cached machine type options if available (from background prefetch)
+	machineTypes, err := prefetch.getMachineTypeOptionsFromCache(connection)
 	if err != nil {
 		return err
 	}
