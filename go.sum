@@ -258,8 +258,8 @@ github.com/openshift-online/ocm-common v0.0.34 h1:XUFtSuaepGWVSbjR5jF819R15XVDaz
 github.com/openshift-online/ocm-common v0.0.34/go.mod h1:VEkuZp9aqbXtetZ5ycND6QpvhykvTuBF3oPsVM1X3vI=
 github.com/openshift-online/ocm-sdk-go v0.1.499 h1:QDr980dOSV0tFNrvOGiorno4l7iMq8lNxU7PY2rVqzY=
 github.com/openshift-online/ocm-sdk-go v0.1.499/go.mod h1:eKqLMWEeZ6vadCHjlRPsePdqap6c34aM8TGxjMgZwKY=
-github.com/openshift/rosa v1.2.60 h1:QNl41J/OX75fLsAD867EeDJKEU5lJpcCRG2b8KfNgT4=
-github.com/openshift/rosa v1.2.60/go.mod h1:0SUJSFbIa9qNVqhd8L6nOFc0ItxrP8j90twvgj4uYIA=
+github.com/openshift/rosa v1.2.61 h1:Y2cjkGCG2C6LPfwy5rptu7LD7CeWozE+zB0TwyEePQs=
+github.com/openshift/rosa v1.2.61/go.mod h1:mNHF42zDTxCa/XxWXvNoP1TPdCT2rH9HlhBozgu06Sk=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c h1:+mdjkGKdHQG3305AYmdv1U2eRNDiU2ErMBj1gwrq8eQ=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c/go.mod h1:7rwL4CYBLnjLxUqIJNnCWiEdr3bn6IUYi15bNlnbCCU=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
