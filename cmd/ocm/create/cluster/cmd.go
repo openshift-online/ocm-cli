@@ -105,6 +105,7 @@ var args struct {
 	computeMachineType string
 	computeNodes       int
 	autoscaling        c.Autoscaling
+	rootDiskSize       int
 
 	// Networking options
 	networkType string
@@ -315,6 +316,15 @@ func init() {
 		),
 	)
 	arguments.AddAutoscalingFlags(fs, &args.autoscaling)
+
+	// Note: server-side API validation handles the numerical boundaries of this flag.
+	//       client-side validation ensures the value is positive.
+	fs.IntVar(
+		&args.rootDiskSize,
+		"root-disk-size",
+		0,
+		"Root disk size in GiB for compute nodes.",
+	)
 
 	fs.StringVar(
 		&args.networkType,
@@ -746,6 +756,10 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// Validate flags / ask for missing data.
 	fs := cmd.Flags()
 
+	if cmd.Flags().Changed("root-disk-size") && args.rootDiskSize <= 0 {
+		return fmt.Errorf("--root-disk-size must be a positive value")
+	}
+
 	err = promptSubscriptionType(fs, connection)
 	if err != nil {
 		return err
@@ -1001,6 +1015,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		ComputeMachineType:   args.computeMachineType,
 		ComputeNodes:         args.computeNodes,
 		Autoscaling:          args.autoscaling,
+		RootDiskSize:         args.rootDiskSize,
 		NetworkType:          args.networkType,
 		MachineCIDR:          args.machineCIDR,
 		ServiceCIDR:          args.serviceCIDR,
