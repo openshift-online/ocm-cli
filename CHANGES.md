@@ -3,6 +3,12 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.14 Apr 22 2026
+
+- OCM-23391 | fix: remove ginkgo flags from CLI help output
+- OCM-22609 | feat: add root-disk-size flag for cluster and machine pool creation
+- OCM-23128 | chore: bump google.golang.org/grpc from 1.77.0 to 1.79.3
+
 ## 1.0.13 Apr 2 2026
 
 - OCM-21285 | feat: day-1 support for default ingress excluded namespace selectors
