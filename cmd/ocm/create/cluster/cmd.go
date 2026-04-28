@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -131,6 +133,161 @@ const clusterNameHelp = "The name can be used as the identifier of the cluster."
 const subnetTemplate = "%s (%s)"
 
 const subscriptionTypeTemplate = "%s (%s)"
+
+// prefetchCache holds results from background prefetch operations
+type prefetchCache struct {
+	mu     sync.Mutex
+	wg     sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	// Version options
+	versionOptions      []arguments.Option
+	defaultVersion      string
+	versionErr          error
+	versionFetched      bool
+	versionFetchStarted bool
+	versionCond         *sync.Cond
+
+	// Machine type options
+	machineTypeOptions      []arguments.Option
+	machineTypeErr          error
+	machineTypeFetched      bool
+	machineTypeFetchStarted bool
+	machineTypeCond         *sync.Cond
+}
+
+// Global prefetch cache for the current command execution
+var prefetch = &prefetchCache{}
+
+// init initializes the condition variables and context for the prefetch cache
+func (p *prefetchCache) init() {
+	p.versionCond = sync.NewCond(&p.mu)
+	p.machineTypeCond = sync.NewCond(&p.mu)
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+}
+
+// startPrefetchVersions starts fetching version options in the background
+func (p *prefetchCache) startPrefetchVersions(
+	connection *sdk.Connection,
+	channel string,
+	channelGroup string,
+	gcpMarketplaceEnabled string,
+	additionalFilters string,
+) {
+	p.mu.Lock()
+	if p.versionFetchStarted {
+		p.mu.Unlock()
+		return
+	}
+	p.versionFetchStarted = true
+	p.wg.Add(1)
+	p.mu.Unlock()
+
+	go func() {
+		defer p.wg.Done()
+		options, defaultVer, err := getVersionOptionsWithDefault(
+			connection, channel, channelGroup, gcpMarketplaceEnabled, additionalFilters)
+
+		// Check if context was cancelled before storing results
+		select {
+		case <-p.ctx.Done():
+			// Context cancelled, don't store results
+			return
+		default:
+		}
+
+		p.mu.Lock()
+		p.versionOptions = options
+		p.defaultVersion = defaultVer
+		p.versionErr = err
+		p.versionFetched = true
+		p.versionCond.Broadcast()
+		p.mu.Unlock()
+	}()
+}
+
+// getVersionOptionsFromCache returns cached version options or fetches them if not available
+func (p *prefetchCache) getVersionOptionsFromCache(
+	connection *sdk.Connection,
+	channel string,
+	channelGroup string,
+	gcpMarketplaceEnabled string,
+	additionalFilters string,
+) ([]arguments.Option, string, error) {
+	p.mu.Lock()
+
+	// Wait for in-progress fetch to complete
+	for p.versionFetchStarted && !p.versionFetched {
+		p.versionCond.Wait()
+	}
+
+	// Return cached result only if fetch succeeded
+	if p.versionFetched && p.versionErr == nil {
+		options, defaultVersion := p.versionOptions, p.defaultVersion
+		p.mu.Unlock()
+		return options, defaultVersion, nil
+	}
+
+	// Treat prefetch errors as cache miss - retry synchronously
+	p.mu.Unlock()
+	return getVersionOptionsWithDefault(
+		connection, channel, channelGroup, gcpMarketplaceEnabled, additionalFilters)
+}
+
+// startPrefetchMachineTypes starts fetching machine type options in the background
+func (p *prefetchCache) startPrefetchMachineTypes(connection *sdk.Connection, provider string, ccsEnabled bool) {
+	p.mu.Lock()
+	if p.machineTypeFetchStarted {
+		p.mu.Unlock()
+		return
+	}
+	p.machineTypeFetchStarted = true
+	p.wg.Add(1)
+	p.mu.Unlock()
+
+	go func() {
+		defer p.wg.Done()
+		// Capture provider and ccsEnabled explicitly to avoid implicit dependency on global args
+		options, err := getMachineTypeOptionsWithParams(connection, provider, ccsEnabled)
+
+		// Check if context was cancelled before storing results
+		select {
+		case <-p.ctx.Done():
+			// Context cancelled, don't store results
+			return
+		default:
+		}
+
+		p.mu.Lock()
+		p.machineTypeOptions = options
+		p.machineTypeErr = err
+		p.machineTypeFetched = true
+		p.machineTypeCond.Broadcast()
+		p.mu.Unlock()
+	}()
+}
+
+// getMachineTypeOptionsFromCache returns cached machine type options or fetches them if not available
+func (p *prefetchCache) getMachineTypeOptionsFromCache(connection *sdk.Connection) ([]arguments.Option, error) {
+	p.mu.Lock()
+
+	// Wait for in-progress fetch to complete
+	for p.machineTypeFetchStarted && !p.machineTypeFetched {
+		p.machineTypeCond.Wait()
+	}
+
+	// Return cached result only if fetch succeeded
+	if p.machineTypeFetched && p.machineTypeErr == nil {
+		options := p.machineTypeOptions
+		p.mu.Unlock()
+		return options, nil
+	}
+
+	// Treat prefetch errors as cache miss - retry synchronously
+	p.mu.Unlock()
+	return getMachineTypeOptions(connection)
+}
 
 // Creates a subnet options using a predefined template.
 func setSubnetOption(subnet, zone string) string {
@@ -641,6 +798,18 @@ func getMachineTypeOptions(connection *sdk.Connection) ([]arguments.Option, erro
 		args.provider, args.ccs.Enabled)
 }
 
+// getMachineTypeOptionsWithParams fetches machine type options with explicit parameters
+// to avoid implicit dependency on global args
+func getMachineTypeOptionsWithParams(
+	connection *sdk.Connection,
+	providerType string,
+	ccsEnabled bool,
+) ([]arguments.Option, error) {
+	return provider.GetMachineTypeOptions(
+		connection.ClustersMgmt().V1(),
+		providerType, ccsEnabled)
+}
+
 func getWifConfigOptions(wifConfigs []*cmv1.WifConfig) ([]arguments.Option, error) {
 	options := []arguments.Option{}
 	for _, wc := range wifConfigs {
@@ -741,12 +910,22 @@ func minComputeNodes(ccs bool, multiAZ bool) (min int) {
 
 func preRun(cmd *cobra.Command, argv []string) error {
 	var err error
+
+	// Reset prefetch cache for this command execution
+	prefetch = &prefetchCache{}
+	prefetch.init()
+
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
 		return fmt.Errorf("Failed to create OCM connection: %v", err)
 	}
-	defer connection.Close()
+	defer func() {
+		// Cancel any background prefetch operations and close connection
+		// Don't wait for goroutines to complete - early exits should not block on speculative work
+		prefetch.cancel()
+		connection.Close()
+	}()
 
 	err = promptName(argv)
 	if err != nil {
@@ -816,9 +995,29 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
+	// Start prefetching machine types in background if interactive mode
+	// Pass provider and ccsEnabled explicitly to avoid implicit dependency on global args
+	if args.interactive {
+		prefetch.startPrefetchMachineTypes(connection, args.provider, args.ccs.Enabled)
+	}
+
 	err = promptAuthentication(fs, connection)
 	if err != nil {
 		return err
+	}
+
+	// Compute version filter parameters once to avoid duplication
+	var gcpMarketplaceEnabled string
+	if isGcpMarketplace {
+		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
+	}
+	additionalFilters := getVersionFilters()
+
+	// Start prefetching versions in background if interactive mode
+	// Dependencies ready: subscription type, provider, authentication
+	if args.interactive {
+		prefetch.startPrefetchVersions(connection, args.channel, args.channelGroup,
+			gcpMarketplaceEnabled, additionalFilters)
 	}
 
 	regions, err := getRegionOptions(connection)
@@ -855,12 +1054,9 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		return err
 	}
 
-	var gcpMarketplaceEnabled string
-	if isGcpMarketplace {
-		gcpMarketplaceEnabled = strconv.FormatBool(isGcpMarketplace)
-	}
-	additionalFilters := getVersionFilters()
-	versions, defaultVersion, err := getVersionOptionsWithDefault(connection, args.channel, args.channelGroup,
+	// Use cached version options if available (from background prefetch)
+	// gcpMarketplaceEnabled and additionalFilters were computed earlier to avoid duplication
+	versions, defaultVersion, err := prefetch.getVersionOptionsFromCache(connection, args.channel, args.channelGroup,
 		gcpMarketplaceEnabled, additionalFilters)
 	if err != nil {
 		return err
@@ -895,7 +1091,8 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	}
 
 	// Compute node instance type:
-	machineTypes, err := getMachineTypeOptions(connection)
+	// Use cached machine type options if available (from background prefetch)
+	machineTypes, err := prefetch.getMachineTypeOptionsFromCache(connection)
 	if err != nil {
 		return err
 	}
