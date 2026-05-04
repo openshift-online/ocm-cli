@@ -138,8 +138,8 @@ func (b *PrinterBuilder) Build(ctx context.Context) (result *Printer, err error)
 		pagerCmd.Stdout = writer
 		err = pagerCmd.Start()
 		if err != nil {
-			pagerReader.Close()
-			pagerWriter.Close()
+			_ = pagerReader.Close()
+			_ = pagerWriter.Close()
 			return
 		}
 
@@ -151,9 +151,9 @@ func (b *PrinterBuilder) Build(ctx context.Context) (result *Printer, err error)
 		// turn result in gracefully ending that goroutine.
 		pagerStop = make(chan int)
 		go func() {
-			pagerCmd.Wait()
-			pagerReader.Close()
-			pagerWriter.Close()
+			_ = pagerCmd.Wait()
+			_ = pagerReader.Close()
+			_ = pagerWriter.Close()
 			close(pagerStop)
 		}()
 	}
@@ -254,8 +254,8 @@ func (p *Printer) Close() error {
 	// the goroutine that is responsible for waiting the process has finished, as otherwise we
 	// may leave a zombie process around.
 	if p.pagerCmd != nil {
-		p.pagerReader.Close()
-		p.pagerWriter.Close()
+		_ = p.pagerReader.Close()
+		_ = p.pagerWriter.Close()
 		<-p.pagerStop
 	}
 	return nil

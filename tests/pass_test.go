@@ -83,8 +83,8 @@ var _ = Describe("Pass Keyring", Ordered, func() {
 		if err != nil {
 			Fail(err.Error())
 		}
-		os.Setenv("GNUPGHOME", gnupghome)
-		os.Setenv("PASSWORD_STORE_DIR", tmpdirPass)
+		_ = os.Setenv("GNUPGHOME", gnupghome)
+		_ = os.Setenv("PASSWORD_STORE_DIR", tmpdirPass)
 		os.Unsetenv("GPG_AGENT_INFO")
 		os.Unsetenv("GPG_TTY")
 
@@ -95,7 +95,7 @@ var _ = Describe("Pass Keyring", Ordered, func() {
 		DeferCleanup(func() {
 			os.Unsetenv("GNUPGHOME")
 			os.Unsetenv("PASSWORD_STORE_DIR")
-			os.RemoveAll(filepath.Join("/tmp", keyring_dir))
+			_ = os.RemoveAll(filepath.Join("/tmp", keyring_dir))
 		})
 	})
 
@@ -118,7 +118,7 @@ var _ = Describe("Pass Keyring", Ordered, func() {
 	When("Using OCM_KEYRING", func() {
 		AfterEach(func() {
 			// reset keyring
-			os.Setenv(properties.KeyringEnvKey, "")
+			_ = os.Setenv(properties.KeyringEnvKey, "")
 		})
 
 		It("Stores/Removes configuration in Pass", func() {
@@ -130,7 +130,7 @@ var _ = Describe("Pass Keyring", Ordered, func() {
 				RespondWithAccessToken(accessToken),
 			)
 
-			os.Setenv(properties.KeyringEnvKey, "pass")
+			_ = os.Setenv(properties.KeyringEnvKey, "pass")
 
 			// Run login
 			result := NewCommand().
@@ -185,7 +185,7 @@ var _ = Describe("Pass Keyring", Ordered, func() {
 
 		Context("Using auth code", func() {
 			It("Stores/Removes configuration in Keychain", func() {
-				os.Setenv(properties.KeyringEnvKey, "pass")
+				_ = os.Setenv(properties.KeyringEnvKey, "pass")
 
 				login.InitiateAuthCode = InitiateAuthCodeMock
 

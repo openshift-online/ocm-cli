@@ -46,7 +46,7 @@ func getMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1
 	}
 
 	if len(machineTypes) == 0 {
-		return nil, fmt.Errorf("No machine types for provider %v", err)
+		return nil, fmt.Errorf("no machine types for provider %v", err)
 	}
 	return
 }
@@ -54,7 +54,7 @@ func getMachineTypes(client *cmv1.Client, provider string) (machineTypes []*cmv1
 func GetMachineTypeOptions(client *cmv1.Client, provider string, ccs bool) (options []arguments.Option, err error) {
 	machineTypes, err := getMachineTypes(client, provider)
 	if err != nil {
-		err = fmt.Errorf("Failed to retrieve machine types: %s", err)
+		err = fmt.Errorf("failed to retrieve machine types: %s", err)
 		return
 	}
 

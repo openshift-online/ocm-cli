@@ -37,7 +37,7 @@ func buildHtpasswdIdp(cluster *cmv1.Cluster, idpName string) (cmv1.IdentityProvi
 		}
 		err := survey.AskOne(prompt, &username)
 		if err != nil {
-			return idpBuilder, "", errors.New("Expected a username")
+			return idpBuilder, "", errors.New("expected a username")
 		}
 	}
 
@@ -47,17 +47,17 @@ func buildHtpasswdIdp(cluster *cmv1.Cluster, idpName string) (cmv1.IdentityProvi
 		}
 		err := survey.AskOne(prompt, &password)
 		if err != nil {
-			return idpBuilder, "", errors.New("Expected a password")
+			return idpBuilder, "", errors.New("expected a password")
 		}
 	}
 	if password == "" {
 		generator, err := pwdgen.NewWithDefault()
 		if err != nil {
-			return idpBuilder, "", errors.New("Failed to initialize password generator")
+			return idpBuilder, "", errors.New("failed to initialize password generator")
 		}
 		generatedPwd, err := generator.Generate()
 		if err != nil {
-			return idpBuilder, "", errors.New("Failed to generate a password")
+			return idpBuilder, "", errors.New("failed to generate a password")
 		}
 		password = *generatedPwd
 		message += "You can now log in with the provided username and the password '" + password + "'.\n"

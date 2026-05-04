@@ -52,7 +52,7 @@ var _ = Describe("Login", func() {
 	When("Using offline token", func() {
 		AfterEach(func() {
 			// reset keyring
-			os.Setenv(properties.KeyringEnvKey, "")
+			_ = os.Setenv(properties.KeyringEnvKey, "")
 		})
 
 		It("Creates the configuration file", func() {
@@ -94,7 +94,7 @@ var _ = Describe("Login", func() {
 		})
 
 		It("Fails for an invalid keyring", func() {
-			os.Setenv(properties.KeyringEnvKey, invalidKeyring)
+			_ = os.Setenv(properties.KeyringEnvKey, invalidKeyring)
 			// Create the tokens:
 			accessToken := MakeTokenString("Bearer", 15*time.Minute)
 
@@ -212,11 +212,11 @@ var _ = Describe("Login", func() {
 	When("Using auth code flow", func() {
 		AfterEach(func() {
 			// reset keyring
-			os.Setenv(properties.KeyringEnvKey, "")
+			_ = os.Setenv(properties.KeyringEnvKey, "")
 		})
 
 		It("Fails for an invalid keyring", func() {
-			os.Setenv(properties.KeyringEnvKey, invalidKeyring)
+			_ = os.Setenv(properties.KeyringEnvKey, invalidKeyring)
 
 			// Run the command:
 			result := NewCommand().
@@ -234,11 +234,11 @@ var _ = Describe("Login", func() {
 	When("Using device code flow", func() {
 		AfterEach(func() {
 			// reset keyring
-			os.Setenv(properties.KeyringEnvKey, "")
+			_ = os.Setenv(properties.KeyringEnvKey, "")
 		})
 
 		It("Fails for an invalid keyring", func() {
-			os.Setenv(properties.KeyringEnvKey, invalidKeyring)
+			_ = os.Setenv(properties.KeyringEnvKey, invalidKeyring)
 
 			// Run the command:
 			result := NewCommand().

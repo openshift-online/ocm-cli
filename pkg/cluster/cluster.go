@@ -220,7 +220,7 @@ func IsValidClusterKey(clusterKey string) bool {
 func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, err error) {
 	if !IsValidClusterKey(key) {
 		return nil, fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			key,
 		)
@@ -240,7 +240,7 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 		Size(1).
 		Send()
 	if err != nil {
-		err = fmt.Errorf("Can't retrieve subscription for key '%s': %v", key, err)
+		err = fmt.Errorf("can't retrieve subscription for key '%s': %v", key, err)
 		return
 	}
 
@@ -251,7 +251,7 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 		status, ok := sub.GetStatus()
 		subID, _ := sub.GetID()
 		if !ok || (status != "Reserved" && status != "Active") {
-			err = fmt.Errorf("Cluster was %s, see `ocm get subscription %s` for details", status, subID)
+			err = fmt.Errorf("cluster was %s, see `ocm get subscription %s` for details", status, subID)
 			return
 		}
 		id, ok := sub.GetClusterID()
@@ -261,7 +261,7 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 				Send()
 			if err != nil {
 				err = fmt.Errorf(
-					"Can't retrieve cluster for key '%s': %v",
+					"can't retrieve cluster for key '%s': %v",
 					key, err,
 				)
 				return
@@ -294,7 +294,7 @@ func GetCluster(connection *sdk.Connection, key string) (cluster *cmv1.Cluster, 
 		Size(1).
 		Send()
 	if err != nil {
-		err = fmt.Errorf("Can't retrieve clusters for key '%s': %v", key, err)
+		err = fmt.Errorf("can't retrieve clusters for key '%s': %v", key, err)
 		return
 	}
 
@@ -331,7 +331,7 @@ func GetClusterLimitedSupportReasons(connection *sdk.Connection, clusterID strin
 		List().
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get limited Support Reasons: %s", err)
+		return nil, fmt.Errorf("failed to get limited Support Reasons: %s", err)
 	}
 
 	lmtReason := limitedSupportReasons.Items()
@@ -510,7 +510,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 				clusterBuilder = clusterBuilder.GCPNetwork(gcpNetwork)
 			}
 		default:
-			return nil, fmt.Errorf("Unexpected CCS provider %q", config.Provider)
+			return nil, fmt.Errorf("unexpected CCS provider %q", config.Provider)
 		}
 
 		//cluster-wide proxy
@@ -617,7 +617,7 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 
 	clusterSpec, err := clusterBuilder.Build()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create description of cluster: %v", err)
+		return nil, fmt.Errorf("failed to create description of cluster: %v", err)
 	}
 
 	// Send a request to create the cluster:
@@ -767,7 +767,7 @@ func GetIdentityProviders(client *cmv1.ClustersClient, clusterID string) ([]*cmv
 		Size(-1).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get identity providers for cluster '%s': %v", clusterID, err)
+		return nil, fmt.Errorf("failed to get identity providers for cluster '%s': %v", clusterID, err)
 	}
 
 	return response.Items().Slice(), nil
@@ -780,7 +780,7 @@ func GetIngresses(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Ingres
 		Size(-1).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get ingresses for cluster '%s': %v", clusterID, err)
+		return nil, fmt.Errorf("failed to get ingresses for cluster '%s': %v", clusterID, err)
 	}
 
 	return response.Items().Slice(), nil
@@ -793,7 +793,7 @@ func GetGroups(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Group, er
 		Size(-1).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get groups for cluster '%s': %v", clusterID, err)
+		return nil, fmt.Errorf("failed to get groups for cluster '%s': %v", clusterID, err)
 	}
 
 	return response.Items().Slice(), nil
@@ -806,7 +806,7 @@ func GetMachinePools(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.Mac
 		Size(-1).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get machine pools for cluster '%s': %v", clusterID, err)
+		return nil, fmt.Errorf("failed to get machine pools for cluster '%s': %v", clusterID, err)
 	}
 
 	return response.Items().Slice(), nil
@@ -819,7 +819,7 @@ func GetUpgradePolicies(client *cmv1.ClustersClient, clusterID string) ([]*cmv1.
 		Size(-1).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get upgrade policies for cluster '%s': %v", clusterID, err)
+		return nil, fmt.Errorf("failed to get upgrade policies for cluster '%s': %v", clusterID, err)
 	}
 
 	return response.Items().Slice(), nil
@@ -831,7 +831,7 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 		Get().
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get current account: %s", err)
+		return nil, fmt.Errorf("failed to get current account: %s", err)
 	}
 	organization := acctResponse.Body().Organization().ID()
 
@@ -842,7 +842,7 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 		Parameter("fetchRelatedResources", true).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get quota-cost: %v", err)
+		return nil, fmt.Errorf("failed to get quota-cost: %v", err)
 	}
 	quotaCosts := quotaCostResponse.Items()
 
@@ -854,7 +854,7 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 		Size(-1).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get add-ons: %v", err)
+		return nil, fmt.Errorf("failed to get add-ons: %v", err)
 	}
 	addOns := addOnsResponse.Items()
 
@@ -867,7 +867,7 @@ func GetClusterAddOns(connection *sdk.Connection, clusterID string) ([]*AddOnIte
 		Size(-1).
 		Send()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get add-on installations for cluster '%s': %v", clusterID, err)
+		return nil, fmt.Errorf("failed to get add-on installations for cluster '%s': %v", clusterID, err)
 	}
 	addOnInstallations := addOnInstallationsResponse.Items()
 
@@ -949,7 +949,7 @@ func ValidateClusterExpiration(
 ) (expiration time.Time, err error) {
 	// Validate options
 	if len(expirationTime) > 0 && expirationDuration != 0 {
-		err = errors.New("At most one of 'expiration-time' or 'expiration' may be specified")
+		err = errors.New("at most one of 'expiration-time' or 'expiration' may be specified")
 		return
 	}
 
@@ -957,7 +957,7 @@ func ValidateClusterExpiration(
 	if len(expirationTime) > 0 {
 		t, err := parseRFC3339(expirationTime)
 		if err != nil {
-			err = fmt.Errorf("Failed to parse expiration-time: %s", err)
+			err = fmt.Errorf("failed to parse expiration-time: %s", err)
 			return expiration, err
 		}
 

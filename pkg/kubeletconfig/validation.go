@@ -38,7 +38,7 @@ const (
 func ValidatePodPidsLimit(connection *sdk.Connection, requestedPids int) error {
 	if requestedPids < MinPodPidsLimit {
 		return fmt.Errorf(
-			"Invalid value for '--pod-pids-limit': %d. Minimum value is %d",
+			"invalid value for '--pod-pids-limit': %d. Minimum value is %d",
 			requestedPids, MinPodPidsLimit,
 		)
 	}
@@ -50,12 +50,12 @@ func ValidatePodPidsLimit(connection *sdk.Connection, requestedPids int) error {
 	// Value exceeds the standard max — check org capability.
 	bypassed, err := isBypassPidsLimitEnabled(connection)
 	if err != nil {
-		return fmt.Errorf("Failed to check organization capabilities: %v", err)
+		return fmt.Errorf("failed to check organization capabilities: %v", err)
 	}
 
 	if !bypassed {
 		return fmt.Errorf(
-			"Invalid value for '--pod-pids-limit': %d. Maximum value is %d. "+
+			"invalid value for '--pod-pids-limit': %d. Maximum value is %d. "+
 				"Contact Red Hat support if you require a higher limit",
 			requestedPids, MaxPodPidsLimit,
 		)
@@ -63,7 +63,7 @@ func ValidatePodPidsLimit(connection *sdk.Connection, requestedPids int) error {
 
 	if requestedPids > MaxUnsafePodPidsLimit {
 		return fmt.Errorf(
-			"Invalid value for '--pod-pids-limit': %d. Maximum value is %d",
+			"invalid value for '--pod-pids-limit': %d. Maximum value is %d",
 			requestedPids, MaxUnsafePodPidsLimit,
 		)
 	}
@@ -77,15 +77,15 @@ func isBypassPidsLimitEnabled(connection *sdk.Connection) (bool, error) {
 	// Get the current account to find the organization ID.
 	accountResponse, err := connection.AccountsMgmt().V1().CurrentAccount().Get().Send()
 	if err != nil {
-		return false, fmt.Errorf("Failed to get current account: %v", err)
+		return false, fmt.Errorf("failed to get current account: %v", err)
 	}
 	org := accountResponse.Body().Organization()
 	if org == nil {
-		return false, fmt.Errorf("Could not determine organization ID from current account")
+		return false, fmt.Errorf("could not determine organization ID from current account")
 	}
 	orgID := org.ID()
 	if orgID == "" {
-		return false, fmt.Errorf("Could not determine organization ID from current account")
+		return false, fmt.Errorf("could not determine organization ID from current account")
 	}
 
 	// Search for the specific capability on the organization.
@@ -93,7 +93,7 @@ func isBypassPidsLimitEnabled(connection *sdk.Connection) (bool, error) {
 		Search(fmt.Sprintf("organization_id = '%s' AND name = '%s'", orgID, bypassPidsLimitCapability)).
 		Send()
 	if err != nil {
-		return false, fmt.Errorf("Failed to list capabilities: %v", err)
+		return false, fmt.Errorf("failed to list capabilities: %v", err)
 	}
 
 	items := capResponse.Items()

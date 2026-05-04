@@ -51,7 +51,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Load the configuration:
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("can't load config file: %v", err)
 	}
 
 	// Create an empty configuration if the configuration file doesn't exist:
@@ -72,14 +72,14 @@ func run(cmd *cobra.Command, argv []string) error {
 	case "insecure":
 		cfg.Insecure, err = strconv.ParseBool(value)
 		if err != nil {
-			return fmt.Errorf("Failed to set insecure: %v", value)
+			return fmt.Errorf("failed to set insecure: %v", value)
 		}
 	case "password":
 		cfg.Password = value
 	case "refresh_token":
 		cfg.RefreshToken = value
 	case "scopes":
-		return fmt.Errorf("Setting scopes is unsupported")
+		return fmt.Errorf("setting scopes is unsupported")
 	case "token_url":
 		cfg.TokenURL = value
 	case "url":
@@ -89,13 +89,13 @@ func run(cmd *cobra.Command, argv []string) error {
 	case "pager":
 		cfg.Pager = value
 	default:
-		return fmt.Errorf("Unknown setting")
+		return fmt.Errorf("unknown setting")
 	}
 
 	// Save the configuration:
 	err = config.Save(cfg)
 	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
+		return fmt.Errorf("can't save config file: %v", err)
 	}
 
 	return nil

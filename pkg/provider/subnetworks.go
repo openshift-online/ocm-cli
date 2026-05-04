@@ -15,7 +15,7 @@ func getAWSVPCs(client *cmv1.Client, ccs cluster.CCS,
 		Region(cmv1.NewCloudRegion().ID(region)).
 		Build()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to build AWS cloud provider data: %v", err)
+		return nil, fmt.Errorf("failed to build AWS cloud provider data: %v", err)
 	}
 
 	response, err := client.AWSInquiries().Vpcs().Search().
@@ -51,7 +51,7 @@ func GetGCPVPCs(client *cmv1.Client, ccs cluster.CCS,
 			ClientX509CertURL(ccs.GCP.ClientX509CertURL).
 			ClientID(ccs.GCP.ClientID).TokenURI(ccs.GCP.TokenURI)
 	default:
-		return nil, fmt.Errorf("Failed to build GCP provider data, unexpected GCP authentication method %q", gcpAuth.Type)
+		return nil, fmt.Errorf("failed to build GCP provider data, unexpected GCP authentication method %q", gcpAuth.Type)
 	}
 
 	cloudProviderData, err := cmv1.NewCloudProviderData().
@@ -59,7 +59,7 @@ func GetGCPVPCs(client *cmv1.Client, ccs cluster.CCS,
 		Region(cmv1.NewCloudRegion().ID(region)).
 		Build()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to build GCP provider data: %v", err)
+		return nil, fmt.Errorf("failed to build GCP provider data: %v", err)
 	}
 
 	response, err := client.GCPInquiries().Vpcs().Search().

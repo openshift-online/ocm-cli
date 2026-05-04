@@ -12,10 +12,10 @@ import (
 func (c *gcpClient) handleApiNotFoundError(err error) error {
 	pApiError, ok := err.(*apierror.APIError)
 	if !ok {
-		return fmt.Errorf("Unexpected error")
+		return fmt.Errorf("unexpected error")
 	}
 	if pApiError.GRPCStatus().Code() == codes.NotFound {
-		return fmt.Errorf("Resource not found")
+		return fmt.Errorf("resource not found")
 	}
 	return errors.New(pApiError.Details().String())
 }
@@ -23,7 +23,7 @@ func (c *gcpClient) handleApiNotFoundError(err error) error {
 func (c *gcpClient) handleApiError(err error) error {
 	pApiError, ok := err.(*apierror.APIError)
 	if !ok {
-		return fmt.Errorf("Unexpected error")
+		return fmt.Errorf("unexpected error")
 	}
 	return errors.New(pApiError.Details().String())
 }
@@ -31,7 +31,7 @@ func (c *gcpClient) handleApiError(err error) error {
 func (c *gcpClient) handleDeleteServiceAccountError(err error, allowMissing bool) error {
 	pApiError, ok := err.(*apierror.APIError)
 	if !ok {
-		return fmt.Errorf("Unexpected error")
+		return fmt.Errorf("unexpected error")
 	}
 	if pApiError.GRPCStatus().Code() == codes.NotFound && allowMissing {
 		return nil
@@ -49,7 +49,7 @@ func isNotFound(err error) bool {
 func (c *gcpClient) fmtGoogleApiError(err error) error {
 	gError, ok := err.(*googleapi.Error)
 	if !ok {
-		return fmt.Errorf("Unexpected error")
+		return fmt.Errorf("unexpected error")
 	}
 	return errors.New(gError.Error())
 }

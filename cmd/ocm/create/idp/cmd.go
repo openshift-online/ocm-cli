@@ -257,7 +257,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -265,7 +265,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -274,16 +274,16 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	if cluster.State() != cmv1.ClusterStateReady {
-		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
+		return fmt.Errorf("cluster '%s' is not yet ready", clusterKey)
 	}
 
 	idps, err := c.GetIdentityProviders(clusterCollection, cluster.ID())
 	if err != nil {
-		return fmt.Errorf("Failed to get identity providers for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get identity providers for cluster '%s': %v", clusterKey, err)
 	}
 
 	// Grab all the IDP information interactively if necessary
@@ -296,7 +296,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 		err = survey.AskOne(prompt, &idpType)
 		if err != nil {
-			return fmt.Errorf("Failed to get a valid IDP type")
+			return fmt.Errorf("failed to get a valid IDP type")
 		}
 	}
 
@@ -308,7 +308,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 		err = survey.AskOne(prompt, &idpName)
 		if err != nil {
-			return fmt.Errorf("Failed to get a valid IDP name")
+			return fmt.Errorf("failed to get a valid IDP name")
 		}
 	}
 
@@ -330,17 +330,17 @@ func run(cmd *cobra.Command, argv []string) error {
 	case "htpasswd":
 		idpBuilder, message, err = buildHtpasswdIdp(cluster, idpName)
 	default:
-		err = fmt.Errorf("Invalid IDP type '%s'", idpType)
+		err = fmt.Errorf("invalid IDP type '%s'", idpType)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to create IDP for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to create IDP for cluster '%s': %v", clusterKey, err)
 	}
 
 	fmt.Printf("Configuring IDP for cluster '%s'\n", clusterKey)
 
 	idp, err := idpBuilder.Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create IDP for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to create IDP for cluster '%s': %v", clusterKey, err)
 	}
 
 	_, err = clusterCollection.Cluster(cluster.ID()).
@@ -349,7 +349,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Body(idp).
 		Send()
 	if err != nil {
-		return fmt.Errorf("Failed to add IDP to cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to add IDP to cluster '%s': %v", clusterKey, err)
 	}
 
 	fmt.Printf(

@@ -51,10 +51,10 @@ const (
 	defaultIngressNamespaceOwnershipPolicyFlag   = "default-ingress-namespace-ownership-policy"
 	gcpTermsAgreementsHyperlink                  = "https://console.cloud.google.com" +
 		"/marketplace/agreements/redhat-marketplace/red-hat-openshift-dedicated"
-	gcpTermsAgreementInteractiveError    = "Please accept Google Terms and Agreements in order to proceed"
-	gcpTermsAgreementNonInteractiveError = "Review and accept Google Terms and Agreements on " +
+	gcpTermsAgreementInteractiveError    = "please accept Google Terms and Agreements in order to proceed"
+	gcpTermsAgreementNonInteractiveError = "review and accept Google Terms and Agreements on " +
 		gcpTermsAgreementsHyperlink + ". Set the flag --marketplace-gcp-terms to true " +
-		"once agreed in order to proceed further."
+		"once agreed in order to proceed further"
 
 	privateFlag            = "private"
 	vpcNameFlag            = "vpc-name"
@@ -744,7 +744,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -773,7 +773,7 @@ func preRun(cmd *cobra.Command, argv []string) error {
 
 	if isGcpMarketplace {
 		if args.provider != c.ProviderGCP && args.provider != "" {
-			return fmt.Errorf("Provider must be set to %s when using %s subscription type",
+			return fmt.Errorf("provider must be set to %s when using %s subscription type",
 				c.ProviderGCP, billing.MarketplaceGcpSubscriptionType)
 		}
 		fmt.Println("setting provider to", c.ProviderGCP)
@@ -877,11 +877,11 @@ func preRun(cmd *cobra.Command, argv []string) error {
 	// Validate that version is provided when channel or channel-group is specified
 	// Backend will handle conflict validation between channel and channel-group
 	if cmd.Flags().Changed("channel-group") && !cmd.Flags().Changed("version") {
-		return fmt.Errorf("Version is required for channel group '%s'", args.channelGroup)
+		return fmt.Errorf("version is required for channel group '%s'", args.channelGroup)
 	}
 
 	if cmd.Flags().Changed("channel") && !cmd.Flags().Changed("version") {
-		return fmt.Errorf("Version is required for channel '%s'", args.channel)
+		return fmt.Errorf("version is required for channel '%s'", args.channel)
 	}
 
 	// Retrieve valid flavours
@@ -981,7 +981,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// TODO: call config.Save (https://github.com/openshift-online/ocm-cli/issues/153).
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -1034,7 +1034,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
 	if err != nil {
-		return fmt.Errorf("Failed to create cluster: %v", err)
+		return fmt.Errorf("failed to create cluster: %v", err)
 	}
 
 	// Print the result:
@@ -1104,13 +1104,13 @@ func promptName(argv []string) error {
 
 	if args.interactive {
 		prompt := &survey.Input{
-			Message: "Cluster name:",
+			Message: "cluster name:",
 			Help:    clusterNameHelp,
 		}
 		return survey.AskOne(prompt, &args.clusterName, survey.WithValidator(survey.Required))
 	}
 
-	return fmt.Errorf("A cluster name must be specified")
+	return fmt.Errorf("a cluster name must be specified")
 }
 
 func promptSubscriptionType(fs *pflag.FlagSet, connection *sdk.Connection) error {
@@ -1144,7 +1144,7 @@ func promptProvider(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		return err
 	}
 	if args.provider == "" {
-		return fmt.Errorf("A provider must be specified")
+		return fmt.Errorf("a provider must be specified")
 	}
 	return nil
 }
@@ -1202,7 +1202,7 @@ func promptClusterWideProxy() error {
 			} else {
 				err := utils.IsURL(*args.clusterWideProxy.HTTPSProxy)
 				if err != nil {
-					return fmt.Errorf("Invalid https-proxy value '%s'", *args.clusterWideProxy.HTTPSProxy)
+					return fmt.Errorf("invalid https-proxy value '%s'", *args.clusterWideProxy.HTTPSProxy)
 				}
 				args.existingVPC.Enabled = true
 			}
@@ -1234,7 +1234,7 @@ func promptClusterWideProxy() error {
 					}
 					if args.clusterWideProxy.HTTPProxy == nil && args.clusterWideProxy.HTTPSProxy == nil &&
 						len(noProxyValues) > 0 {
-						return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy")
+						return fmt.Errorf("expected at least one of the following: http-proxy, https-proxy")
 					}
 				}
 				args.existingVPC.Enabled = true
@@ -1265,7 +1265,7 @@ func promptClusterWideProxy() error {
 	if (args.clusterWideProxy.HTTPProxy != nil && *args.clusterWideProxy.HTTPProxy == "") &&
 		(args.clusterWideProxy.HTTPSProxy != nil && *args.clusterWideProxy.HTTPSProxy == "") &&
 		(args.clusterWideProxy.NoProxy != nil && *args.clusterWideProxy.NoProxy != "") {
-		return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy")
+		return fmt.Errorf("expected at least one of the following: http-proxy, https-proxy")
 	}
 
 	// Get certificate contents
@@ -1283,7 +1283,7 @@ func promptClusterWideProxy() error {
 	}
 
 	if args.existingVPC.Enabled && args.clusterWideProxy.Enabled && !isAtLeastOneProxyValueSet() {
-		return fmt.Errorf("Expected at least one of the following: http-proxy, https-proxy, " +
+		return fmt.Errorf("expected at least one of the following: http-proxy, https-proxy, " +
 			"additional-trust-bundle-file")
 	}
 
@@ -1338,7 +1338,7 @@ func promptExistingAWSVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 						}
 					}
 					if !verifiedSubnet {
-						return fmt.Errorf("Could not find the following subnet provided: %s", providedSubnetID)
+						return fmt.Errorf("could not find the following subnet provided: %s", providedSubnetID)
 					}
 				}
 			}
@@ -1524,9 +1524,9 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 		}
 		if !verifiedVPCName {
 			if wasClusterWideProxyReceived() && args.existingVPC.VPCName == "" {
-				return fmt.Errorf("Please provide vpc name")
+				return fmt.Errorf("please provide vpc name")
 			}
-			return fmt.Errorf("Could not find the following vpc name provided: '%s'", args.existingVPC.VPCName)
+			return fmt.Errorf("could not find the following vpc name provided: '%s'", args.existingVPC.VPCName)
 		}
 
 		//get subnets from the provider
@@ -1545,7 +1545,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			}
 		}
 		if !verifiedControlPlaneSubnet {
-			return fmt.Errorf("Could not find the following control-plane-subnet provided: '%s'",
+			return fmt.Errorf("could not find the following control-plane-subnet provided: '%s'",
 				args.existingVPC.ControlPlaneSubnet)
 		}
 
@@ -1558,7 +1558,7 @@ func promptExistingGCPVPC(fs *pflag.FlagSet, connection *sdk.Connection) error {
 			}
 		}
 		if !verifiedComputeSubnet {
-			return fmt.Errorf("Could not find the following compute-subnet provided: '%s'",
+			return fmt.Errorf("could not find the following compute-subnet provided: '%s'",
 				args.existingVPC.ComputeSubnet)
 		}
 	}
@@ -1926,7 +1926,7 @@ func promptEtcdEncryption(fs *pflag.FlagSet) error {
 	}
 
 	if fs.Changed("etcd-encryption") && !args.etcdEncryption {
-		return fmt.Errorf("When FIPS mode is enabled, etcd encryption cannot be disabled")
+		return fmt.Errorf("when FIPS mode is enabled, etcd encryption cannot be disabled")
 	}
 
 	//if FIPS encrytion is enabled, etcd encryption should be enabled
@@ -1973,10 +1973,10 @@ func promptPrivateServiceConnect(fs *pflag.FlagSet) error {
 func validateComputeNodes() error {
 	min := minComputeNodes(args.ccs.Enabled, args.multiAZ)
 	if args.computeNodes < min {
-		return fmt.Errorf("Minimum is %d nodes", min)
+		return fmt.Errorf("minimum is %d nodes", min)
 	}
 	if args.multiAZ && args.computeNodes%3 != 0 {
-		return fmt.Errorf("Multi-zone clusters require nodes to be multiple of 3")
+		return fmt.Errorf("multi-zone clusters require nodes to be multiple of 3")
 	}
 	return nil
 }
@@ -1985,11 +1985,11 @@ func validateAutoscalingMin() error {
 	min := minComputeNodes(args.ccs.Enabled, args.multiAZ)
 
 	if args.autoscaling.MinReplicas < min {
-		return fmt.Errorf("Minimum is %d nodes", min)
+		return fmt.Errorf("minimum is %d nodes", min)
 	}
 
 	if args.multiAZ && args.autoscaling.MinReplicas%3 != 0 {
-		return fmt.Errorf("Multi AZ clusters require that the number of compute nodes be a multiple of 3")
+		return fmt.Errorf("multi AZ clusters require that the number of compute nodes be a multiple of 3")
 	}
 	return nil
 }
@@ -2000,7 +2000,7 @@ func validateAutoscalingMax() error {
 	}
 
 	if args.multiAZ && args.autoscaling.MaxReplicas%3 != 0 {
-		return fmt.Errorf("Multi AZ clusters require that the number of compute nodes be a multiple of 3")
+		return fmt.Errorf("multi AZ clusters require that the number of compute nodes be a multiple of 3")
 	}
 	return nil
 }

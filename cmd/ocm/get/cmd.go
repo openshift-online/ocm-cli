@@ -58,13 +58,13 @@ func init() {
 func run(cmd *cobra.Command, argv []string) error {
 	path, err := urls.Expand(argv)
 	if err != nil {
-		return fmt.Errorf("Could not create URI: %v", err)
+		return fmt.Errorf("could not create URI: %v", err)
 	}
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("can't load config file: %v", err)
 	}
 	if cfg == nil {
 		return fmt.Errorf("Not logged in, run the 'login' command")
@@ -90,7 +90,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Send the request:
 	response, err := request.Send()
 	if err != nil {
-		return fmt.Errorf("Can't send request: %v", err)
+		return fmt.Errorf("can't send request: %v", err)
 	}
 	status := response.Status()
 	body := response.Bytes()
@@ -108,17 +108,17 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("Can't print body: %v", err)
+		return fmt.Errorf("can't print body: %v", err)
 	}
 
 	// Save the configuration:
 	cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
 	if err != nil {
-		return fmt.Errorf("Can't get tokens: %v", err)
+		return fmt.Errorf("can't get tokens: %v", err)
 	}
 	err = config.Save(cfg)
 	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
+		return fmt.Errorf("can't save config file: %v", err)
 	}
 
 	// Bye:

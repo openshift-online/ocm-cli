@@ -96,7 +96,9 @@ func listWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) err
 
 	// Unless noHeaders set, print header row:
 	if !ListWorkloadIdentityConfigurationOpts.noHeaders {
-		table.WriteHeaders()
+		if err = table.WriteHeaders(); err != nil {
+			return err
+		}
 	}
 
 	// Create the request

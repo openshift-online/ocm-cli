@@ -48,7 +48,7 @@ func buildGithubIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &teamsOrOrgs)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a GitHub organization or team name")
+				return idpBuilder, errors.New("expected a GitHub organization or team name")
 			}
 		}
 
@@ -72,7 +72,7 @@ func buildGithubIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 
 		registerURL, err := url.Parse(registerURLBase)
 		if err != nil {
-			return idpBuilder, fmt.Errorf("Error parsing URL: %v", err)
+			return idpBuilder, fmt.Errorf("error parsing URL: %v", err)
 		}
 
 		// Populate fields in the GitHub registration form
@@ -94,7 +94,7 @@ func buildGithubIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &clientID)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a GitHub application Client ID")
+				return idpBuilder, errors.New("expected a GitHub application Client ID")
 			}
 		}
 
@@ -104,7 +104,7 @@ func buildGithubIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &clientSecret)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a GitHub application Client Secret")
+				return idpBuilder, errors.New("expected a GitHub application Client Secret")
 			}
 		}
 	}
@@ -117,7 +117,7 @@ func buildGithubIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 	if args.githubHostname != "" {
 		_, err = url.ParseRequestURI(args.githubHostname)
 		if err != nil {
-			return idpBuilder, fmt.Errorf("Expected a valid Hostname: %v", err)
+			return idpBuilder, fmt.Errorf("expected a valid Hostname: %v", err)
 		}
 		// Set the hostname, if any
 		githubIDP = githubIDP.Hostname(args.githubHostname)

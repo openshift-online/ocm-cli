@@ -86,7 +86,9 @@ func listDnsZoneCmd(cmd *cobra.Command, argv []string) error {
 
 	// Unless noHeaders set, print header row:
 	if !ListDnsZoneOpts.noHeaders {
-		table.WriteHeaders()
+		if err = table.WriteHeaders(); err != nil {
+			return err
+		}
 	}
 
 	// Create the request

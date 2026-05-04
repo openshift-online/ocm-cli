@@ -69,20 +69,20 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
 	}
 
 	if len(argv) != 1 || argv[0] == "" {
-		return fmt.Errorf("At least one user must be specified")
+		return fmt.Errorf("at least one user must be specified")
 	}
 	users := argv[0]
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -91,11 +91,11 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	if cluster.State() != cmv1.ClusterStateReady {
-		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
+		return fmt.Errorf("cluster '%s' is not yet ready", clusterKey)
 	}
 
 	_, err = clusterCollection.Cluster(cluster.ID()).
@@ -112,7 +112,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	for _, username := range strings.Split(users, ",") {
 		user, err := cmv1.NewUser().ID(username).Build()
 		if err != nil {
-			return fmt.Errorf("Failed to create '%s' user '%s' for cluster '%s'", args.group, username, clusterKey)
+			return fmt.Errorf("failed to create '%s' user '%s' for cluster '%s'", args.group, username, clusterKey)
 		}
 		_, err = clusterCollection.Cluster(cluster.ID()).
 			Groups().
@@ -131,7 +131,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	if failedToAddUser {
-		return fmt.Errorf("Failed to create the following users in group '%s': %s",
+		return fmt.Errorf("failed to create the following users in group '%s': %s",
 			args.group, strings.Join(usersFailed, ", "))
 	}
 	return nil

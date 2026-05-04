@@ -53,13 +53,13 @@ func init() {
 func run(cmd *cobra.Command, argv []string) error {
 	path, err := urls.Expand(argv)
 	if err != nil {
-		return fmt.Errorf("Could not create URI: %v", err)
+		return fmt.Errorf("could not create URI: %v", err)
 	}
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -74,13 +74,13 @@ func run(cmd *cobra.Command, argv []string) error {
 	arguments.ApplyHeaderFlag(request, args.header)
 	err = arguments.ApplyBodyFlag(request, args.body)
 	if err != nil {
-		return fmt.Errorf("Can't read body: %v", err)
+		return fmt.Errorf("can't read body: %v", err)
 	}
 
 	// Send the request:
 	response, err := request.Send()
 	if err != nil {
-		return fmt.Errorf("Can't send request: %v", err)
+		return fmt.Errorf("can't send request: %v", err)
 	}
 	status := response.Status()
 	body := response.Bytes()
@@ -90,22 +90,22 @@ func run(cmd *cobra.Command, argv []string) error {
 		err = dump.Pretty(os.Stderr, body)
 	}
 	if err != nil {
-		return fmt.Errorf("Can't print body: %v", err)
+		return fmt.Errorf("can't print body: %v", err)
 	}
 
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("can't load config file: %v", err)
 	}
 	// Save the configuration:
 	cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
 	if err != nil {
-		return fmt.Errorf("Can't get tokens: %v", err)
+		return fmt.Errorf("can't get tokens: %v", err)
 	}
 	err = config.Save(cfg)
 	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
+		return fmt.Errorf("can't save config file: %v", err)
 	}
 
 	// Bye:

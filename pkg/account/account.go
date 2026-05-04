@@ -59,7 +59,7 @@ func GetRolesFromUsers(accounts []*amv1.Account,
 			Send()
 
 		if err != nil {
-			return nil, fmt.Errorf("Can't retrieve roles: %v", err)
+			return nil, fmt.Errorf("can't retrieve roles: %v", err)
 		}
 		// Loop through the results and save them:
 		response.Items().Each(func(item *amv1.RoleBinding) bool {

@@ -51,7 +51,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("can't load config file: %v", err)
 	}
 
 	// If the configuration file doesn't exist yet assume that all the configuration settings
@@ -86,7 +86,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	case "user":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.User)
 	default:
-		return fmt.Errorf("Unknown setting")
+		return fmt.Errorf("unknown setting")
 	}
 
 	return nil

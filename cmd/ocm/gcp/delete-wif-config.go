@@ -65,7 +65,7 @@ func validationForDeleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 	var err error
 
 	if DeleteWifConfigOpts.Mode != ModeAuto && DeleteWifConfigOpts.Mode != ModeManual {
-		return fmt.Errorf("Invalid mode. Allowed values are %s", Modes)
+		return fmt.Errorf("invalid mode. Allowed values are %s", Modes)
 	}
 
 	DeleteWifConfigOpts.TargetDir, err = getPathFromFlag(DeleteWifConfigOpts.TargetDir)

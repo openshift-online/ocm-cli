@@ -33,7 +33,7 @@ func GetRegions(client *cmv1.Client, provider string, ccs cluster.CCS) (regions 
 			SecretAccessKey(ccs.AWS.SecretAccessKey).
 			Build()
 		if err != nil {
-			return nil, fmt.Errorf("Failed to build AWS credentials: %v", err)
+			return nil, fmt.Errorf("failed to build AWS credentials: %v", err)
 		}
 
 		response, err := client.CloudProviders().CloudProvider(provider).AvailableRegions().Search().

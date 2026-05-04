@@ -145,7 +145,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	args.Argv = argv
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -188,7 +188,7 @@ func getCluster(
 ) (ocm.Cluster, error) {
 	clusterData, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return nil, fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 	cluster := ocm.NewCluster(clusterData)
 	return cluster, nil
@@ -196,7 +196,7 @@ func getCluster(
 
 func VerifyCluster(cluster ocm.Cluster) error {
 	if cluster.State() != cmv1.ClusterStateReady {
-		return fmt.Errorf("Cluster '%s' is not yet ready", args.ClusterKey)
+		return fmt.Errorf("cluster '%s' is not yet ready", args.ClusterKey)
 	}
 	return nil
 }
@@ -208,13 +208,13 @@ func VerifyArguments(
 	cluster ocm.Cluster,
 ) error {
 	if len(args.Argv) < 1 || args.Argv[0] == "" {
-		return fmt.Errorf("Missing machine pool ID")
+		return fmt.Errorf("missing machine pool ID")
 	}
 
 	if args.Labels != "" {
 		for _, label := range strings.Split(args.Labels, ",") {
 			if !strings.Contains(label, "=") {
-				return fmt.Errorf("Expected key=value format for label-match")
+				return fmt.Errorf("expected key=value format for label-match")
 			}
 		}
 	}
@@ -222,7 +222,7 @@ func VerifyArguments(
 	if args.Taints != "" {
 		for _, taint := range strings.Split(args.Taints, ",") {
 			if !strings.Contains(taint, "=") || !strings.Contains(taint, ":") {
-				return fmt.Errorf("Expected key=value:scheduleType format for taints")
+				return fmt.Errorf("expected key=value:scheduleType format for taints")
 			}
 		}
 	}
@@ -258,7 +258,7 @@ func VerifyArguments(
 	}
 
 	if len(args.AdditionalSecurityGroupIds) != 0 && cluster.CloudProviderId() != c.ProviderAWS {
-		return fmt.Errorf("'%s' may only be set for clusters using the '%s' cloud provider.",
+		return fmt.Errorf("'%s' may only be set for clusters using the '%s' cloud provider",
 			additionalSecurityGroupIdsFlag, c.ProviderAWS)
 	}
 
@@ -360,7 +360,7 @@ func buildMachinePool(
 
 	machinePool, err := mpBuilder.Build()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create machine pool for cluster '%s': %v", args.ClusterKey, err)
+		return nil, fmt.Errorf("failed to create machine pool for cluster '%s': %v", args.ClusterKey, err)
 	}
 	return machinePool, nil
 }
@@ -375,7 +375,7 @@ func addMachinePoolToCluster(
 		Add().
 		Body(machinePool).
 		Send(); err != nil {
-		return fmt.Errorf("Failed to add machine pool to cluster '%s': %v", args.ClusterKey, err)
+		return fmt.Errorf("failed to add machine pool to cluster '%s': %v", args.ClusterKey, err)
 	}
 	return nil
 }

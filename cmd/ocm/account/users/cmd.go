@@ -96,11 +96,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 			Send()
 		if err != nil {
-			return fmt.Errorf("Can't retrieve current user information: %v", err)
+			return fmt.Errorf("can't retrieve current user information: %v", err)
 		}
 		userOrg, ok := userConn.Body().GetOrganization()
 		if !ok {
-			return fmt.Errorf("Failed to get current user organization")
+			return fmt.Errorf("failed to get current user organization")
 		}
 		args.org = userOrg.ID()
 
@@ -120,7 +120,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			Parameter("search", searchQuery).
 			Send()
 		if err != nil {
-			return fmt.Errorf("Can't retrieve accounts: %v", err)
+			return fmt.Errorf("can't retrieve accounts: %v", err)
 		}
 
 		accountList := []*amv1.Account{}

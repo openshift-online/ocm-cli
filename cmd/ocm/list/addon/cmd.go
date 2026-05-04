@@ -104,7 +104,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -112,16 +112,16 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	if cluster.State() != cmv1.ClusterStateReady {
-		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
+		return fmt.Errorf("cluster '%s' is not yet ready", clusterKey)
 	}
 
 	clusterAddOns, err := c.GetClusterAddOns(connection, cluster.ID())
 	if err != nil {
-		return fmt.Errorf("Failed to get add-ons for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get add-ons for cluster '%s': %v", clusterKey, err)
 	}
 
 	if len(clusterAddOns) == 0 {

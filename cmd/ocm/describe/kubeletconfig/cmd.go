@@ -70,7 +70,7 @@ func init() {
 func run(cmd *cobra.Command, argv []string) error {
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -78,7 +78,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", clusterKey, err)
+		return fmt.Errorf("can't retrieve cluster for key '%s': %v", clusterKey, err)
 	}
 
 	response, err := connection.ClustersMgmt().V1().Clusters().
@@ -88,7 +88,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			return fmt.Errorf("No KubeletConfig exists for cluster '%s'. "+
 				"You can create one via 'ocm create kubeletconfig'", clusterKey)
 		}
-		return fmt.Errorf("Failed to get KubeletConfig for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get KubeletConfig for cluster '%s': %v", clusterKey, err)
 	}
 
 	kubeletConfig := response.Body()
@@ -97,11 +97,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		buf := new(bytes.Buffer)
 		err = cmv1.MarshalKubeletConfig(kubeletConfig, buf)
 		if err != nil {
-			return fmt.Errorf("Failed to marshal KubeletConfig to JSON: %v", err)
+			return fmt.Errorf("failed to marshal KubeletConfig to JSON: %v", err)
 		}
 		err = dump.Pretty(os.Stdout, buf.Bytes())
 		if err != nil {
-			return fmt.Errorf("Failed to print KubeletConfig JSON: %v", err)
+			return fmt.Errorf("failed to print KubeletConfig JSON: %v", err)
 		}
 		return nil
 	}

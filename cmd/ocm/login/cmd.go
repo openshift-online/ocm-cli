@@ -113,7 +113,7 @@ func init() {
 			"request to find the region URL matching the provided identifier. Use `ocm list rh-regions` "+
 			"to see available regions.",
 	)
-	flags.MarkHidden("rh-region")
+	_ = flags.MarkHidden("rh-region")
 	flags.StringVar(
 		&args.token,
 		"token",
@@ -245,7 +245,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Load the configuration:
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't load config: %v", err)
+		return fmt.Errorf("can't load config: %v", err)
 	}
 	if cfg == nil {
 		cfg = new(config.Config)
@@ -260,12 +260,12 @@ func run(cmd *cobra.Command, argv []string) error {
 			// If a token has been provided parse it:
 			token, err := config.ParseToken(args.token)
 			if err != nil {
-				return fmt.Errorf("Can't parse token '%s': %v", args.token, err)
+				return fmt.Errorf("can't parse token '%s': %v", args.token, err)
 			}
 			// Put the token in the place of the configuration that corresponds to its type:
 			typ, err := config.TokenType(token)
 			if err != nil {
-				return fmt.Errorf("Can't extract type from 'typ' claim of token '%s': %v", args.token, err)
+				return fmt.Errorf("can't extract type from 'typ' claim of token '%s': %v", args.token, err)
 			}
 			switch typ {
 			case "Bearer", "":
@@ -275,7 +275,7 @@ func run(cmd *cobra.Command, argv []string) error {
 				cfg.AccessToken = ""
 				cfg.RefreshToken = args.token
 			default:
-				return fmt.Errorf("Don't know how to handle token type '%s' in token '%s'", typ, args.token)
+				return fmt.Errorf("don't know how to handle token type '%s' in token '%s'", typ, args.token)
 			}
 		}
 
@@ -310,7 +310,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	if args.rhRegion != "" {
 		regValue, err := sdk.GetRhRegion(gatewayURL, args.rhRegion)
 		if err != nil {
-			return fmt.Errorf("Can't find region: %w", err)
+			return fmt.Errorf("can't find region: %w", err)
 		}
 		gatewayURL = fmt.Sprintf("https://%s", regValue.URL)
 	}
@@ -332,11 +332,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create a connection and get the token to verify that the crendentials are correct:
 	connection, err := ocm.NewConnection().Config(cfg).Build()
 	if err != nil {
-		return fmt.Errorf("Can't create connection: %v", err)
+		return fmt.Errorf("can't create connection: %v", err)
 	}
 	accessToken, refreshToken, err := connection.Tokens()
 	if err != nil {
-		return fmt.Errorf("Can't get token: %v", err)
+		return fmt.Errorf("can't get token: %v", err)
 	}
 
 	// Save the configuration, but clear the user name and password before unless we have

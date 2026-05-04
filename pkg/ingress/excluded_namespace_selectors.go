@@ -25,19 +25,19 @@ func ExtractExcludedNamespaceSelectors(selectorsStr string) (map[string][]string
 	excludedNamespaceSelectors := make(map[string][]string)
 	for _, selector := range strings.Split(selectorsStr, ",") {
 		if !strings.Contains(selector, "=") {
-			return nil, fmt.Errorf("Expected key=value format for excluded-namespace-selectors")
+			return nil, fmt.Errorf("expected key=value format for excluded-namespace-selectors")
 		}
 		tokens := strings.Split(selector, "=")
 		if len(tokens) != 2 {
-			return nil, fmt.Errorf("Invalid excluded namespace selector: '%s'", selector)
+			return nil, fmt.Errorf("invalid excluded namespace selector: '%s'", selector)
 		}
 		key := strings.TrimSpace(tokens[0])
 		if key == "" {
-			return nil, fmt.Errorf("Invalid excluded namespace selector: '%s'", selector)
+			return nil, fmt.Errorf("invalid excluded namespace selector: '%s'", selector)
 		}
 		value := strings.TrimSpace(tokens[1])
 		if value == "" {
-			return nil, fmt.Errorf("Invalid excluded namespace selector: '%s'", selector)
+			return nil, fmt.Errorf("invalid excluded namespace selector: '%s'", selector)
 		}
 		excludedNamespaceSelectors[key] = append(excludedNamespaceSelectors[key], value)
 	}

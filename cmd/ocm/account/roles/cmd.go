@@ -37,7 +37,7 @@ var Cmd = &cobra.Command{
 	Long:  "Get description of a role or list of all roles",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 1 {
-			return fmt.Errorf("Accepts at most 1 role name")
+			return fmt.Errorf("accepts at most 1 role name")
 		}
 		return nil
 	},
@@ -72,7 +72,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			rolesListRequest := connection.AccountsMgmt().V1().Roles().List().Page(pageIndex)
 			response, err := rolesListRequest.Send()
 			if err != nil {
-				return fmt.Errorf("Can't send request: %v", err)
+				return fmt.Errorf("can't send request: %v", err)
 			}
 			response.Items().Each(func(item *amv1.Role) bool {
 				rolesList = append(rolesList, item.ID())
@@ -98,7 +98,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		roleResponse, err := connection.AccountsMgmt().V1().Roles().Role(argv[0]).Get().
 			Send()
 		if err != nil {
-			return fmt.Errorf("Can't send request: %v", err)
+			return fmt.Errorf("can't send request: %v", err)
 		}
 		role := roleResponse.Body()
 
@@ -106,13 +106,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		byteRole, err := connection.Get().Path(role.HREF()).
 			Send()
 		if err != nil {
-			return fmt.Errorf("Can't send request: %v", err)
+			return fmt.Errorf("can't send request: %v", err)
 		}
 
 		// Dump pretty:
 		err = dump.Pretty(os.Stdout, byteRole.Bytes())
 		if err != nil {
-			return fmt.Errorf("Failed to display role JSON: %v", err)
+			return fmt.Errorf("failed to display role JSON: %v", err)
 		}
 
 	}

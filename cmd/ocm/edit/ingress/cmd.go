@@ -208,7 +208,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -217,7 +217,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -226,16 +226,16 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	if cluster.State() != cmv1.ClusterStateReady {
-		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
+		return fmt.Errorf("cluster '%s' is not yet ready", clusterKey)
 	}
 
 	ingresses, err := c.GetIngresses(clusterCollection, cluster.ID())
 	if err != nil {
-		return fmt.Errorf("Failed to get ingresses for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get ingresses for cluster '%s': %v", clusterKey, err)
 	}
 
 	var ingress *cmv1.Ingress
@@ -251,7 +251,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 	if ingress == nil {
-		return fmt.Errorf("Failed to get ingress '%s' for cluster '%s'", ingressID, clusterKey)
+		return fmt.Errorf("failed to get ingress '%s' for cluster '%s'", ingressID, clusterKey)
 	}
 
 	ingressBuilder := cmv1.NewIngress().ID(ingress.ID())
@@ -266,7 +266,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Add route selectors
 	if cmd.Flags().Changed(labelMatchFlag) || cmd.Flags().Changed(routeSelectorFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", routeSelectorFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", routeSelectorFlag)
 		}
 		routeSelectors, err := GetRouteSelector(args.routeSelector)
 		if err != nil {
@@ -277,17 +277,17 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	if cmd.Flags().Changed(lbTypeFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", lbTypeFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", lbTypeFlag)
 		}
 		if cluster.AWS().STS().RoleARN() != "" {
-			return fmt.Errorf("Can't edit `%s` for STS clusters", lbTypeFlag)
+			return fmt.Errorf("can't edit `%s` for STS clusters", lbTypeFlag)
 		}
 		ingressBuilder = ingressBuilder.LoadBalancerType(cmv1.LoadBalancerFlavor(args.lbType))
 	}
 
 	if cmd.Flags().Changed(excludedNamespacesFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", excludedNamespacesFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", excludedNamespacesFlag)
 		}
 		_excludedNamespaces := GetExcludedNamespaces(args.excludedNamespaces)
 		ingressBuilder = ingressBuilder.ExcludedNamespaces(_excludedNamespaces...)
@@ -295,7 +295,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	if cmd.Flags().Changed(excludedNamespaceSelectorsFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", excludedNamespaceSelectorsFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", excludedNamespaceSelectorsFlag)
 		}
 		excludedNamespaceSelectors, err := ingresspkg.ExtractExcludedNamespaceSelectors(args.excludedNamespaceSelectors)
 		if err != nil {
@@ -312,14 +312,14 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	if cmd.Flags().Changed(wildcardPolicyFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", wildcardPolicyFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", wildcardPolicyFlag)
 		}
 		ingressBuilder = ingressBuilder.RouteWildcardPolicy(cmv1.WildcardPolicy(args.wildcardPolicy))
 	}
 
 	if cmd.Flags().Changed(namespaceOwnershipPolicyFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", namespaceOwnershipPolicyFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", namespaceOwnershipPolicyFlag)
 		}
 		ingressBuilder = ingressBuilder.RouteNamespaceOwnershipPolicy(
 			cmv1.NamespaceOwnershipPolicy(args.namespaceOwnershipPolicy))
@@ -327,21 +327,21 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	if cmd.Flags().Changed(clusterRoutesHostnameFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", clusterRoutesHostnameFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", clusterRoutesHostnameFlag)
 		}
 		ingressBuilder = ingressBuilder.ClusterRoutesHostname(args.clusterRoutesHostname)
 	}
 
 	if cmd.Flags().Changed(clusterRoutesTlsSecretRefFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", clusterRoutesTlsSecretRefFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", clusterRoutesTlsSecretRefFlag)
 		}
 		ingressBuilder = ingressBuilder.ClusterRoutesTlsSecretRef(args.clusterRoutesTlsSecretRef)
 	}
 
 	if cmd.Flags().Changed(componentRoutesFlag) {
 		if cluster.Hypershift().Enabled() {
-			return fmt.Errorf("Can't edit `%s` for Hosted Control Plane clusters", componentRoutesFlag)
+			return fmt.Errorf("can't edit `%s` for Hosted Control Plane clusters", componentRoutesFlag)
 		}
 		componentRoutes, err := parseComponentRoutes(args.componentRoutes)
 		if err != nil {
@@ -352,7 +352,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	ingress, err = ingressBuilder.Build()
 	if err != nil {
-		return fmt.Errorf("Failed to edit ingress for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to edit ingress for cluster '%s': %v", clusterKey, err)
 	}
 
 	_, err = clusterCollection.
@@ -363,7 +363,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Body(ingress).
 		Send()
 	if err != nil {
-		return fmt.Errorf("Failed to edit ingress for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to edit ingress for cluster '%s': %v", clusterKey, err)
 	}
 	return nil
 }
@@ -446,7 +446,7 @@ func GetRouteSelector(labelMatches string) (map[string]string, error) {
 	routeSelectors := map[string]string{}
 	for _, labelMatch := range strings.Split(labelMatches, ",") {
 		if !strings.Contains(labelMatch, "=") {
-			return nil, fmt.Errorf("Expected key=value format for label-match")
+			return nil, fmt.Errorf("expected key=value format for label-match")
 		}
 		tokens := strings.Split(labelMatch, "=")
 		routeSelectors[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])

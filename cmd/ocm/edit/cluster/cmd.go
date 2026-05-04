@@ -161,7 +161,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := argv[0]
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -170,7 +170,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -179,7 +179,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	// Validate flags:
@@ -219,7 +219,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		if *args.clusterWideProxy.HTTPSProxy != "" {
 			err := utils.IsURL(*args.clusterWideProxy.HTTPSProxy)
 			if err != nil {
-				return fmt.Errorf("Invalid 'proxy.https_proxy' attribute '%s'", *args.clusterWideProxy.HTTPSProxy)
+				return fmt.Errorf("invalid 'proxy.https_proxy' attribute '%s'", *args.clusterWideProxy.HTTPSProxy)
 			}
 		}
 		httpsProxy = args.clusterWideProxy.HTTPSProxy
@@ -287,7 +287,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		if len(*additionalTrustBundleFile) > 0 {
 			cert, err := os.ReadFile(*additionalTrustBundleFile)
 			if err != nil {
-				return fmt.Errorf("Failed to read additional trust bundle file: %s", err)
+				return fmt.Errorf("failed to read additional trust bundle file: %s", err)
 			}
 			clusterWideProxy.AdditionalTrustBundle = new(string)
 			*clusterWideProxy.AdditionalTrustBundle = string(cert)
@@ -301,7 +301,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	if !reflect.ValueOf(clusterConfig).IsZero() {
 		err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
 		if err != nil {
-			return fmt.Errorf("Failed to update cluster: %v", err)
+			return fmt.Errorf("failed to update cluster: %v", err)
 		}
 	}
 

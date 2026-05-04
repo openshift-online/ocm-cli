@@ -97,7 +97,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -106,7 +106,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -115,14 +115,14 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	labels := make(map[string]string)
 	if args.labels != "" {
 		for _, label := range strings.Split(args.labels, ",") {
 			if !strings.Contains(label, "=") {
-				return fmt.Errorf("Expected key=value format for label-match")
+				return fmt.Errorf("expected key=value format for label-match")
 			}
 			tokens := strings.Split(label, "=")
 			labels[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
@@ -134,7 +134,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	if args.taints != "" {
 		for _, taint := range strings.Split(args.taints, ",") {
 			if !strings.Contains(taint, "=") || !strings.Contains(taint, ":") {
-				return fmt.Errorf("Expected key=value:scheduleType format for taints")
+				return fmt.Errorf("expected key=value:scheduleType format for taints")
 			}
 			tokens := strings.FieldsFunc(taint, arguments.Split)
 			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(tokens[0]).Value(tokens[1]).Effect(tokens[2]))
@@ -186,7 +186,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		err = c.UpdateCluster(clusterCollection, cluster.ID(), clusterConfig)
 		if err != nil {
-			return fmt.Errorf("Failed to update machine pool '%s' on cluster '%s': %s",
+			return fmt.Errorf("failed to update machine pool '%s' on cluster '%s': %s",
 				machinePoolID, clusterKey, err)
 		}
 
@@ -211,7 +211,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	machinePool, err := machinePoolBuilder.Build()
 
 	if err != nil {
-		return fmt.Errorf("Failed to create machine pool body for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to create machine pool body for cluster '%s': %v", clusterKey, err)
 	}
 
 	_, err = clusterCollection.
@@ -222,7 +222,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Body(machinePool).
 		Send()
 	if err != nil {
-		return fmt.Errorf("Failed to edit machine pool for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to edit machine pool for cluster '%s': %v", clusterKey, err)
 	}
 	return nil
 }
@@ -244,11 +244,11 @@ func validateComputeNodes(nodes int, ccs bool, multiAZ bool) error {
 	}
 
 	if nodes < min {
-		return fmt.Errorf("Minimum is %d nodes", min)
+		return fmt.Errorf("minimum is %d nodes", min)
 	}
 
 	if multiAZ && nodes%3 != 0 {
-		return fmt.Errorf("Multi-zone clusters require nodes to be multiple of 3")
+		return fmt.Errorf("multi-zone clusters require nodes to be multiple of 3")
 	}
 	return nil
 }

@@ -20,7 +20,7 @@ import (
 // nolint
 var UserNoProxyRE = regexp.MustCompile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(3[0-2]|[1-2][0-9]|[0-9]))$|^(.?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^""$`)
 
-var TimeoutError = fmt.Errorf("Timeout occurred")
+var TimeoutError = fmt.Errorf("timeout occurred")
 
 func ValidateHTTPProxy(val interface{}) error {
 	if httpProxy, ok := val.(string); ok {
@@ -29,7 +29,7 @@ func ValidateHTTPProxy(val interface{}) error {
 		}
 		url, err := url.ParseRequestURI(httpProxy)
 		if err != nil {
-			return fmt.Errorf("Invalid 'proxy.http_proxy' attribute '%s'", httpProxy)
+			return fmt.Errorf("invalid 'proxy.http_proxy' attribute '%s'", httpProxy)
 		}
 		if url.Scheme != "http" {
 			return fmt.Errorf("%s", "Expected http-proxy to have an http:// scheme")

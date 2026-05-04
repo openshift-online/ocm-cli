@@ -55,8 +55,8 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Check command line arguments:
 	if len(argv) != 1 {
 		return fmt.Errorf(
-			"Expected exactly one command line parameters containing the ID " +
-				"of the upgrade policy.",
+			"expected exactly one command line parameters containing the ID " +
+				"of the upgrade policy",
 		)
 	}
 
@@ -67,7 +67,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -75,7 +75,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -84,7 +84,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	_, err = clusterCollection.
@@ -94,7 +94,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Delete().
 		Send()
 	if err != nil {
-		return fmt.Errorf("Failed to delete upgrade policy '%s' on cluster '%s'", upgradePolicyID, clusterKey)
+		return fmt.Errorf("failed to delete upgrade policy '%s' on cluster '%s'", upgradePolicyID, clusterKey)
 	}
 
 	fmt.Printf("Deleted upgrade policy '%s' on cluster '%s'\n", upgradePolicyID, clusterKey)

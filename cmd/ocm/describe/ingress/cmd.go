@@ -68,7 +68,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	if !c.IsValidClusterKey(key) {
 		fmt.Fprintf(
 			os.Stderr,
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores\n",
 			key,
 		)
@@ -86,13 +86,13 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
 	cluster, err := c.GetCluster(connection, key)
 	if err != nil {
-		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", key, err)
+		return fmt.Errorf("can't retrieve cluster for key '%s': %v", key, err)
 	}
 
 	clusterId := cluster.ID()
@@ -119,7 +119,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 	if ingress == nil {
-		return fmt.Errorf("Failed to get ingress '%s' for cluster '%s'", ingressKey, clusterId)
+		return fmt.Errorf("failed to get ingress '%s' for cluster '%s'", ingressKey, clusterId)
 	}
 
 	if args.output {
@@ -129,13 +129,14 @@ func run(cmd *cobra.Command, argv []string) error {
 		// Attempt to create file:
 		myFile, err := os.Create(filename)
 		if err != nil {
-			return fmt.Errorf("Failed to create file: %v", err)
+			return fmt.Errorf("failed to create file: %v", err)
 		}
+		defer myFile.Close()
 
 		// Dump encoder content into file:
 		err = cmv1.MarshalIngress(ingress, myFile)
 		if err != nil {
-			return fmt.Errorf("Failed to Marshal ingress into file: %v", err)
+			return fmt.Errorf("failed to marshal ingress into file: %v", err)
 		}
 	}
 
@@ -148,12 +149,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		// Convert cluster to JSON and dump to encoder:
 		err = cmv1.MarshalIngress(ingress, buf)
 		if err != nil {
-			return fmt.Errorf("Failed to Marshal ingress into JSON encoder: %v", err)
+			return fmt.Errorf("failed to Marshal ingress into JSON encoder: %v", err)
 		}
 
 		err = dump.Pretty(os.Stdout, buf.Bytes())
 		if err != nil {
-			return fmt.Errorf("Can't print body: %v", err)
+			return fmt.Errorf("can't print body: %v", err)
 		}
 
 	} else {

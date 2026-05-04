@@ -84,7 +84,7 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 			return
 		}
 		if b.cfg == nil {
-			err = fmt.Errorf("Not logged in, run the 'login' command")
+			err = fmt.Errorf("not logged in, run the 'login' command")
 			return
 		}
 	}
@@ -95,7 +95,7 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 		return
 	}
 	if !armed {
-		err = fmt.Errorf("Not logged in, %s, run the 'login' command", reason)
+		err = fmt.Errorf("not logged in, %s, run the 'login' command", reason)
 		return
 	}
 

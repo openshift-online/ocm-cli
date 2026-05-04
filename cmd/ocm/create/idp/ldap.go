@@ -43,7 +43,7 @@ func buildLdapIdp(_ *cmv1.Cluster, idpName string) (idpBuilder cmv1.IdentityProv
 			}
 			err = survey.AskOne(prompt, &ldapURL)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a valid LDAP URL")
+				return idpBuilder, errors.New("expected a valid LDAP URL")
 			}
 		}
 
@@ -53,17 +53,17 @@ func buildLdapIdp(_ *cmv1.Cluster, idpName string) (idpBuilder cmv1.IdentityProv
 			}
 			err = survey.AskOne(prompt, &ldapIDs)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a valid comma-separated list of attributes")
+				return idpBuilder, errors.New("expected a valid comma-separated list of attributes")
 			}
 		}
 	}
 
 	parsedLdapURL, err := url.ParseRequestURI(ldapURL)
 	if err != nil {
-		return idpBuilder, fmt.Errorf("Expected a valid LDAP URL: %v", err)
+		return idpBuilder, fmt.Errorf("expected a valid LDAP URL: %v", err)
 	}
 	if parsedLdapURL.Scheme != "ldap" && parsedLdapURL.Scheme != "ldaps" {
-		return idpBuilder, errors.New("Expected LDAP URL to have an ldap:// or ldaps:// scheme")
+		return idpBuilder, errors.New("expected LDAP URL to have an ldap:// or ldaps:// scheme")
 	}
 
 	// Create LDAP attributes

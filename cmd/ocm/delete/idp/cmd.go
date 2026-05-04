@@ -56,14 +56,14 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Check command line arguments:
 	if len(argv) != 1 {
 		return fmt.Errorf(
-			"Expected exactly one command line parameters containing the name " +
-				"of the Identity provider.",
+			"expected exactly one command line parameters containing the name " +
+				"of the identity provider",
 		)
 	}
 
 	idpName := argv[0]
 	if idpName == "" {
-		return fmt.Errorf("Identity provider name is required")
+		return fmt.Errorf("identity provider name is required")
 	}
 
 	// Check that the cluster key (name, identifier or external identifier) given by the user
@@ -71,7 +71,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -79,7 +79,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -88,12 +88,12 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	idps, err := c.GetIdentityProviders(clusterCollection, cluster.ID())
 	if err != nil {
-		return fmt.Errorf("Failed to get identity providers for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get identity providers for cluster '%s': %v", clusterKey, err)
 	}
 
 	var idp *cmv1.IdentityProvider
@@ -103,7 +103,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 	if idp == nil {
-		return fmt.Errorf("Failed to get identity provider '%s' for cluster '%s'", idpName, clusterKey)
+		return fmt.Errorf("failed to get identity provider '%s' for cluster '%s'", idpName, clusterKey)
 	}
 
 	_, err = clusterCollection.
@@ -113,7 +113,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Delete().
 		Send()
 	if err != nil {
-		return fmt.Errorf("Failed to delete identity provider '%s' on cluster '%s'", idpName, clusterKey)
+		return fmt.Errorf("failed to delete identity provider '%s' on cluster '%s'", idpName, clusterKey)
 	}
 	fmt.Printf("Deleted identity provider '%s' on cluster '%s'\n", idpName, clusterKey)
 	return nil

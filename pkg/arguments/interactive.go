@@ -50,7 +50,7 @@ func AddInteractiveFlag(flags *pflag.FlagSet, value *bool) {
 
 // SetQuestion sets a friendlier text to use when prompting instead of flag name.
 func SetQuestion(fs *pflag.FlagSet, flagName, question string) {
-	fs.SetAnnotation(flagName, questionAnnotationKey, []string{question})
+	_ = fs.SetAnnotation(flagName, questionAnnotationKey, []string{question})
 }
 
 // GetQuestion returns the text set by SetQuestion, or fallback based on flag name.
@@ -156,7 +156,9 @@ func PromptBool(fs *pflag.FlagSet, flagName string) error {
 			if err != nil {
 				return err
 			}
-			fs.Set(flagName, strconv.FormatBool(response))
+			if err = fs.Set(flagName, strconv.FormatBool(response)); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -219,7 +221,9 @@ func PromptString(fs *pflag.FlagSet, flagName string) error {
 			if err != nil {
 				return err
 			}
-			fs.Set(flagName, response)
+			if err = fs.Set(flagName, response); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -246,7 +250,9 @@ func PromptPassword(fs *pflag.FlagSet, flagName string) error {
 			if err != nil {
 				return err
 			}
-			fs.Set(flagName, response)
+			if err = fs.Set(flagName, response); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -293,7 +299,9 @@ func PromptFilePath(
 			if err != nil {
 				return err
 			}
-			fs.Set(flagName, response)
+			if err = fs.Set(flagName, response); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -404,7 +412,9 @@ func doPromptOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 		if err != nil {
 			return err
 		}
-		fs.Set(flagName, response)
+		if err = fs.Set(flagName, response); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -432,5 +442,5 @@ func requireOneOf(fs *pflag.FlagSet, flagName string, options []Option) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("A valid --%s must be specified.\nValid options: %+v", flagName, optionValues(options))
+	return fmt.Errorf("a valid --%s must be specified.\nValid options: %+v", flagName, optionValues(options))
 }

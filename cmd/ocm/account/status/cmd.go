@@ -56,10 +56,10 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("can't load config file: %v", err)
 	}
 	if cfg == nil {
-		return fmt.Errorf("Not logged in, run the 'login' command")
+		return fmt.Errorf("not logged in, run the 'login' command")
 	}
 
 	// Create the client for the OCM API:
@@ -73,7 +73,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	response, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 		Send()
 	if err != nil {
-		return fmt.Errorf("Can't get current account: %v", err)
+		return fmt.Errorf("can't get current account: %v", err)
 	}
 
 	// Display user and which server they are logged into

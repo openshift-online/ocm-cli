@@ -83,7 +83,7 @@ func init() {
 func run(cmd *cobra.Command, argv []string) error {
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -94,7 +94,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -102,7 +102,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Can't retrieve cluster for key '%s': %v", clusterKey, err)
+		return fmt.Errorf("can't retrieve cluster for key '%s': %v", clusterKey, err)
 	}
 
 	if cluster.State() != cmv1.ClusterStateReady {
@@ -122,7 +122,7 @@ func run(cmd *cobra.Command, argv []string) error {
 				clusterKey,
 			)
 		}
-		return fmt.Errorf("Failed to get KubeletConfig for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get KubeletConfig for cluster '%s': %v", clusterKey, err)
 	}
 
 	var confirmed bool
@@ -140,13 +140,13 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	kubeletConfig, err := cmv1.NewKubeletConfig().PodPidsLimit(args.podPidsLimit).Build()
 	if err != nil {
-		return fmt.Errorf("Failed to build KubeletConfig: %v", err)
+		return fmt.Errorf("failed to build KubeletConfig: %v", err)
 	}
 
 	_, err = connection.ClustersMgmt().V1().Clusters().
 		Cluster(cluster.ID()).KubeletConfig().Update().Body(kubeletConfig).Send()
 	if err != nil {
-		return fmt.Errorf("Failed to update KubeletConfig for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to update KubeletConfig for cluster '%s': %v", clusterKey, err)
 	}
 
 	fmt.Printf("Successfully updated KubeletConfig for cluster '%s'\n", clusterKey)

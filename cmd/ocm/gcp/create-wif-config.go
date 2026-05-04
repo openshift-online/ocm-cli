@@ -106,7 +106,7 @@ func validationForCreateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 	}
 
 	if CreateWifConfigOpts.Mode != ModeAuto && CreateWifConfigOpts.Mode != ModeManual {
-		return fmt.Errorf("Invalid mode. Allowed values are %s", Modes)
+		return fmt.Errorf("invalid mode. Allowed values are %s", Modes)
 	}
 
 	var err error
@@ -150,7 +150,7 @@ func promptProjectId() error {
 				survey.WithValidator(survey.Required),
 			)
 		}
-		return fmt.Errorf("Flag 'project' is required")
+		return fmt.Errorf("flag 'project' is required")
 	}
 	return nil
 }
@@ -240,22 +240,22 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	if err := gcpClientWifConfigShim.GrantSupportAccess(ctx, log); err != nil {
 		log.Printf("Failed to grant support access to project: %s", err)
-		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
+		return fmt.Errorf("to clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 	if err := gcpClientWifConfigShim.CreateWorkloadIdentityPool(ctx, log); err != nil {
 		log.Printf("Failed to create workload identity pool: %s", err)
-		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
+		return fmt.Errorf("to clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 	if err = gcpClientWifConfigShim.CreateWorkloadIdentityProvider(ctx, log); err != nil {
 		log.Printf("Failed to create workload identity provider: %s", err)
-		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
+		return fmt.Errorf("to clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 	if err = gcpClientWifConfigShim.CreateServiceAccounts(ctx, log); err != nil {
 		log.Printf("Failed to create IAM service accounts: %s", err)
-		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
+		return fmt.Errorf("to clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
 	//The IAM API is eventually consistent. If the user created the service
@@ -270,7 +270,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		}
 		return false, nil
 	}, IamApiRetrySeconds, log); err != nil {
-		return fmt.Errorf("Timed out verifying wif-config resources\n"+
+		return fmt.Errorf("timed out verifying wif-config resources\n"+
 			"Please run 'ocm gcp update wif-config %s' to repair potential misconfigurations "+
 			"and to complete the wif-config creation process", wifConfig.ID())
 	}

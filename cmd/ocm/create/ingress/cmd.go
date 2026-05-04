@@ -80,7 +80,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -90,7 +90,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	if args.labelMatch != "" {
 		for _, labelMatch := range strings.Split(args.labelMatch, ",") {
 			if !strings.Contains(labelMatch, "=") {
-				return fmt.Errorf("Expected key=value format for label-match")
+				return fmt.Errorf("expected key=value format for label-match")
 			}
 			tokens := strings.Split(labelMatch, "=")
 			routeSelectors[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
@@ -100,7 +100,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -109,11 +109,11 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	cluster, err := c.GetCluster(connection, clusterKey)
 	if err != nil {
-		return fmt.Errorf("Failed to get cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to get cluster '%s': %v", clusterKey, err)
 	}
 
 	if cluster.State() != cmv1.ClusterStateReady {
-		return fmt.Errorf("Cluster '%s' is not yet ready", clusterKey)
+		return fmt.Errorf("cluster '%s' is not yet ready", clusterKey)
 	}
 
 	ingressBuilder := cmv1.NewIngress()
@@ -129,7 +129,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	ingress, err := ingressBuilder.Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create ingress for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to create ingress for cluster '%s': %v", clusterKey, err)
 	}
 
 	_, err = clusterCollection.Cluster(cluster.ID()).
@@ -138,7 +138,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Body(ingress).
 		Send()
 	if err != nil {
-		return fmt.Errorf("Failed to add ingress to cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to add ingress to cluster '%s': %v", clusterKey, err)
 	}
 	return nil
 }

@@ -63,7 +63,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	clusterKey := args.clusterKey
 	if !c.IsValidClusterKey(clusterKey) {
 		return fmt.Errorf(
-			"Cluster name, identifier or external identifier '%s' isn't valid: it "+
+			"cluster name, identifier or external identifier '%s' isn't valid: it "+
 				"must contain only letters, digits, dashes and underscores",
 			clusterKey,
 		)
@@ -94,7 +94,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 	err = survey.AskOne(prompt, &scheduleType)
 	if err != nil {
-		return fmt.Errorf("Failed to get a policy type")
+		return fmt.Errorf("failed to get a policy type")
 	}
 
 	var upgradeBuilder *cmv1.UpgradePolicyBuilder
@@ -107,7 +107,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		var day string
 		err = survey.AskOne(prompt, &day)
 		if err != nil {
-			return fmt.Errorf("Failed to get a valid day")
+			return fmt.Errorf("failed to get a valid day")
 		}
 
 		var daysOfWeek = map[string]time.Weekday{
@@ -122,7 +122,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		dayInt, ok := daysOfWeek[day]
 		if !ok {
-			return fmt.Errorf("Failed to get a valid day")
+			return fmt.Errorf("failed to get a valid day")
 		}
 
 		hours := make([]string, 24)
@@ -139,7 +139,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		var hour string
 		err = survey.AskOne(prompt, &hour)
 		if err != nil {
-			return fmt.Errorf("Failed to get a valid hour")
+			return fmt.Errorf("failed to get a valid hour")
 		}
 
 		hourInt, err := strconv.Atoi(strings.Split(hour, ":")[0])
@@ -167,7 +167,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 		err = survey.AskOne(prompt, &version)
 		if err != nil {
-			return fmt.Errorf("Failed to get a valid version to upgrade to")
+			return fmt.Errorf("failed to get a valid version to upgrade to")
 		}
 		prompt = &survey.Select{
 			Message: "Schedule Upgrade",
@@ -175,7 +175,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 		err = survey.AskOne(prompt, &upgradePreference)
 		if err != nil {
-			return fmt.Errorf("Failed to get an upgrade time preference")
+			return fmt.Errorf("failed to get an upgrade time preference")
 		}
 		if upgradePreference == "Upgrade now" {
 			timestamp = time.Now().UTC().Add(time.Minute * 10)
@@ -230,7 +230,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	upgradePolicy, err := upgradeBuilder.Build()
 	if err != nil {
-		return fmt.Errorf("Failed to set an upgrade policy for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("failed to set an upgrade policy for cluster '%s': %v", clusterKey, err)
 	}
 
 	_, err = clusterCollection.Cluster(cluster.ID()).
@@ -239,7 +239,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		Body(upgradePolicy).
 		Send()
 	if err != nil {
-		return fmt.Errorf("Failed to create upgrade policy for cluster: %v", err)
+		return fmt.Errorf("failed to create upgrade policy for cluster: %v", err)
 	}
 	fmt.Println("upgrade policy successfully created")
 

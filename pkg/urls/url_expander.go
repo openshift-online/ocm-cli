@@ -67,7 +67,7 @@ var individualResourceURLs = map[string]string{
 // ID of the resource.
 func Expand(argv []string) (string, error) {
 	if len(argv) < 1 || len(argv) > 2 {
-		msg := fmt.Errorf("Expected 1 (for Lists) or 2 (for a specific resource) but got %d", len(argv))
+		msg := fmt.Errorf("expected 1 (for Lists) or 2 (for a specific resource) but got %d", len(argv))
 		return "", msg
 	}
 
@@ -102,7 +102,7 @@ func Resources() []string {
 
 func expandResourceWithID(path string, argv []string) (string, error) {
 	if len(argv) != 2 {
-		return "", fmt.Errorf("Resource requires an ID, but got none")
+		return "", fmt.Errorf("resource requires an ID, but got none")
 	}
 	return fmt.Sprintf(path, argv[1]), nil
 }

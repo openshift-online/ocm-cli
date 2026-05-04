@@ -71,7 +71,7 @@ func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 	var err error
 
 	if UpdateWifConfigOpts.Mode != ModeAuto && UpdateWifConfigOpts.Mode != ModeManual {
-		return fmt.Errorf("Invalid mode. Allowed values are %s", Modes)
+		return fmt.Errorf("invalid mode. Allowed values are %s", Modes)
 	}
 
 	UpdateWifConfigOpts.TargetDir, err = getPathFromFlag(UpdateWifConfigOpts.TargetDir)
@@ -162,22 +162,22 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	log.Println("Updating support access...")
 	if err := gcpClientWifConfigShim.GrantSupportAccess(ctx, log); err != nil {
-		return fmt.Errorf("Failed to grant support access to project: %s", err)
+		return fmt.Errorf("failed to grant support access to project: %s", err)
 	}
 
 	log.Println("Updating workload identity pool...")
 	if err := gcpClientWifConfigShim.CreateWorkloadIdentityPool(ctx, log); err != nil {
-		return fmt.Errorf("Failed to update workload identity pool: %s", err)
+		return fmt.Errorf("failed to update workload identity pool: %s", err)
 	}
 
 	log.Println("Updating oidc provider...")
 	if err = gcpClientWifConfigShim.CreateWorkloadIdentityProvider(ctx, log); err != nil {
-		return fmt.Errorf("Failed to update workload identity provider: %s", err)
+		return fmt.Errorf("failed to update workload identity provider: %s", err)
 	}
 
 	log.Println("Updating service accounts...")
 	if err = gcpClientWifConfigShim.CreateServiceAccounts(ctx, log); err != nil {
-		return fmt.Errorf("Failed to update IAM service accounts: %s", err)
+		return fmt.Errorf("failed to update IAM service accounts: %s", err)
 	}
 
 	//The IAM API is eventually consistent. If the user created the service
@@ -192,7 +192,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		}
 		return false, nil
 	}, IamApiRetrySeconds, log); err != nil {
-		return fmt.Errorf("Timed out verifying wif-config resources\n"+
+		return fmt.Errorf("timed out verifying wif-config resources\n"+
 			"Please try 'ocm gcp update wif-config %s' again in a few minutes, "+
 			"or contact Red Hat support.", wifConfig.ID())
 	}

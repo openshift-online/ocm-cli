@@ -50,7 +50,7 @@ func buildGoogleIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &clientID)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a Google application Client ID")
+				return idpBuilder, errors.New("expected a Google application Client ID")
 			}
 		}
 
@@ -60,7 +60,7 @@ func buildGoogleIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &clientSecret)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a Google application Client Secret")
+				return idpBuilder, errors.New("expected a Google application Client Secret")
 			}
 		}
 
@@ -70,7 +70,7 @@ func buildGoogleIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &hostedDomain)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a valid Hosted Domain")
+				return idpBuilder, errors.New("expected a valid Hosted Domain")
 			}
 		}
 	}
@@ -83,7 +83,7 @@ func buildGoogleIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 	if hostedDomain != "" {
 		hostedDomainParsed, err := url.ParseRequestURI(hostedDomain)
 		if err != nil {
-			return idpBuilder, fmt.Errorf("Expected a valid Hosted Domain: %v", err)
+			return idpBuilder, fmt.Errorf("expected a valid Hosted Domain: %v", err)
 		}
 		// Set the hosted domain, if any
 		googleIDP = googleIDP.HostedDomain(hostedDomainParsed.Hostname())

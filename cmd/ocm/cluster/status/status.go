@@ -33,13 +33,13 @@ var Cmd = &cobra.Command{
 func run(cmd *cobra.Command, argv []string) error {
 
 	if len(argv) != 1 {
-		return fmt.Errorf("Expected exactly one cluster id")
+		return fmt.Errorf("expected exactly one cluster id")
 	}
 
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -53,7 +53,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Retrieve the collection of clusters:
 	response, err := clusterResource.Get().Send()
 	if err != nil {
-		return fmt.Errorf("Can't retrieve clusters: %s", err)
+		return fmt.Errorf("can't retrieve clusters: %s", err)
 	}
 
 	cluster := response.Body()
@@ -65,7 +65,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	search := fmt.Sprintf("cluster_id = '%s'", clusterID)
 	subsList, err := connection.AccountsMgmt().V1().Subscriptions().List().Search(search).Send()
 	if err != nil {
-		return fmt.Errorf("Can't retrieve subscriptions: %s", err)
+		return fmt.Errorf("can't retrieve subscriptions: %s", err)
 	}
 	size, ok := subsList.GetSize()
 	if !ok || size == 0 {

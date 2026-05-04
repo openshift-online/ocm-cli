@@ -51,7 +51,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	fmt.Fprintf(os.Stdout, "Discovery URL: %s\n\n", gatewayURL)
 	regions, err := sdk.GetRhRegions(gatewayURL)
 	if err != nil {
-		return fmt.Errorf("Failed to get OCM regions: %w", err)
+		return fmt.Errorf("failed to get OCM regions: %w", err)
 	}
 
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent)

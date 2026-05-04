@@ -55,7 +55,7 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &clientID)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a valid application Client ID")
+				return idpBuilder, errors.New("expected a valid application Client ID")
 			}
 		}
 
@@ -65,7 +65,7 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &clientSecret)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a valid application Client Secret")
+				return idpBuilder, errors.New("expected a valid application Client Secret")
 			}
 		}
 
@@ -75,7 +75,7 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &issuerURL)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a valid OpenID Issuer URL")
+				return idpBuilder, errors.New("expected a valid OpenID Issuer URL")
 			}
 		}
 
@@ -85,7 +85,7 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &email)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a list of claims to use as the email address")
+				return idpBuilder, errors.New("expected a list of claims to use as the email address")
 			}
 		}
 
@@ -95,7 +95,7 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &name)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a list of claims to use as the display name")
+				return idpBuilder, errors.New("expected a list of claims to use as the display name")
 			}
 		}
 
@@ -105,7 +105,7 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &username)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a list of claims to use as the preferred username")
+				return idpBuilder, errors.New("expected a list of claims to use as the preferred username")
 			}
 		}
 
@@ -115,21 +115,21 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 			}
 			err = survey.AskOne(prompt, &extraScopes)
 			if err != nil {
-				return idpBuilder, errors.New("Expected a list of extra scopes to request")
+				return idpBuilder, errors.New("expected a list of extra scopes to request")
 			}
 		}
 	}
 
 	if email == "" && name == "" && username == "" {
-		return idpBuilder, errors.New("At least one claim is required: [email-claims name-claims username-claims]")
+		return idpBuilder, errors.New("at least one claim is required: [email-claims name-claims username-claims]")
 	}
 
 	parsedIssuerURL, err := url.ParseRequestURI(issuerURL)
 	if err != nil {
-		return idpBuilder, fmt.Errorf("Expected a valid OpenID issuer URL: %v", err)
+		return idpBuilder, fmt.Errorf("expected a valid OpenID issuer URL: %v", err)
 	}
 	if parsedIssuerURL.Scheme != "https" {
-		return idpBuilder, errors.New("Expected OpenID issuer URL to use an https:// scheme")
+		return idpBuilder, errors.New("expected OpenID issuer URL to use an https:// scheme")
 	}
 	if parsedIssuerURL.RawQuery != "" {
 		return idpBuilder, errors.New("OpenID issuer URL must not have query parameters")

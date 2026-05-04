@@ -76,7 +76,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		userConn, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 			Send()
 		if err != nil {
-			return fmt.Errorf("Can't retrieve current user information: %v", err)
+			return fmt.Errorf("can't retrieve current user information: %v", err)
 		}
 		userOrg, _ := userConn.Body().GetOrganization()
 		orgID = userOrg.ID()
@@ -86,7 +86,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	orgCollection := connection.AccountsMgmt().V1().Organizations().Organization(orgID)
 	orgResponse, err := orgCollection.Get().Send()
 	if err != nil {
-		return fmt.Errorf("Can't retrieve organization information: %v", err)
+		return fmt.Errorf("can't retrieve organization information: %v", err)
 	}
 	quotaClient := orgCollection.QuotaCost()
 
@@ -98,7 +98,7 @@ func run(cmd *cobra.Command, argv []string) error {
 			Parameter("fetchRelatedResources", true).
 			Send()
 		if err != nil {
-			return fmt.Errorf("Failed to retrieve quota: %v", err)
+			return fmt.Errorf("failed to retrieve quota: %v", err)
 		}
 
 		// Display quota information:
@@ -122,12 +122,12 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Sprintf("/api/accounts_mgmt/v1/organizations/%s/resource_quota", orgID)).
 		Send()
 	if err != nil {
-		return fmt.Errorf("Failed to get resource quota: %v", err)
+		return fmt.Errorf("failed to get resource quota: %v", err)
 	}
 	jsonDisplay.Bytes()
 	err = dump.Pretty(os.Stdout, jsonDisplay.Bytes())
 	if err != nil {
-		return fmt.Errorf("Failed to display quota JSON: %v", err)
+		return fmt.Errorf("failed to display quota JSON: %v", err)
 	}
 
 	return nil

@@ -41,7 +41,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -49,7 +49,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	response, err := connection.AccountsMgmt().V1().CurrentAccount().Get().
 		Send()
 	if err != nil {
-		return fmt.Errorf("Can't send request: %v", err)
+		return fmt.Errorf("can't send request: %v", err)
 	}
 
 	// Buffer for pretty output:
@@ -58,7 +58,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Output account info.
 	err = amsv1.MarshalAccount(response.Body(), buf)
 	if err != nil {
-		return fmt.Errorf("Failed to marshal account into JSON encoder: %v", err)
+		return fmt.Errorf("failed to marshal account into JSON encoder: %v", err)
 	}
 
 	if response.Status() < 400 {
@@ -67,7 +67,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		err = dump.Pretty(os.Stderr, buf.Bytes())
 	}
 	if err != nil {
-		return fmt.Errorf("Can't print body: %v", err)
+		return fmt.Errorf("can't print body: %v", err)
 	}
 
 	return nil

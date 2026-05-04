@@ -175,7 +175,9 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	// Unless noHeaders set, print header row:
 	if !args.noHeaders {
-		table.WriteHeaders()
+		if err = table.WriteHeaders(); err != nil {
+			return err
+		}
 	}
 
 	// Create the request. Note that this request can be created outside of the loop and used
@@ -193,7 +195,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		request.Page(index)
 		response, err := request.Send()
 		if err != nil {
-			return fmt.Errorf("Can't retrieve clusters: %v", err)
+			return fmt.Errorf("can't retrieve clusters: %v", err)
 		}
 
 		// Display the items of the fetched page:

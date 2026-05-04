@@ -103,7 +103,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
@@ -114,13 +114,13 @@ func run(cmd *cobra.Command, argv []string) error {
 		// Get new tokens:
 		accessToken, refreshToken, err = connection.Tokens(15 * time.Minute)
 		if err != nil {
-			return fmt.Errorf("Can't get new tokens: %v", err)
+			return fmt.Errorf("can't get new tokens: %v", err)
 		}
 	} else {
 		// Get the tokens:
 		accessToken, refreshToken, err = connection.Tokens()
 		if err != nil {
-			return fmt.Errorf("Can't get token: %v", err)
+			return fmt.Errorf("can't get token: %v", err)
 		}
 	}
 
@@ -134,37 +134,37 @@ func run(cmd *cobra.Command, argv []string) error {
 	parser := new(jwt.Parser)
 	_, parts, err := parser.ParseUnverified(selectedToken, jwt.MapClaims{})
 	if err != nil {
-		return fmt.Errorf("Can't parse token: %v", err)
+		return fmt.Errorf("can't parse token: %v", err)
 	}
 	encoding := base64.RawURLEncoding
 	header, err := encoding.DecodeString(parts[0])
 	if err != nil {
-		return fmt.Errorf("Can't decode header: %v", err)
+		return fmt.Errorf("can't decode header: %v", err)
 	}
 	payload, err := encoding.DecodeString(parts[1])
 	if err != nil {
-		return fmt.Errorf("Can't decode payload: %v", err)
+		return fmt.Errorf("can't decode payload: %v", err)
 	}
 	signature, err := encoding.DecodeString(parts[2])
 	if err != nil {
-		return fmt.Errorf("Can't decode signature: %v", err)
+		return fmt.Errorf("can't decode signature: %v", err)
 	}
 
 	// Print the data:
 	if args.header {
 		err = dump.Pretty(os.Stdout, header)
 		if err != nil {
-			return fmt.Errorf("Can't dump header: %v", err)
+			return fmt.Errorf("can't dump header: %v", err)
 		}
 	} else if args.payload {
 		err = dump.Pretty(os.Stdout, payload)
 		if err != nil {
-			return fmt.Errorf("Can't dump payload: %v", err)
+			return fmt.Errorf("can't dump payload: %v", err)
 		}
 	} else if args.signature {
 		err = dump.Pretty(os.Stdout, signature)
 		if err != nil {
-			return fmt.Errorf("Can't dump signature: %v", err)
+			return fmt.Errorf("can't dump signature: %v", err)
 		}
 	} else {
 		fmt.Fprintf(os.Stdout, "%s\n", selectedToken)
@@ -173,7 +173,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Load the configuration file:
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
+		return fmt.Errorf("can't load config file: %v", err)
 	}
 
 	// Save the configuration:
@@ -181,7 +181,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.RefreshToken = refreshToken
 	err = config.Save(cfg)
 	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
+		return fmt.Errorf("can't save config file: %v", err)
 	}
 
 	// Bye:

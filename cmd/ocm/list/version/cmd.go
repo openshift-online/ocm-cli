@@ -69,14 +69,14 @@ func run(cmd *cobra.Command, argv []string) error {
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("failed to create OCM connection: %v", err)
 	}
 	defer connection.Close()
 
 	client := connection.ClustersMgmt().V1()
 	versions, defaultVersion, err := cluster.GetEnabledVersions(client, "", args.channelGroup, args.marketplaceGcp, "")
 	if err != nil {
-		return fmt.Errorf("Can't retrieve versions: %v", err)
+		return fmt.Errorf("can't retrieve versions: %v", err)
 	}
 
 	if args.defaultVersion {
