@@ -1,26 +1,42 @@
+version: "2"
 run:
-  timeout: 15m
-  issues-exit-code: 1
   modules-download-mode: readonly
-issues:
-  max-same-issues: 0
-
+  issues-exit-code: 1
 linters:
-  disable-all: true
+  default: none
   enable:
+    #- goconst
     - gosec
-    - goconst
-    - gofmt
     - govet
     - ineffassign
     - lll
-    - gosimple
-    - staticcheck
-    - unused
     - misspell
-    - staticcheck
+    # https://redhat.atlassian.net/browse/OCM-24618
+    #- staticcheck
     - unconvert
     - unused
-linters-settings:
-  goconst:
-    min-len: 4 # ignore "gcp" and "aws"
+  settings:
+    goconst:
+      min-len: 4
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

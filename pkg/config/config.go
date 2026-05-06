@@ -123,7 +123,8 @@ func Save(cfg *Config) error {
 		return err
 	}
 
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	// Gosec linter rule is skipped as the field names are required by API, not hardcoded.
+	data, err := json.MarshalIndent(cfg, "", "  ") // #nosec G117
 	if err != nil {
 		return fmt.Errorf("can't marshal config: %v", err)
 	}

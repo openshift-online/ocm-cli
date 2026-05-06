@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Fake test credentials are used in this file.
+// This is not a security issue, so this rule is being skipped for this file.
+// #nosec G101
+
 package config
 
 import (
