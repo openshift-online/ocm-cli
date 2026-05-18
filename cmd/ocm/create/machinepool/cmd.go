@@ -36,6 +36,7 @@ type Args struct {
 	AdditionalSecurityGroupIds []string
 	AvailabilityZone           string
 	SecureBoot                 bool
+	RootDiskSize               int
 }
 
 var args Args
@@ -131,6 +132,13 @@ func init() {
 		"Secure Boot enables the use of Shielded VMs in the Google Cloud Platform for the instances in this machine pool. "+
 			"This will override the cluster level configuration of secure boot.",
 	)
+
+	flags.IntVar(
+		&args.RootDiskSize,
+		"root-disk-size",
+		0,
+		"Root disk size in GiB for machine pool nodes.",
+	)
 }
 
 func run(cmd *cobra.Command, argv []string) error {
@@ -161,7 +169,7 @@ func run(cmd *cobra.Command, argv []string) error {
 
 	machinePoolId := argv[0]
 
-	machinePool, err := buildMachinePool(machinePoolId, &flagSet{cmd.Flags()})
+	machinePool, err := buildMachinePool(machinePoolId, &flagSet{cmd.Flags()}, cluster)
 	if err != nil {
 		return err
 	}
@@ -270,12 +278,17 @@ func VerifyArguments(
 			c.ProviderGCP)
 	}
 
+	if flags.Changed("root-disk-size") && args.RootDiskSize <= 0 {
+		return fmt.Errorf("--root-disk-size must be a positive value")
+	}
+
 	return nil
 }
 
 func buildMachinePool(
 	machinePoolId string,
 	flags FlagSet,
+	cluster ocm.Cluster,
 ) (*cmv1.MachinePool, error) {
 	labels := make(map[string]string)
 	if args.Labels != "" {
@@ -325,6 +338,24 @@ func buildMachinePool(
 
 	if args.AvailabilityZone != "" {
 		mpBuilder = mpBuilder.AvailabilityZones(args.AvailabilityZone)
+	}
+
+	if args.RootDiskSize > 0 {
+		rootVolumeBuilder := cmv1.NewRootVolume()
+		// Determine provider from cluster to set appropriate root volume
+		// For now, we'll need to get the cluster provider
+		if cluster.CloudProviderId() == c.ProviderAWS {
+			rootVolumeBuilder = rootVolumeBuilder.AWS(
+				cmv1.NewAWSVolume().Size(args.RootDiskSize),
+			)
+		} else if cluster.CloudProviderId() == c.ProviderGCP {
+			rootVolumeBuilder = rootVolumeBuilder.GCP(
+				cmv1.NewGCPVolume().Size(args.RootDiskSize),
+			)
+		} else {
+			return nil, fmt.Errorf("--root-disk-size specified for unsupported cloud provider")
+		}
+		mpBuilder = mpBuilder.RootVolume(rootVolumeBuilder)
 	}
 
 	machinePool, err := mpBuilder.Build()

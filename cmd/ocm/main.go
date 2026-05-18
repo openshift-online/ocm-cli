@@ -75,8 +75,13 @@ func init() {
 	}
 
 	// Register the options that are managed by the 'flag' package, so that they will also be parsed
-	// by the 'pflag' package:
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	// by the 'pflag' package (excluding ginkgo test flags):
+	flag.CommandLine.VisitAll(func(f *flag.Flag) {
+		// Skip ginkgo flags to keep CLI help clean
+		if !strings.HasPrefix(f.Name, "ginkgo.") {
+			pflag.CommandLine.AddGoFlag(f)
+		}
+	})
 
 	// Add the command line flags:
 	fs := root.PersistentFlags()

@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -468,6 +469,10 @@ func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) err
 func printManagedZone(connection *sdk.Connection, zoneId string) error {
 	resp, err := connection.ClustersMgmt().V1().DNSDomains().DNSDomain(zoneId).Get().Send()
 	if err != nil {
+		// Some clusters do not have associated dns domain records as this time. These will be skipped for now.
+		if resp != nil && resp.Status() == http.StatusNotFound {
+			return nil
+		}
 		return fmt.Errorf("failed to get DNS domain '%s': %v", zoneId, err)
 	}
 	dnsDomain := resp.Body()

@@ -86,6 +86,7 @@ type Spec struct {
 	ComputeMachineType string
 	ComputeNodes       int
 	Autoscaling        Autoscaling
+	RootDiskSize       int
 
 	// Network config
 	NetworkType string
@@ -552,12 +553,27 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 	}
 
 	if config.ComputeMachineType != "" || config.ComputeNodes > 0 || len(config.ExistingVPC.AvailabilityZones) > 0 ||
-		config.Autoscaling.Enabled {
+		config.Autoscaling.Enabled || config.RootDiskSize > 0 {
 		clusterNodesBuilder := cmv1.NewClusterNodes()
 		if config.ComputeMachineType != "" {
 			clusterNodesBuilder = clusterNodesBuilder.ComputeMachineType(
 				cmv1.NewMachineType().ID(config.ComputeMachineType),
 			)
+		}
+		if config.RootDiskSize > 0 {
+			rootVolumeBuilder := cmv1.NewRootVolume()
+			if config.Provider == ProviderAWS {
+				rootVolumeBuilder = rootVolumeBuilder.AWS(
+					cmv1.NewAWSVolume().Size(config.RootDiskSize),
+				)
+			} else if config.Provider == ProviderGCP {
+				rootVolumeBuilder = rootVolumeBuilder.GCP(
+					cmv1.NewGCPVolume().Size(config.RootDiskSize),
+				)
+			} else {
+				return nil, fmt.Errorf("--root-disk-size specified for unsupported cloud provider")
+			}
+			clusterNodesBuilder = clusterNodesBuilder.ComputeRootVolume(rootVolumeBuilder)
 		}
 		clusterNodesBuilder = buildCompute(config, clusterNodesBuilder)
 

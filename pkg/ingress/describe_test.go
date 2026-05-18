@@ -44,4 +44,32 @@ var _ = Describe("Retrieve map of entries for output", func() {
 		mapOutput := generateEntriesOutput(cluster, ingress)
 		Expect(mapOutput).To(HaveLen(10))
 	})
+
+	It("retrieves map with excluded namespace selectors", func() {
+		cluster, err := cmv1.NewCluster().ID("123").Build()
+		Expect(err).To(BeNil())
+		ingress, err := cmv1.NewIngress().
+			ID("123").
+			Default(true).
+			Listening(cmv1.ListeningMethodExternal).
+			LoadBalancerType(cmv1.LoadBalancerFlavorNlb).
+			RouteWildcardPolicy(cmv1.WildcardPolicyWildcardsAllowed).
+			RouteNamespaceOwnershipPolicy(cmv1.NamespaceOwnershipPolicyStrict).
+			RouteSelectors(map[string]string{
+				"test-route": "test-selector",
+			}).
+			ExcludedNamespaces("test", "test2").
+			ExcludedNamespaceSelectors(
+				cmv1.NewNamespaceSelector().Key("key1").Values("val1", "val3"),
+				cmv1.NewNamespaceSelector().Key("key2").Values("val2"),
+			).
+			ComponentRoutes(map[string]*cmv1.ComponentRouteBuilder{
+				string(cmv1.ComponentRouteTypeOauth): v1.NewComponentRoute().
+					Hostname("oauth-hostname").TlsSecretRef("oauth-secret"),
+			}).
+			Build()
+		Expect(err).To(BeNil())
+		mapOutput := generateEntriesOutput(cluster, ingress)
+		Expect(mapOutput).To(HaveKey("Excluded Namespace Selectors"))
+	})
 })

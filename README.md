@@ -3,6 +3,14 @@
 This project contains the `ocm` command line tool that simplifies the use
 of the _OCM_ API available at https://api.openshift.com.
 
+## Quick Start
+
+```bash
+make install     # Build and install the ocm binary
+make test        # Run all tests
+make lint        # Run linters
+```
+
 ## Installation
 
 ### Linux Package Manager

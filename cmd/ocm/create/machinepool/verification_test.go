@@ -232,5 +232,6 @@ func addChangedFlags(
 	mockFlagSet.EXPECT().Changed("min-replicas").MinTimes(1).Return(minReplicas)
 	mockFlagSet.EXPECT().Changed("max-replicas").MinTimes(1).Return(maxReplicas)
 	mockFlagSet.EXPECT().Changed("replicas").MinTimes(1).Return(replicas)
+	mockFlagSet.EXPECT().Changed("root-disk-size").AnyTimes().Return(false)
 	return mockFlagSet
 }
