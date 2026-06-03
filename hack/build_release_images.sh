@@ -19,7 +19,7 @@ do
     fi
     GOOS=${os} GOARCH=${arch} go build -o /tmp/ocm_${os}_${arch} ./cmd/ocm
     mv /tmp/ocm_${os}_${arch} ocm${extension}
-    zip releases/ocm_${os}_${arch}.zip ocm${extension}
+    tar -zcf releases/ocm_${os}_${arch}.tar.gz ocm${extension}
     rm ocm${extension}
   done
 done
