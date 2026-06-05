@@ -53,6 +53,15 @@ func IsEncryptedToken(textToken string) bool {
 	return false
 }
 
+func IsJWTToken(textToken string) bool {
+	parts := strings.Split(textToken, ".")
+	return len(parts) == 3
+}
+
+func IsOpaqueToken(textToken string) bool {
+	return textToken != "" && !IsJWTToken(textToken) && !IsEncryptedToken(textToken)
+}
+
 func ParseToken(textToken string) (token *jwt.Token, err error) {
 	parser := new(jwt.Parser)
 	token, _, err = parser.ParseUnverified(textToken, jwt.MapClaims{})
@@ -64,6 +73,12 @@ func ParseToken(textToken string) (token *jwt.Token, err error) {
 
 // tokenUsable checks if the given token is usable.
 func tokenUsable(token string, margin time.Duration) (usable bool, err error) {
+	if !IsJWTToken(token) {
+		// We have no way of knowing an opaque token's expiration, so
+		// we assume it's valid and let the server decide.
+		usable = true
+		return
+	}
 	parsed, err := ParseToken(token)
 	if err != nil {
 		return

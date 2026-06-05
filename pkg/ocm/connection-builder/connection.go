@@ -15,6 +15,7 @@ package connection
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/golang/glog"
 	"github.com/openshift-online/ocm-common/pkg/deprecation"
@@ -118,8 +119,23 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 	return builder.Build()
 }
 
+func (b *ConnectionBuilder) hasOpaqueAccessToken() bool {
+	return config.IsOpaqueToken(b.cfg.AccessToken)
+}
+
 func (b *ConnectionBuilder) initConnectionBuilderFromConfig() *sdk.ConnectionBuilder {
-	builder := sdk.NewConnectionBuilder()
+	opaqueToken := b.hasOpaqueAccessToken()
+
+	var builder *sdk.ConnectionBuilder
+	if opaqueToken {
+		builder = sdk.NewUnauthenticatedConnectionBuilder()
+		token := b.cfg.AccessToken
+		builder.TransportWrapper(func(wrapped http.RoundTripper) http.RoundTripper {
+			return &opaqueTokenTransport{next: wrapped, token: token}
+		})
+	} else {
+		builder = sdk.NewConnectionBuilder()
+	}
 
 	// Add deprecation transport wrapper to automatically handle deprecation headers
 	builder.TransportWrapper(deprecation.NewTransportWrapper())
@@ -141,19 +157,33 @@ func (b *ConnectionBuilder) initConnectionBuilderFromConfig() *sdk.ConnectionBui
 	if b.cfg.URL != "" {
 		builder.URL(b.cfg.URL)
 	}
-	tokens := make([]string, 0, 2)
-	if b.cfg.AccessToken != "" {
-		tokens = append(tokens, b.cfg.AccessToken)
-	}
-	if b.cfg.RefreshToken != "" {
-		tokens = append(tokens, b.cfg.RefreshToken)
-	}
-	if len(tokens) > 0 {
-		builder.Tokens(tokens...)
+	if !opaqueToken {
+		tokens := make([]string, 0, 2)
+		if b.cfg.AccessToken != "" {
+			tokens = append(tokens, b.cfg.AccessToken)
+		}
+		if b.cfg.RefreshToken != "" {
+			tokens = append(tokens, b.cfg.RefreshToken)
+		}
+		if len(tokens) > 0 {
+			builder.Tokens(tokens...)
+		}
 	}
 	builder.Insecure(b.cfg.Insecure)
 
 	return builder
+}
+
+// opaqueTokenTransport injects an Authorization header for opaque (non-JWT)
+// tokens, bypassing the SDK's built-in token management.
+type opaqueTokenTransport struct {
+	next  http.RoundTripper
+	token string
+}
+
+func (t *opaqueTokenTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	request.Header.Set("Authorization", "Bearer "+t.token)
+	return t.next.RoundTrip(request)
 }
 
 // Returns the configured logger or a default if there is none configured

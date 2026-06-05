@@ -174,4 +174,66 @@ var _ = Describe("Armed", func() {
 		Expect(armed).To(BeFalse())
 		Expect(reason).To(Equal("credentials aren't set"))
 	})
+
+	It("Is armed if contains an opaque access token", func() {
+		config := &Config{
+			AccessToken: "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729",
+			URL:         "http://my-server.example.com",
+			TokenURL:    "http://my-sso.example.com",
+		}
+		armed, reason, err := config.Armed()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(armed).To(BeTrue())
+		Expect(reason).To(BeEmpty())
+	})
+
+	It("Is armed if contains an opaque refresh token", func() {
+		config := &Config{
+			RefreshToken: "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729",
+			URL:          "http://my-server.example.com",
+			TokenURL:     "http://my-sso.example.com",
+		}
+		armed, reason, err := config.Armed()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(armed).To(BeTrue())
+		Expect(reason).To(BeEmpty())
+	})
+})
+
+var _ = Describe("IsOpaqueToken", func() {
+	It("Returns true for an opaque token without dots", func() {
+		Expect(IsOpaqueToken("GONDOLIN_SECRET_d5bfa746c20ab8140fae5729")).To(BeTrue())
+	})
+
+	It("Returns false for a standard 3-segment JWT", func() {
+		token := MakeTokenString("Bearer", 15*time.Minute)
+		Expect(IsOpaqueToken(token)).To(BeFalse())
+	})
+
+	It("Returns false for an empty string", func() {
+		Expect(IsOpaqueToken("")).To(BeFalse())
+	})
+})
+
+var _ = Describe("IsJWTToken", func() {
+	It("Returns true for a standard 3-segment JWT", func() {
+		token := MakeTokenString("Bearer", 15*time.Minute)
+		Expect(IsJWTToken(token)).To(BeTrue())
+	})
+
+	It("Returns false for an opaque token without dots", func() {
+		Expect(IsJWTToken("GONDOLIN_SECRET_d5bfa746c20ab8140fae5729")).To(BeFalse())
+	})
+
+	It("Returns false for a token with one dot", func() {
+		Expect(IsJWTToken("some.token")).To(BeFalse())
+	})
+
+	It("Returns false for a 5-segment JWE token", func() {
+		Expect(IsJWTToken("a.b.c.d.e")).To(BeFalse())
+	})
+
+	It("Returns false for an empty string", func() {
+		Expect(IsJWTToken("")).To(BeFalse())
+	})
 })

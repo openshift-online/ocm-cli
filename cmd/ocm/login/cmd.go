@@ -256,6 +256,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		if config.IsEncryptedToken(args.token) {
 			cfg.AccessToken = ""
 			cfg.RefreshToken = args.token
+		} else if !config.IsJWTToken(args.token) {
+			// Opaque tokens can't be parsed, so we treat them as access tokens
+			// and let the server decide if they're valid.
+			cfg.AccessToken = args.token
+			cfg.RefreshToken = ""
 		} else {
 			// If a token has been provided parse it:
 			token, err := config.ParseToken(args.token)
@@ -329,20 +334,22 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.Password = args.password
 	cfg.Insecure = args.insecure
 
-	// Create a connection and get the token to verify that the crendentials are correct:
-	connection, err := ocm.NewConnection().Config(cfg).Build()
-	if err != nil {
-		return fmt.Errorf("Can't create connection: %v", err)
-	}
-	accessToken, refreshToken, err := connection.Tokens()
-	if err != nil {
-		return fmt.Errorf("Can't get token: %v", err)
+	if !config.IsOpaqueToken(cfg.AccessToken) {
+		// Create a connection and get the token to verify that the credentials are correct:
+		connection, err := ocm.NewConnection().Config(cfg).Build()
+		if err != nil {
+			return fmt.Errorf("Can't create connection: %v", err)
+		}
+		accessToken, refreshToken, err := connection.Tokens()
+		if err != nil {
+			return fmt.Errorf("Can't get token: %v", err)
+		}
+		cfg.AccessToken = accessToken
+		cfg.RefreshToken = refreshToken
 	}
 
 	// Save the configuration, but clear the user name and password before unless we have
 	// explicitly been asked to store them persistently:
-	cfg.AccessToken = accessToken
-	cfg.RefreshToken = refreshToken
 	if !args.persistent {
 		cfg.User = ""
 		cfg.Password = ""

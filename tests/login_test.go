@@ -112,6 +112,43 @@ var _ = Describe("Login", func() {
 		})
 	})
 
+	When("Using opaque token", func() {
+		It("Creates the configuration file", func() {
+			opaqueToken := "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729"
+
+			result := NewCommand().
+				Args(
+					"login",
+					"--token", opaqueToken,
+					"--token-url", ssoServer.URL(),
+				).
+				Run(ctx)
+
+			Expect(result.ExitCode()).To(BeZero())
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.ConfigFile()).ToNot(BeEmpty())
+			Expect(result.ConfigString()).To(MatchJSONTemplate(
+				`{
+					"url": "{{ .url }}",
+					"token_url": "{{ .tokenURL }}",
+					"client_id": "{{ .clientID }}",
+					"scopes": [
+						{{ range $i, $scope := .scopes }}
+							{{ if gt $i 0 }},{{ end }}
+							"{{ $scope }}"
+						{{ end }}
+					],
+					"access_token": "{{ .accessToken }}"
+				}`,
+				"url", sdk.DefaultURL,
+				"tokenURL", ssoServer.URL(),
+				"clientID", sdk.DefaultClientID,
+				"scopes", sdk.DefaultScopes,
+				"accessToken", opaqueToken,
+			))
+		})
+	})
+
 	When("Using client credentials grant", func() {
 		It("Creates the configuration file", func() {
 			// Create the token:
