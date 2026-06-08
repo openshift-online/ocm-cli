@@ -31,6 +31,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/opaquetoken"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 )
 
@@ -99,6 +100,15 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("could not create URI: %w", err)
 	}
 
+	// Load the configuration file:
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("can't load config file: %w", err)
+	}
+	if cfg == nil {
+		return fmt.Errorf("not logged in, run the 'login' command")
+	}
+
 	// Create the client for the OCM API:
 	connection, err := ocm.NewConnection().Build()
 	if err != nil {
@@ -132,23 +142,16 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("can't print body: %w", err)
 	}
 
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("can't load config file: %w", err)
-	}
-	if cfg == nil {
-		return fmt.Errorf("not logged in, run the 'login' command")
-	}
-
-	// Save the configuration:
-	cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
-	if err != nil {
-		return fmt.Errorf("can't get tokens: %w", err)
-	}
-	err = config.Save(cfg)
-	if err != nil {
-		return fmt.Errorf("can't save config file: %w", err)
+	// Save the configuration (skip for opaque tokens since the SDK does not manage them):
+	if !(cfg.OpaqueToken || opaquetoken.Enabled()) {
+		cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
+		if err != nil {
+			return fmt.Errorf("can't get tokens: %w", err)
+		}
+		err = config.Save(cfg)
+		if err != nil {
+			return fmt.Errorf("can't save config file: %w", err)
+		}
 	}
 
 	// Bye:

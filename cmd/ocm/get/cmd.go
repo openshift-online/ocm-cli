@@ -26,6 +26,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/opaquetoken"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 )
 
@@ -111,14 +112,16 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Can't print body: %v", err)
 	}
 
-	// Save the configuration:
-	cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
-	if err != nil {
-		return fmt.Errorf("Can't get tokens: %v", err)
-	}
-	err = config.Save(cfg)
-	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
+	// Save the configuration (skip for opaque tokens since the SDK does not manage them):
+	if !(cfg.OpaqueToken || opaquetoken.Enabled()) {
+		cfg.AccessToken, cfg.RefreshToken, err = connection.Tokens()
+		if err != nil {
+			return fmt.Errorf("Can't get tokens: %v", err)
+		}
+		err = config.Save(cfg)
+		if err != nil {
+			return fmt.Errorf("Can't save config file: %v", err)
+		}
 	}
 
 	// Bye:

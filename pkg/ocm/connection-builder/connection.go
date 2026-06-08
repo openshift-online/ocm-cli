@@ -15,6 +15,7 @@ package connection
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/golang/glog"
 	"github.com/openshift-online/ocm-common/pkg/deprecation"
@@ -24,6 +25,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/debug"
 	"github.com/openshift-online/ocm-cli/pkg/info"
+	"github.com/openshift-online/ocm-cli/pkg/opaquetoken"
 )
 
 // ConnectionBuilder contains the information and logic needed to build a connection to OCM. Don't
@@ -89,8 +91,10 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 		}
 	}
 
+	opaqueMode := b.cfg.OpaqueToken || opaquetoken.Enabled()
+
 	// Check that the configuration has credentials or tokens that haven't have expired:
-	armed, reason, err := b.cfg.Armed()
+	armed, reason, err := b.cfg.Armed(opaqueMode)
 	if err != nil {
 		return
 	}
@@ -99,7 +103,7 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 		return
 	}
 
-	builder := b.initConnectionBuilderFromConfig()
+	builder := b.initConnectionBuilderFromConfig(opaqueMode)
 
 	logger, err := b.getLogger()
 	if err != nil {
@@ -118,8 +122,17 @@ func (b *ConnectionBuilder) Build() (result *sdk.Connection, err error) {
 	return builder.Build()
 }
 
-func (b *ConnectionBuilder) initConnectionBuilderFromConfig() *sdk.ConnectionBuilder {
-	builder := sdk.NewConnectionBuilder()
+func (b *ConnectionBuilder) initConnectionBuilderFromConfig(opaqueMode bool) *sdk.ConnectionBuilder {
+	var builder *sdk.ConnectionBuilder
+	if opaqueMode {
+		builder = sdk.NewUnauthenticatedConnectionBuilder()
+		token := b.cfg.AccessToken
+		builder.TransportWrapper(func(wrapped http.RoundTripper) http.RoundTripper {
+			return &opaqueTokenTransport{next: wrapped, token: token}
+		})
+	} else {
+		builder = sdk.NewConnectionBuilder()
+	}
 
 	// Add deprecation transport wrapper to automatically handle deprecation headers
 	builder.TransportWrapper(deprecation.NewTransportWrapper())
@@ -141,19 +154,34 @@ func (b *ConnectionBuilder) initConnectionBuilderFromConfig() *sdk.ConnectionBui
 	if b.cfg.URL != "" {
 		builder.URL(b.cfg.URL)
 	}
-	tokens := make([]string, 0, 2)
-	if b.cfg.AccessToken != "" {
-		tokens = append(tokens, b.cfg.AccessToken)
-	}
-	if b.cfg.RefreshToken != "" {
-		tokens = append(tokens, b.cfg.RefreshToken)
-	}
-	if len(tokens) > 0 {
-		builder.Tokens(tokens...)
+	if !opaqueMode {
+		tokens := make([]string, 0, 2)
+		if b.cfg.AccessToken != "" {
+			tokens = append(tokens, b.cfg.AccessToken)
+		}
+		if b.cfg.RefreshToken != "" {
+			tokens = append(tokens, b.cfg.RefreshToken)
+		}
+		if len(tokens) > 0 {
+			builder.Tokens(tokens...)
+		}
 	}
 	builder.Insecure(b.cfg.Insecure)
 
 	return builder
+}
+
+// opaqueTokenTransport injects an Authorization header for opaque (non-JWT)
+// tokens, bypassing the SDK's built-in token management.
+type opaqueTokenTransport struct {
+	next  http.RoundTripper
+	token string
+}
+
+func (t *opaqueTokenTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	clone := request.Clone(request.Context())
+	clone.Header.Set("Authorization", "Bearer "+t.token)
+	return t.next.RoundTrip(clone)
 }
 
 // Returns the configured logger or a default if there is none configured

@@ -36,6 +36,52 @@ var _ = Describe("Get", func() {
 		ctx = context.Background()
 	})
 
+	When("Using opaque token", func() {
+		var apiServer *Server
+
+		BeforeEach(func() {
+			apiServer = MakeTCPServer()
+		})
+
+		AfterEach(func() {
+			apiServer.Close()
+		})
+
+		It("Preserves the opaque token in the config after a GET request", func() {
+			opaqueToken := "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729"
+
+			// Prepare the server:
+			apiServer.AppendHandlers(
+				RespondWithJSON(
+					http.StatusOK,
+					`{ "my_field": "my_value" }`,
+				),
+			)
+
+			// Run the command with opaque token config:
+			result := NewCommand().
+				ConfigString(
+					`{
+						"access_token": "{{ .accessToken }}",
+						"opaque_token": true,
+						"url": "{{ .url }}",
+						"token_url": "http://my-sso.example.com"
+					}`,
+					"accessToken", opaqueToken,
+					"url", apiServer.URL(),
+				).
+				Args("get", "/api/my_service/v1/my_object").
+				Run(ctx)
+
+			Expect(result.ExitCode()).To(BeZero())
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.OutString()).To(MatchJSON(`{ "my_field": "my_value" }`))
+
+			// Verify the opaque token is preserved in the config:
+			Expect(result.ConfigString()).To(ContainSubstring(opaqueToken))
+		})
+	})
+
 	When("Config file doesn't exist", func() {
 		It("Fails", func() {
 			getResult := NewCommand().

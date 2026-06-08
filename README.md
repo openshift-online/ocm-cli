@@ -156,6 +156,39 @@ as an alternative to storing the configuration in plain-text on your system.
 | macOS  | :x:  | :heavy_check_mark:*  | :x:  | :heavy_check_mark:  |
 | Linux  | :x:  | :x:  | :heavy_check_mark: | :heavy_check_mark: |
 
+## Using Opaque (Non-JWT) Tokens
+
+Some environments use opaque tokens that are not JWTs. The `ocm` CLI supports
+these tokens in two ways.
+
+### Per-invocation mode
+
+Pass the `--opaque-token` flag or set the `OCM_OPAQUE_TOKEN=true` environment
+variable. This tells the CLI to send the stored access token as-is without
+attempting JWT parsing or refresh:
+
+```
+$ ocm --opaque-token get /api/clusters_mgmt/v1/clusters
+```
+
+or:
+
+```
+$ export OCM_OPAQUE_TOKEN=true
+$ ocm get /api/clusters_mgmt/v1/clusters
+```
+
+### Persistent mode
+
+To store an opaque token in the configuration file so you do not need the flag
+on every invocation: `ocm config set opaque_token true`.
+
+When `opaque_token` is set in the configuration, the CLI will skip token
+refresh and JWT parsing for all commands.
+
+Note: the `--opaque-token` flag is not used with `ocm login`. Log in normally
+first, then configure the opaque token as shown above.
+
 ## Obtaining Tokens
 
 If you need the _OpenID_ access token to use it with some other tool, you can

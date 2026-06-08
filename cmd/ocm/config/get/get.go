@@ -71,6 +71,8 @@ func run(cmd *cobra.Command, argv []string) error {
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.ClientSecret)
 	case "insecure":
 		fmt.Fprintf(os.Stdout, "%v\n", cfg.Insecure)
+	case "opaque_token":
+		fmt.Fprintf(os.Stdout, "%v\n", cfg.OpaqueToken)
 	case "password":
 		fmt.Fprintf(os.Stdout, "%s\n", cfg.Password)
 	case "refresh_token":

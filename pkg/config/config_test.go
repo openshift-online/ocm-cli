@@ -37,7 +37,7 @@ var _ = Describe("Armed", func() {
 			URL:      "http://my-server.example.com",
 			TokenURL: "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeTrue())
 		Expect(reason).To(BeEmpty())
@@ -50,7 +50,7 @@ var _ = Describe("Armed", func() {
 			URL:          "http://my-server.example.com",
 			TokenURL:     "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeTrue())
 		Expect(reason).To(BeEmpty())
@@ -62,7 +62,7 @@ var _ = Describe("Armed", func() {
 			URL:         "http://my-server.example.com",
 			TokenURL:    "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeTrue())
 		Expect(reason).To(BeEmpty())
@@ -74,7 +74,7 @@ var _ = Describe("Armed", func() {
 			URL:         "http://my-server.example.com",
 			TokenURL:    "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeTrue())
 		Expect(reason).To(BeEmpty())
@@ -87,7 +87,7 @@ var _ = Describe("Armed", func() {
 			URL:          "http://my-server.example.com",
 			TokenURL:     "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeTrue())
 		Expect(reason).To(BeEmpty())
@@ -100,7 +100,7 @@ var _ = Describe("Armed", func() {
 			URL:          "http://my-server.example.com",
 			TokenURL:     "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeTrue())
 		Expect(reason).To(BeEmpty())
@@ -112,7 +112,7 @@ var _ = Describe("Armed", func() {
 			URL:         "http://my-server.example.com",
 			TokenURL:    "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeFalse())
 		Expect(reason).To(Equal("access token is expired"))
@@ -124,7 +124,7 @@ var _ = Describe("Armed", func() {
 			URL:          "http://my-server.example.com",
 			TokenURL:     "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeFalse())
 		Expect(reason).To(Equal("refresh token is expired"))
@@ -137,7 +137,7 @@ var _ = Describe("Armed", func() {
 			URL:          "http://my-server.example.com",
 			TokenURL:     "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeFalse())
 		Expect(reason).To(Equal("access and refresh tokens are expired"))
@@ -149,7 +149,7 @@ var _ = Describe("Armed", func() {
 			URL:      "http://my-server.example.com",
 			TokenURL: "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeFalse())
 		Expect(reason).To(Equal("credentials aren't set"))
@@ -161,7 +161,7 @@ var _ = Describe("Armed", func() {
 			URL:      "http://my-server.example.com",
 			TokenURL: "http://my-sso.example.com",
 		}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeFalse())
 		Expect(reason).To(Equal("credentials aren't set"))
@@ -169,9 +169,71 @@ var _ = Describe("Armed", func() {
 
 	It("Isn't armed if empty", func() {
 		config := &Config{}
-		armed, reason, err := config.Armed()
+		armed, reason, err := config.Armed(false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(armed).To(BeFalse())
 		Expect(reason).To(Equal("credentials aren't set"))
+	})
+
+	It("Is armed if OpaqueToken is set with an opaque access token", func() {
+		config := &Config{
+			AccessToken: "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729",
+			OpaqueToken: true,
+			URL:         "http://my-server.example.com",
+			TokenURL:    "http://my-sso.example.com",
+		}
+		armed, reason, err := config.Armed(true)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(armed).To(BeTrue())
+		Expect(reason).To(BeEmpty())
+	})
+
+	It("Is armed in opaque mode even with a non-JWT refresh token", func() {
+		config := &Config{
+			AccessToken:  "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729",
+			RefreshToken: "GONDOLIN_REFRESH_abc123def456",
+			OpaqueToken:  true,
+			URL:          "http://my-server.example.com",
+			TokenURL:     "http://my-sso.example.com",
+		}
+		armed, reason, err := config.Armed(true)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(armed).To(BeTrue())
+		Expect(reason).To(BeEmpty())
+	})
+
+	It("Is not armed if OpaqueToken is false and access token is not a JWT", func() {
+		config := &Config{
+			AccessToken: "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729",
+			OpaqueToken: false,
+			URL:         "http://my-server.example.com",
+			TokenURL:    "http://my-sso.example.com",
+		}
+		armed, _, err := config.Armed(false)
+		Expect(err).To(HaveOccurred())
+		Expect(armed).To(BeFalse())
+	})
+})
+
+var _ = Describe("IsJWTToken", func() {
+	It("Returns true for a standard 3-segment JWT", func() {
+		token := MakeTokenString("Bearer", 15*time.Minute)
+		Expect(IsJWTToken(token)).To(BeTrue())
+	})
+
+	It("Returns false for an opaque token without dots", func() {
+		Expect(IsJWTToken("GONDOLIN_SECRET_d5bfa746c20ab8140fae5729")).To(BeFalse())
+	})
+
+	It("Returns false for a token with one dot", func() {
+		Expect(IsJWTToken("some.token")).To(BeFalse())
+	})
+
+	It("Returns false for a 5-segment JWE token", func() {
+		Expect(IsJWTToken("a.b.c.d.e")).To(BeFalse())
+	})
+
+	It("Returns false for an empty string", func() {
+		Expect(IsJWTToken("")).To(BeFalse())
 	})
 })

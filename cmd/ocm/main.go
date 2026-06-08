@@ -86,6 +86,7 @@ func init() {
 	// Add the command line flags:
 	fs := root.PersistentFlags()
 	arguments.AddDebugFlag(fs)
+	arguments.AddOpaqueTokenFlag(fs)
 
 	// Register the subcommands:
 	root.AddCommand(account.Cmd)

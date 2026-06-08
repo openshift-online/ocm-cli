@@ -112,6 +112,38 @@ var _ = Describe("Login", func() {
 		})
 	})
 
+	When("Using opaque token", func() {
+		It("Fails with --opaque-token flag", func() {
+			opaqueToken := "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729"
+
+			result := NewCommand().
+				Args(
+					"login",
+					"--opaque-token",
+					"--token", opaqueToken,
+					"--token-url", ssoServer.URL(),
+				).
+				Run(ctx)
+
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("not used with the login command"))
+		})
+
+		It("Fails with OCM_OPAQUE_TOKEN env var", func() {
+			result := NewCommand().
+				Env("OCM_OPAQUE_TOKEN", "true").
+				Args(
+					"login",
+					"--token", "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729",
+					"--token-url", ssoServer.URL(),
+				).
+				Run(ctx)
+
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("not used with the login command"))
+		})
+	})
+
 	When("Using client credentials grant", func() {
 		It("Creates the configuration file", func() {
 			// Create the token:

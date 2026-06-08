@@ -112,6 +112,18 @@ var _ = Describe("Logout", func() {
 		Expect(result.ConfigString()).To(MatchJSON(`{}`))
 	})
 
+	It("Removes opaque_token flag from configuration file", func() {
+		result := NewCommand().
+			ConfigString(`{
+				"access_token": "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729",
+				"opaque_token": true
+			}`).
+			Args("logout").
+			Run(ctx)
+		Expect(result.ExitCode()).To(BeZero())
+		Expect(result.ConfigString()).To(MatchJSON(`{}`))
+	})
+
 	It("Doesn't remove settings not related to authentication", func() {
 		result := NewCommand().
 			ConfigString(`{
