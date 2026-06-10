@@ -64,6 +64,8 @@ the wif-config metadata and the GCP resources it represents.`,
 		federatedProjectFlagDescription,
 	)
 
+	addWifConfigFailFastFlag(updateWifConfigCmd)
+
 	return updateWifConfigCmd
 }
 
@@ -158,6 +160,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	gcpClientWifConfigShim := NewGcpClientWifConfigShim(GcpClientWifConfigShimSpec{
 		GcpClient: gcpClient,
 		WifConfig: wifConfig,
+		FailFast:  wifConfigOptions.FailFast,
 	})
 
 	log.Println("Updating support access...")
@@ -180,6 +183,11 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return fmt.Errorf("Failed to update IAM service accounts: %s", err)
 	}
 
+	retryTimeout := IamApiRetrySeconds
+	if wifConfigOptions.FailFast {
+		retryTimeout = IamApiFailFastRetrySeconds
+	}
+
 	//The IAM API is eventually consistent. If the user created the service
 	//accounts needed for cluster deployment within too brief a period, then
 	//our backend will not yet have access to it. To avoid confusing error
@@ -191,7 +199,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 			return true, err
 		}
 		return false, nil
-	}, IamApiRetrySeconds, log); err != nil {
+	}, retryTimeout, log); err != nil {
 		return fmt.Errorf("Timed out verifying wif-config resources\n"+
 			"Please try 'ocm gcp update wif-config %s' again in a few minutes, "+
 			"or contact Red Hat support.", wifConfig.ID())

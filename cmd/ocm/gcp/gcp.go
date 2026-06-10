@@ -16,6 +16,20 @@ type options struct {
 	TargetDir                string
 	WorkloadIdentityPool     string
 	WorkloadIdentityProvider string
+	FailFast                 bool
+}
+
+// wifConfigOptions holds options shared across all wif-config commands
+var wifConfigOptions options
+
+// addWifConfigFailFastFlag adds the --fail-fast flag to wif-config commands
+func addWifConfigFailFastFlag(cmd *cobra.Command) {
+	cmd.PersistentFlags().BoolVar(
+		&wifConfigOptions.FailFast,
+		"fail-fast",
+		false,
+		"Use 30-second retry timeout instead of 10-minute timeout (useful for expected failures in validation tests)",
+	)
 }
 
 // NewGcpCmd implements the "gcp" subcommand for the credentials provisioning

@@ -24,6 +24,9 @@ import (
 const (
 	// The time in seconds in which IAM inconsistencies may occur.
 	IamApiRetrySeconds = 600
+
+	// Fast-fail timeout for expected failures
+	IamApiFailFastRetrySeconds = 30
 )
 
 const (
@@ -48,18 +51,29 @@ type GcpClientWifConfigShim interface {
 type shim struct {
 	wifConfig *cmv1.WifConfig
 	gcpClient gcp.GcpClient
+	failFast  bool
 }
 
 type GcpClientWifConfigShimSpec struct {
 	WifConfig *cmv1.WifConfig
 	GcpClient gcp.GcpClient
+	FailFast  bool
 }
 
 func NewGcpClientWifConfigShim(spec GcpClientWifConfigShimSpec) GcpClientWifConfigShim {
 	return &shim{
 		wifConfig: spec.WifConfig,
 		gcpClient: spec.GcpClient,
+		failFast:  spec.FailFast,
 	}
+}
+
+// getRetryTimeout returns the appropriate timeout based on fail-fast setting
+func (c *shim) getRetryTimeout() int {
+	if c.failFast {
+		return IamApiFailFastRetrySeconds
+	}
+	return IamApiRetrySeconds
 }
 
 func (c *shim) CreateServiceAccounts(
@@ -70,12 +84,14 @@ func (c *shim) CreateServiceAccounts(
 		sa      *adminpb.ServiceAccount
 		lastErr error
 	)
+	retryTimeout := c.getRetryTimeout()
+
 	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
 		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
 			log.Printf("Ensuring service account '%s' exists...", serviceAccount.ServiceAccountId())
 			sa, lastErr = c.createServiceAccount(ctx, log, serviceAccount)
 			return lastErr != nil, lastErr
-		}, IamApiRetrySeconds, log); err != nil {
+		}, retryTimeout, log); err != nil {
 			return lastErr
 		}
 
@@ -88,7 +104,7 @@ func (c *shim) CreateServiceAccounts(
 					serviceAccount,
 				)
 				return lastErr != nil, lastErr
-			}, IamApiRetrySeconds, log); err != nil {
+			}, retryTimeout, log); err != nil {
 				return lastErr
 			}
 			log.Printf("IAM service account '%s' has been enabled", serviceAccount.ServiceAccountId())
@@ -98,7 +114,7 @@ func (c *shim) CreateServiceAccounts(
 			log.Printf("Ensuring roles exist for service account '%s'...", serviceAccount.ServiceAccountId())
 			lastErr = c.createOrUpdateRoles(ctx, log, serviceAccount.Roles())
 			return lastErr != nil, lastErr
-		}, IamApiRetrySeconds, log); err != nil {
+		}, retryTimeout, log); err != nil {
 			return lastErr
 		}
 
@@ -106,7 +122,7 @@ func (c *shim) CreateServiceAccounts(
 			log.Printf("Ensuring role bindings for service account '%s'...", serviceAccount.ServiceAccountId())
 			lastErr = c.bindRolesToServiceAccount(ctx, log, serviceAccount)
 			return lastErr != nil, lastErr
-		}, IamApiRetrySeconds, log); err != nil {
+		}, retryTimeout, log); err != nil {
 			return lastErr
 		}
 
@@ -114,7 +130,7 @@ func (c *shim) CreateServiceAccounts(
 			log.Printf("Ensuring access to service account '%s'...", serviceAccount.ServiceAccountId())
 			lastErr = c.grantAccessToServiceAccount(ctx, log, serviceAccount)
 			return lastErr != nil, lastErr
-		}, IamApiRetrySeconds, log); err != nil {
+		}, retryTimeout, log); err != nil {
 			return lastErr
 		}
 	}
@@ -126,7 +142,7 @@ func (c *shim) CreateServiceAccounts(
 			log.Printf("Ensuring policy bindings for service account '%s'...", serviceAccount.ServiceAccountId())
 			lastErr = c.bindPoliciesToServiceAccount(ctx, log, serviceAccount)
 			return lastErr != nil, lastErr
-		}, IamApiRetrySeconds, log); err != nil {
+		}, retryTimeout, log); err != nil {
 			return lastErr
 		}
 	}
@@ -142,7 +158,7 @@ func (c *shim) CreateWorkloadIdentityPool(
 		log.Print("Ensuring workload identity pool exists...")
 		lastErr = c.createWorkloadIdentityPool(ctx, log)
 		return lastErr != nil, lastErr
-	}, IamApiRetrySeconds, log); err != nil {
+	}, c.getRetryTimeout(), log); err != nil {
 		return lastErr
 	}
 	return nil
@@ -157,7 +173,7 @@ func (c *shim) CreateWorkloadIdentityProvider(
 		log.Print("Ensuring workload identity pool OIDC provider exists...")
 		lastErr = c.createWorkloadIdentityProvider(ctx, log)
 		return lastErr != nil, lastErr
-	}, IamApiRetrySeconds, log); err != nil {
+	}, c.getRetryTimeout(), log); err != nil {
 		return lastErr
 	}
 	return nil
@@ -172,7 +188,7 @@ func (c *shim) GrantSupportAccess(
 		log.Print("Ensuring Red Hat support has access to project...")
 		lastErr = c.grantSupportAccess(ctx, log)
 		return lastErr != nil, lastErr
-	}, IamApiRetrySeconds, log); err != nil {
+	}, c.getRetryTimeout(), log); err != nil {
 		return lastErr
 	}
 	return nil
@@ -1124,7 +1140,7 @@ func (c *shim) DeleteServiceAccounts(
 			log.Printf("Deleting service account '%s'...", serviceAccountID)
 			lastErr = c.gcpClient.DeleteServiceAccount(ctx, serviceAccountID, projectId, true)
 			return lastErr != nil, lastErr
-		}, IamApiRetrySeconds, log); err != nil {
+		}, c.getRetryTimeout(), log); err != nil {
 			return errors.Wrapf(lastErr, "Failed to delete service account '%s'", serviceAccountID)
 		}
 	}
@@ -1140,7 +1156,7 @@ func (c *shim) DeleteWorkloadIdentityPool(
 		log.Print("Deleting workload identity pool...")
 		lastErr = c.deleteWorkloadIdentityPool(ctx, log)
 		return lastErr != nil, lastErr
-	}, IamApiRetrySeconds, log); err != nil {
+	}, c.getRetryTimeout(), log); err != nil {
 		return lastErr
 	}
 	return nil
@@ -1175,6 +1191,7 @@ func (c *shim) UnbindServiceAccounts(
 	log *log.Logger,
 ) error {
 	var lastErr error
+	retryTimeout := c.getRetryTimeout()
 
 	log.Print("Unbinding service accounts from project IAM policy...")
 	for _, serviceAccount := range c.wifConfig.Gcp().ServiceAccounts() {
@@ -1187,7 +1204,7 @@ func (c *shim) UnbindServiceAccounts(
 				serviceAccount.Roles(),
 			)
 			return lastErr != nil, lastErr
-		}, IamApiRetrySeconds, log); err != nil {
+		}, retryTimeout, log); err != nil {
 			return errors.Wrapf(lastErr, "Failed to unbind service account '%s'", serviceAccount.ServiceAccountId())
 		}
 
@@ -1199,7 +1216,7 @@ func (c *shim) UnbindServiceAccounts(
 				serviceAccount.Roles(),
 			)
 			return lastErr != nil, lastErr
-		}, IamApiRetrySeconds, log); err != nil {
+		}, retryTimeout, log); err != nil {
 			return errors.Wrapf(lastErr, "Failed to unbind service account '%s'", serviceAccount.ServiceAccountId())
 		}
 	}
