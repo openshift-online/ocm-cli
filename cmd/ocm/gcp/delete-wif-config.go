@@ -58,6 +58,8 @@ GCP resources represented by the wif-config.
 		targetDirFlagDescription,
 	)
 
+	addWifConfigFailFastFlag(deleteWifConfigCmd)
+
 	return deleteWifConfigCmd
 }
 
@@ -120,6 +122,7 @@ func deleteWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	shim := NewGcpClientWifConfigShim(GcpClientWifConfigShimSpec{
 		WifConfig: wifConfig,
 		GcpClient: gcpClient,
+		FailFast:  wifConfigOptions.FailFast,
 	})
 	log := log.Default()
 

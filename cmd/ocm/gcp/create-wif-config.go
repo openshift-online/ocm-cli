@@ -88,6 +88,8 @@ wif-config resource within OCM to represent those resources.`,
 		versionFlagDescription,
 	)
 
+	addWifConfigFailFastFlag(createWifConfigCmd)
+
 	return createWifConfigCmd
 }
 
@@ -236,6 +238,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	gcpClientWifConfigShim := NewGcpClientWifConfigShim(GcpClientWifConfigShimSpec{
 		GcpClient: gcpClient,
 		WifConfig: wifConfig,
+		FailFast:  wifConfigOptions.FailFast,
 	})
 
 	if err := gcpClientWifConfigShim.GrantSupportAccess(ctx, log); err != nil {
@@ -258,6 +261,11 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
+	retryTimeout := IamApiRetrySeconds
+	if wifConfigOptions.FailFast {
+		retryTimeout = IamApiFailFastRetrySeconds
+	}
+
 	//The IAM API is eventually consistent. If the user created the service
 	//accounts needed for cluster deployment within too brief a period, then
 	//our backend will not yet have access to it. To avoid confusing error
@@ -269,7 +277,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 			return true, err
 		}
 		return false, nil
-	}, IamApiRetrySeconds, log); err != nil {
+	}, retryTimeout, log); err != nil {
 		return fmt.Errorf("Timed out verifying wif-config resources\n"+
 			"Please run 'ocm gcp update wif-config %s' to repair potential misconfigurations "+
 			"and to complete the wif-config creation process", wifConfig.ID())
