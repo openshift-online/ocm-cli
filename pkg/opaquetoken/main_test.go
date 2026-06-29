@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024 Red Hat, Inc.
+Copyright (c) 2025 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package properties
+package opaquetoken
 
-const (
-	KeyringEnvKey     = "OCM_KEYRING"
-	OpaqueTokenEnvKey = "OCM_OPAQUE_TOKEN" // #nosec G101
-	URLEnvKey         = "OCM_URL"
+import (
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2" // nolint
+	. "github.com/onsi/gomega"    // nolint
 )
+
+func TestOpaqueToken(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "OpaqueToken")
+}

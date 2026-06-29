@@ -73,6 +73,77 @@ var _ = Describe("Token", func() {
 		})
 	})
 
+	When("Logged in with opaque token", func() {
+		var opaqueToken string
+
+		BeforeEach(func() {
+			opaqueToken = "GONDOLIN_SECRET_d5bfa746c20ab8140fae5729"
+			cmd = NewCommand().
+				ConfigString(
+					`{
+						"access_token": "{{ .accessToken }}",
+						"opaque_token": true,
+						"url": "http://my-server.example.com",
+						"token_url": "http://my-sso.example.com"
+					}`,
+					"accessToken", opaqueToken,
+				).
+				Arg("token")
+		})
+
+		It("Displays the opaque access token", func() {
+			result := cmd.Run(ctx)
+			Expect(result.OutString()).To(Equal(opaqueToken + "\n"))
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.ExitCode()).To(BeZero())
+		})
+
+		It("Displays the opaque refresh token", func() {
+			refreshToken := "GONDOLIN_REFRESH_abc123"
+			cmd = NewCommand().
+				ConfigString(
+					`{
+						"access_token": "{{ .accessToken }}",
+						"opaque_token": true,
+						"refresh_token": "{{ .refreshToken }}",
+						"url": "http://my-server.example.com",
+						"token_url": "http://my-sso.example.com"
+					}`,
+					"accessToken", opaqueToken,
+					"refreshToken", refreshToken,
+				).
+				Args("token", "--refresh")
+			result := cmd.Run(ctx)
+			Expect(result.OutString()).To(Equal(refreshToken + "\n"))
+			Expect(result.ErrString()).To(BeEmpty())
+			Expect(result.ExitCode()).To(BeZero())
+		})
+
+		It("Rejects --header for opaque tokens", func() {
+			result := cmd.Arg("--header").Run(ctx)
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("not a JWT"))
+		})
+
+		It("Rejects --payload for opaque tokens", func() {
+			result := cmd.Arg("--payload").Run(ctx)
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("not a JWT"))
+		})
+
+		It("Rejects --signature for opaque tokens", func() {
+			result := cmd.Arg("--signature").Run(ctx)
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("not a JWT"))
+		})
+
+		It("Rejects --generate for opaque tokens", func() {
+			result := cmd.Arg("--generate").Run(ctx)
+			Expect(result.ExitCode()).ToNot(BeZero())
+			Expect(result.ErrString()).To(ContainSubstring("opaque tokens"))
+		})
+	})
+
 	When("Not logged in", func() {
 		BeforeEach(func() {
 			cmd = NewCommand().Arg("token")

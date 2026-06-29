@@ -31,6 +31,7 @@ import (
 
 	"github.com/openshift-online/ocm-cli/pkg/cluster"
 	"github.com/openshift-online/ocm-cli/pkg/debug"
+	"github.com/openshift-online/ocm-cli/pkg/opaquetoken"
 	"github.com/openshift-online/ocm-cli/pkg/output"
 )
 
@@ -56,6 +57,11 @@ func (f *FilePath) Type() string {
 // AddDebugFlag adds the '--debug' flag to the given set of command line flags.
 func AddDebugFlag(fs *pflag.FlagSet) {
 	debug.AddFlag(fs)
+}
+
+// AddOpaqueTokenFlag adds the '--opaque-token' flag to the given set of command line flags.
+func AddOpaqueTokenFlag(fs *pflag.FlagSet) {
+	opaquetoken.AddFlag(fs)
 }
 
 // AddParameterFlag adds the '--parameter' flag to the given set of command line flags.

@@ -26,6 +26,7 @@ import (
 
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/opaquetoken"
 	"github.com/openshift-online/ocm-cli/pkg/properties"
 	"github.com/openshift-online/ocm-cli/pkg/urls"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -182,6 +183,16 @@ func run(cmd *cobra.Command, argv []string) error {
 		}
 	}
 
+	if opaquetoken.Enabled() {
+		return fmt.Errorf(
+			"The '--opaque-token' flag and '%s' environment variable are not used with "+
+				"the login command. To use an opaque token, first log in normally, then run:\n"+
+				"  ocm config set access_token <your-opaque-token>\n"+
+				"  ocm config set opaque_token true",
+			properties.OpaqueTokenEnvKey,
+		)
+	}
+
 	if args.useAuthCode {
 		fmt.Println("You will now be redirected to Red Hat SSO login")
 		// Short wait for a less jarring experience
@@ -252,7 +263,6 @@ func run(cmd *cobra.Command, argv []string) error {
 	}
 
 	if haveToken {
-		// Encrypted tokens are assumed to be refresh tokens:
 		if config.IsEncryptedToken(args.token) {
 			cfg.AccessToken = ""
 			cfg.RefreshToken = args.token
@@ -278,7 +288,6 @@ func run(cmd *cobra.Command, argv []string) error {
 				return fmt.Errorf("Don't know how to handle token type '%s' in token '%s'", typ, args.token)
 			}
 		}
-
 	}
 
 	// Apply the default OpenID details if not explicitly provided by the user:
@@ -329,7 +338,7 @@ func run(cmd *cobra.Command, argv []string) error {
 	cfg.Password = args.password
 	cfg.Insecure = args.insecure
 
-	// Create a connection and get the token to verify that the crendentials are correct:
+	// Create a connection and get the token to verify that the credentials are correct:
 	connection, err := ocm.NewConnection().Config(cfg).Build()
 	if err != nil {
 		return fmt.Errorf("Can't create connection: %v", err)
@@ -338,11 +347,11 @@ func run(cmd *cobra.Command, argv []string) error {
 	if err != nil {
 		return fmt.Errorf("Can't get token: %v", err)
 	}
+	cfg.AccessToken = accessToken
+	cfg.RefreshToken = refreshToken
 
 	// Save the configuration, but clear the user name and password before unless we have
 	// explicitly been asked to store them persistently:
-	cfg.AccessToken = accessToken
-	cfg.RefreshToken = refreshToken
 	if !args.persistent {
 		cfg.User = ""
 		cfg.Password = ""

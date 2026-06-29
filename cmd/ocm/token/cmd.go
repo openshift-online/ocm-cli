@@ -28,6 +28,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/config"
 	"github.com/openshift-online/ocm-cli/pkg/dump"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
+	"github.com/openshift-online/ocm-cli/pkg/opaquetoken"
 )
 
 var args struct {
@@ -100,27 +101,51 @@ func run(cmd *cobra.Command, argv []string) error {
 		return fmt.Errorf("Options '--payload', '--header', '--signature', and '--generate' are mutually exclusive")
 	}
 
-	// Create the client for the OCM API:
-	connection, err := ocm.NewConnection().Build()
+	// Load the configuration file:
+	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("Failed to create OCM connection: %v", err)
+		return fmt.Errorf("Can't load config file: %v", err)
 	}
-	defer connection.Close()
 
 	var accessToken string
 	var refreshToken string
 
-	if args.generate {
-		// Get new tokens:
-		accessToken, refreshToken, err = connection.Tokens(15 * time.Minute)
-		if err != nil {
-			return fmt.Errorf("Can't get new tokens: %v", err)
+	haveOpaqueToken := opaquetoken.Enabled() || (cfg != nil && cfg.OpaqueToken)
+
+	if haveOpaqueToken {
+		if args.generate {
+			return fmt.Errorf("The '--generate' option is not supported with opaque tokens")
 		}
+		accessToken = cfg.AccessToken
+		refreshToken = cfg.RefreshToken
 	} else {
-		// Get the tokens:
-		accessToken, refreshToken, err = connection.Tokens()
+		// Create the client for the OCM API:
+		connection, err := ocm.NewConnection().Build()
 		if err != nil {
-			return fmt.Errorf("Can't get token: %v", err)
+			return fmt.Errorf("Failed to create OCM connection: %v", err)
+		}
+		defer connection.Close()
+
+		if args.generate {
+			// Get new tokens:
+			accessToken, refreshToken, err = connection.Tokens(15 * time.Minute)
+			if err != nil {
+				return fmt.Errorf("Can't get new tokens: %v", err)
+			}
+		} else {
+			// Get the tokens:
+			accessToken, refreshToken, err = connection.Tokens()
+			if err != nil {
+				return fmt.Errorf("Can't get token: %v", err)
+			}
+		}
+
+		// Save the potentially refreshed tokens:
+		cfg.AccessToken = accessToken
+		cfg.RefreshToken = refreshToken
+		err = config.Save(cfg)
+		if err != nil {
+			return fmt.Errorf("Can't save config file: %v", err)
 		}
 	}
 
@@ -130,58 +155,49 @@ func run(cmd *cobra.Command, argv []string) error {
 		selectedToken = refreshToken
 	}
 
-	// Parse the token:
-	parser := new(jwt.Parser)
-	_, parts, err := parser.ParseUnverified(selectedToken, jwt.MapClaims{})
-	if err != nil {
-		return fmt.Errorf("Can't parse token: %v", err)
-	}
-	encoding := base64.RawURLEncoding
-	header, err := encoding.DecodeString(parts[0])
-	if err != nil {
-		return fmt.Errorf("Can't decode header: %v", err)
-	}
-	payload, err := encoding.DecodeString(parts[1])
-	if err != nil {
-		return fmt.Errorf("Can't decode payload: %v", err)
-	}
-	signature, err := encoding.DecodeString(parts[2])
-	if err != nil {
-		return fmt.Errorf("Can't decode signature: %v", err)
-	}
-
-	// Print the data:
-	if args.header {
-		err = dump.Pretty(os.Stdout, header)
-		if err != nil {
-			return fmt.Errorf("Can't dump header: %v", err)
+	if args.header || args.payload || args.signature {
+		if !config.IsJWTToken(selectedToken) {
+			return fmt.Errorf(
+				"The token is not a JWT, so '--header', '--payload', and '--signature' options are not available",
+			)
 		}
-	} else if args.payload {
-		err = dump.Pretty(os.Stdout, payload)
+		// Parse the token:
+		parser := new(jwt.Parser)
+		_, parts, err := parser.ParseUnverified(selectedToken, jwt.MapClaims{})
 		if err != nil {
-			return fmt.Errorf("Can't dump payload: %v", err)
+			return fmt.Errorf("Can't parse token: %v", err)
 		}
-	} else if args.signature {
-		err = dump.Pretty(os.Stdout, signature)
-		if err != nil {
-			return fmt.Errorf("Can't dump signature: %v", err)
+		encoding := base64.RawURLEncoding
+		if args.header {
+			decoded, err := encoding.DecodeString(parts[0])
+			if err != nil {
+				return fmt.Errorf("Can't decode header: %v", err)
+			}
+			err = dump.Pretty(os.Stdout, decoded)
+			if err != nil {
+				return fmt.Errorf("Can't dump header: %v", err)
+			}
+		} else if args.payload {
+			decoded, err := encoding.DecodeString(parts[1])
+			if err != nil {
+				return fmt.Errorf("Can't decode payload: %v", err)
+			}
+			err = dump.Pretty(os.Stdout, decoded)
+			if err != nil {
+				return fmt.Errorf("Can't dump payload: %v", err)
+			}
+		} else if args.signature {
+			decoded, err := encoding.DecodeString(parts[2])
+			if err != nil {
+				return fmt.Errorf("Can't decode signature: %v", err)
+			}
+			err = dump.Pretty(os.Stdout, decoded)
+			if err != nil {
+				return fmt.Errorf("Can't dump signature: %v", err)
+			}
 		}
 	} else {
 		fmt.Fprintf(os.Stdout, "%s\n", selectedToken)
-	}
-
-	// Load the configuration file:
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("Can't load config file: %v", err)
-	}
-
-	// Save the configuration:
-	cfg.AccessToken = accessToken
-	cfg.RefreshToken = refreshToken
-	err = config.Save(cfg)
-	if err != nil {
-		return fmt.Errorf("Can't save config file: %v", err)
 	}
 
 	// Bye:

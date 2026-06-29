@@ -42,6 +42,7 @@ type Config struct {
 	ClientID     string   `json:"client_id,omitempty" doc:"OpenID client identifier."`
 	ClientSecret string   `json:"client_secret,omitempty" doc:"OpenID client secret."`
 	Insecure     bool     `json:"insecure,omitempty" doc:"Enables insecure communication with the server. This disables verification of TLS certificates and host names."`
+	OpaqueToken  bool     `json:"opaque_token,omitempty" doc:"Indicates that the access token is opaque (non-JWT) and should be sent as-is without SDK token management."`
 	Password     string   `json:"password,omitempty" doc:"User password."`
 	RefreshToken string   `json:"refresh_token,omitempty" doc:"Offline or refresh token."`
 	Scopes       []string `json:"scopes,omitempty" doc:"OpenID scope. If this option is used it will replace completely the default scopes. Can be repeated multiple times to specify multiple scopes."`
@@ -183,7 +184,7 @@ func Location() (path string, err error) {
 
 // Armed checks if the configuration contains either credentials or tokens that haven't expired, so
 // that it can be used to perform authenticated requests.
-func (c *Config) Armed() (armed bool, reason string, err error) {
+func (c *Config) Armed(opaqueMode bool) (armed bool, reason string, err error) {
 	// Check URLs:
 	haveURL := c.URL != ""
 	haveTokenURL := c.TokenURL != ""
@@ -198,17 +199,21 @@ func (c *Config) Armed() (armed bool, reason string, err error) {
 	haveAccess := c.AccessToken != ""
 	accessUsable := false
 	if haveAccess {
-		accessUsable, err = tokenUsable(c.AccessToken, 5*time.Second)
-		if err != nil {
-			return
+		if opaqueMode {
+			accessUsable = true
+		} else {
+			accessUsable, err = tokenUsable(c.AccessToken, 5*time.Second)
+			if err != nil {
+				return
+			}
 		}
 	}
 	haveRefresh := c.RefreshToken != ""
 	refreshUsable := false
 	if haveRefresh {
-		if IsEncryptedToken(c.RefreshToken) {
-			// We have no way of knowing an encrypted token expiration, so
-			// we assume it's valid and let the access token request fail.
+		if opaqueMode {
+			refreshUsable = false
+		} else if IsEncryptedToken(c.RefreshToken) {
 			refreshUsable = true
 		} else {
 			refreshUsable, err = tokenUsable(c.RefreshToken, 10*time.Second)
@@ -254,6 +259,7 @@ func (c *Config) Disarm() {
 	c.ClientID = ""
 	c.ClientSecret = ""
 	c.Insecure = false
+	c.OpaqueToken = false
 	c.Password = ""
 	c.RefreshToken = ""
 	c.Scopes = nil

@@ -53,6 +53,11 @@ func IsEncryptedToken(textToken string) bool {
 	return false
 }
 
+func IsJWTToken(textToken string) bool {
+	parts := strings.Split(textToken, ".")
+	return len(parts) == 3
+}
+
 func ParseToken(textToken string) (token *jwt.Token, err error) {
 	parser := new(jwt.Parser)
 	token, _, err = parser.ParseUnverified(textToken, jwt.MapClaims{})

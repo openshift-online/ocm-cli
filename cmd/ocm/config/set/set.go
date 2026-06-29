@@ -74,6 +74,11 @@ func run(cmd *cobra.Command, argv []string) error {
 		if err != nil {
 			return fmt.Errorf("Failed to set insecure: %v", value)
 		}
+	case "opaque_token":
+		cfg.OpaqueToken, err = strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("Failed to set opaque_token: %v", value)
+		}
 	case "password":
 		cfg.Password = value
 	case "refresh_token":
