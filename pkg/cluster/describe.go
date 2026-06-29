@@ -28,7 +28,6 @@ import (
 	amv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	slv1 "github.com/openshift-online/ocm-sdk-go/servicelogs/v1"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -171,14 +170,6 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 		)
 	}
 
-	var wifConfig *cmv1.WifConfig
-	if cluster.GCP().Authentication().Id() != "" {
-		wifConfig, err = findWifConfig(connection, cluster)
-		if err != nil {
-			return errors.Wrapf(err, "failed to retrieve wif-config associated with the cluster")
-		}
-	}
-
 	// Print short cluster description:
 	fmt.Printf("\n"+
 		"ID:				%s\n"+
@@ -288,10 +279,7 @@ func PrintClusterDescription(connection *sdk.Connection, cluster *cmv1.Cluster) 
 			fmt.Printf("Authentication Type:		%s\n",
 				getAuthenticationDisplayName(cluster.GCP().Authentication().Kind()))
 		}
-		if wifConfig.ID() != "" && wifConfig.DisplayName() != "" {
-			fmt.Printf("Wif-Config ID:          	%s\n", wifConfig.ID())
-			fmt.Printf("Wif-Config Name:          	%s\n", wifConfig.DisplayName())
-		}
+		printWifConfigData(connection, cluster)
 	}
 
 	channel := cluster.Channel()
@@ -408,7 +396,6 @@ func findHyperShiftMgmtSvcClusters(conn *sdk.Connection, cluster *cmv1.Cluster) 
 }
 
 func findWifConfig(connection *sdk.Connection, cluster *cmv1.Cluster) (*cmv1.WifConfig, error) {
-
 	wifConfig, err := connection.ClustersMgmt().
 		V1().
 		GCP().
@@ -482,4 +469,17 @@ func printManagedZone(connection *sdk.Connection, zoneId string) error {
 			gcp.FmtDnsZoneName(dnsDomain.Gcp().DomainPrefix(), dnsDomain.ID()))
 	}
 	return nil
+}
+
+func printWifConfigData(connection *sdk.Connection, cluster *cmv1.Cluster) {
+	if cluster.GCP() == nil || cluster.GCP().Authentication() == nil || cluster.GCP().Authentication().Id() == "" {
+		return
+	}
+	fmt.Printf("Wif-Config ID:          	%s\n", cluster.GCP().Authentication().Id())
+	wifConfig, err := findWifConfig(connection, cluster)
+	if err != nil {
+		// Will silently return if the client is not able to retrieve the WifConfig name, as this error is of minor impact.
+		return
+	}
+	fmt.Printf("Wif-Config Name:          	%s\n", wifConfig.DisplayName())
 }
