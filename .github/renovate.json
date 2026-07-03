@@ -1,0 +1,44 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>konflux-ci/mintmaker//config/renovate/renovate.json",
+    "config:best-practices"
+  ],
+  "enabledManagers": [
+    "gomod",
+    "tekton"
+  ],
+  "packageRules": [
+    {
+      "description": "ROSA-745: Tide — pre-label lgtm/approved; merge after Konflux + CI (no platform automerge)",
+      "matchManagers": [
+        "gomod",
+        "tekton"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "automerge": false,
+      "platformAutomerge": false,
+      "addLabels": [
+        "lgtm",
+        "approved"
+      ]
+    },
+    {
+      "description": "Major gomod/tekton — manual /lgtm after review",
+      "matchManagers": [
+        "gomod",
+        "tekton"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "platformAutomerge": false
+    }
+  ]
+}
