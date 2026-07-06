@@ -1,7 +1,12 @@
 version: 2
 updates:
-- package-ecosystem: gomod
-  directory: "/"
-  schedule:
-   interval: "weekly"
-  open-pull-requests-limit: 20
+  - package-ecosystem: gomod
+    directory: "/"
+    labels:
+      - dependencies
+      - go
+      - lgtm
+      - approved
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 20
