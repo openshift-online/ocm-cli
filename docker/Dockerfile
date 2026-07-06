@@ -9,7 +9,7 @@ RUN git config --global --add safe.directory /opt/app-root/src && \
     ( [ -f /cachi2/cachi2.env ] && source ./cachi2/cachi2.env && make build_release_images) || \
     ( echo "No hermetic configuration found, building non-hermatically" && make build_release_images )
 
-FROM registry.access.redhat.com/ubi9/ubi-micro:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 LABEL description="A CLI tool for working with OCM API"
 LABEL io.k8s.description="A CLI tool for working with OCM API"
 LABEL io.k8s.display-name="OCM CLI"
