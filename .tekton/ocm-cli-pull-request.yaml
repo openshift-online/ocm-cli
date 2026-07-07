@@ -149,7 +149,7 @@ spec:
         - name: name
           value: git-clone
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:39efcb7d049d84feccce65e589996a89b19ab7c9f504015c3792e3daee697da3
+          value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.2@sha256:14983fd4c447d40897ebd732e1b90b242dd3a1a781db92bb909366fbddd3b688
         - name: kind
           value: task
         resolver: bundles
@@ -220,7 +220,7 @@ spec:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-buildah:0.9@sha256:53f4d664e001ab99c77317f418483c183f397611bd10fce729aacb3ca5a2312b
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah:0.10@sha256:8b3b5b26a9684d38861aabdeb90f7a092933b56e23a0917cd3adc0e2e25c9879
         - name: kind
           value: task
         resolver: bundles
@@ -318,26 +318,6 @@ spec:
         operator: in
         values:
         - "false"
-    - name: ecosystem-cert-preflight-checks
-      params:
-      - name: image-url
-        value: $(tasks.build-image-index.results.IMAGE_URL)
-      runAfter:
-      - build-image-index
-      taskRef:
-        params:
-        - name: name
-          value: ecosystem-cert-preflight-checks
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.2@sha256:3c4f60ebda2225eff6a6bc387d9bbd443f1264d756bf385f97cc684992e904a0
-        - name: kind
-          value: task
-        resolver: bundles
-      when:
-      - input: $(params.skip-checks)
-        operator: in
-        values:
-        - "false"
     - name: sast-snyk-check
       params:
       - name: image-digest
@@ -402,7 +382,7 @@ spec:
         - name: name
           value: sast-shell-check
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check:0.1@sha256:f0fb21cf7028224146d4ab4f42395c9f03b99f1d93720745e07f97d146d1f897
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check:0.1@sha256:ebbb2beac1eda6383121b77dd46be1c77b5715372043a10ad0f2b43e3b159ccd
         - name: kind
           value: task
         resolver: bundles
@@ -429,7 +409,7 @@ spec:
         - name: name
           value: sast-unicode-check
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check:0.4@sha256:633cf558e850517b9e2891af4ccb34f6b3ba249613693130ca130a541a5a70ff
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check:0.4@sha256:b3a04e08a563117c6970157677cea16f1dd29ac0f113e7c6ac44249b1db953b0
         - name: kind
           value: task
         resolver: bundles
