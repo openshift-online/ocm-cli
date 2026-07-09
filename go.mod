@@ -17,7 +17,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/openshift-online/ocm-common v0.0.44
-	github.com/openshift-online/ocm-sdk-go v0.1.504
+	github.com/openshift-online/ocm-sdk-go v0.1.505
 	github.com/openshift/rosa v1.2.64
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
@@ -113,7 +113,7 @@ require (
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.461 // indirect
-	github.com/openshift-online/ocm-api-model/model v0.0.459 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.461 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20250313105119-ba97887b0a25 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
