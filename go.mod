@@ -2,6 +2,8 @@ module github.com/openshift-online/ocm-cli
 
 go 1.25.9
 
+toolchain go1.25.11
+
 require (
 	cloud.google.com/go/iam v1.11.0
 	cloud.google.com/go/storage v1.63.1
