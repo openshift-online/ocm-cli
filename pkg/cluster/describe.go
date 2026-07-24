@@ -423,6 +423,13 @@ func getAuthenticationDisplayName(authKind string) string {
 	}
 }
 
+// isWarningSeverity reports whether a service-log severity should be shown as a
+// create-time warning. Accepts both legacy Warning and HCC Moderate labels so
+// banners keep working across the OSL Phase 2 cutover.
+func isWarningSeverity(severity slv1.Severity) bool {
+	return severity == slv1.SeverityWarning || severity == slv1.SeverityModerate
+}
+
 // PrintClusterWarnings retrieves and displays warning-level service log entries for
 // a cluster. It queries the Service Logs API across all pages and outputs any warning
 // messages with their summary and description.
@@ -444,7 +451,7 @@ func PrintClusterWarnings(connection *sdk.Connection, cluster *cmv1.Cluster) err
 
 		// Process warning entries from this page
 		serviceLogs.Items().Each(func(entry *slv1.LogEntry) bool {
-			if entry.Severity() == slv1.SeverityWarning {
+			if isWarningSeverity(entry.Severity()) {
 				fmt.Printf("⚠️ WARNING:\n%s\n%s\n", entry.Summary(), entry.Description())
 			}
 			return true
