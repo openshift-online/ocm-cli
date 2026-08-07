@@ -67,6 +67,7 @@ methods needed to create these resources on behalf of the user.`,
 
 	createCmd.AddCommand(NewCreateWorkloadIdentityConfiguration())
 	createCmd.AddCommand(NewCreateDnsZone())
+	createCmd.AddCommand(NewCreateFirewallRules())
 
 	return createCmd
 }
@@ -84,6 +85,7 @@ needed to update GCP resources on behalf of the user.`,
 		Args: cobra.MinimumNArgs(1),
 	}
 	updateCmd.AddCommand(NewUpdateWorkloadIdentityConfiguration())
+	updateCmd.AddCommand(NewUpdateFirewallRules())
 	return updateCmd
 }
 
@@ -97,6 +99,7 @@ func NewDeleteCmd() *cobra.Command {
 	}
 	deleteCmd.AddCommand(NewDeleteWorkloadIdentityConfiguration())
 	deleteCmd.AddCommand(NewDeleteDnsZone())
+	deleteCmd.AddCommand(NewDeleteFirewallRules())
 	return deleteCmd
 }
 
@@ -123,6 +126,7 @@ func NewListCmd() *cobra.Command {
 	}
 	listCmd.AddCommand(NewListWorkloadIdentityConfiguration())
 	listCmd.AddCommand(NewListDnsZone())
+	listCmd.AddCommand(NewListFirewallRules())
 	return listCmd
 }
 
@@ -136,6 +140,7 @@ func NewDescribeCmd() *cobra.Command {
 	}
 	describeCmd.AddCommand(NewDescribeWorkloadIdentityConfiguration())
 	describeCmd.AddCommand(NewDescribeDnsZone())
+	describeCmd.AddCommand(NewDescribeFirewallRules())
 	return describeCmd
 }
 
@@ -148,5 +153,6 @@ func NewVerifyCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 	verifyCmd.AddCommand(NewVerifyWorkloadIdentityConfiguration())
+	verifyCmd.AddCommand(NewVerifyFirewallRules())
 	return verifyCmd
 }

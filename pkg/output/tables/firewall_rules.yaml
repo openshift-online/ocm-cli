@@ -1,0 +1,22 @@
+columns:
+- name: id
+  header: ID
+  width: 36
+- name: name
+  header: NAME
+  width: 30
+- name: profile
+  header: PROFILE
+  width: 15
+- name: gcp_network.project_id
+  header: PROJECT ID
+  width: 30
+- name: gcp_network.vpc_name
+  header: VPC NAME
+  width: 30
+- name: gcp_network.machine_cidr
+  header: MACHINE CIDR
+  width: 18
+- name: wif_config.id
+  header: WIF CONFIG ID
+  width: 36
