@@ -28,16 +28,16 @@ func createCreateScript(targetDir string, wifConfig *cmv1.WifConfig, projectNum 
 	return nil
 }
 
-func createUpdateScript(targetDir string, wifConfig *cmv1.WifConfig, projectNum int64) error {
+func createUpdateScript(targetDir string, projectNum int64, originalWifConfig, updatedWifConfig *cmv1.WifConfig) error {
 	// Write the script content to the path
-	scriptContent := generateUpdateScriptContent(wifConfig, projectNum)
+	scriptContent := generateUpdateScriptContent(originalWifConfig, updatedWifConfig, projectNum)
 	err := os.WriteFile(filepath.Join(targetDir, "apply.sh"), []byte(scriptContent), 0600)
 	if err != nil {
 		return err
 	}
 	// Write jwk json file to the path
 	jwkPath := filepath.Join(targetDir, "jwk.json")
-	err = os.WriteFile(jwkPath, []byte(wifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().Jwks()), 0600)
+	err = os.WriteFile(jwkPath, []byte(updatedWifConfig.Gcp().WorkloadIdentityPool().IdentityProvider().Jwks()), 0600)
 	if err != nil {
 		return err
 	}
@@ -105,19 +105,21 @@ func generateCreateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) st
 	return scriptContent
 }
 
-func generateUpdateScriptContent(wifConfig *cmv1.WifConfig, projectNum int64) string {
+func generateUpdateScriptContent(originalWifConfig, updatedWifConfig *cmv1.WifConfig, projectNum int64) string {
 	scriptContent := bashShebang
 
 	// Create a script to create the workload identity pool
-	scriptContent += createIdentityPoolScriptContent(wifConfig)
+	scriptContent += createIdentityPoolScriptContent(updatedWifConfig)
 
 	// Append the script to create the identity provider
-	scriptContent += createIdentityProviderScriptContent(wifConfig)
+	scriptContent += createIdentityProviderScriptContent(updatedWifConfig)
 
 	// Append the script to create/update the service accounts
-	scriptContent += updateServiceAccountScriptContent(wifConfig, projectNum)
+	scriptContent += updateServiceAccountScriptContent(updatedWifConfig, projectNum)
 
-	scriptContent += grantSupportAccessScriptContent(wifConfig)
+	scriptContent += grantSupportAccessScriptContent(updatedWifConfig)
+
+	scriptContent += pruneUnusedBindings(originalWifConfig, updatedWifConfig)
 
 	return scriptContent
 }
@@ -357,4 +359,68 @@ func fmtMembers(sa *cmv1.WifServiceAccount, projectNum int64, poolId string) []s
 			projectNum, poolId, sa.CredentialRequest().SecretRef().Namespace(), saName))
 	}
 	return members
+}
+
+func pruneUnusedBindings(originalWifConfig, updatedWifConfig *cmv1.WifConfig) string {
+	var sb strings.Builder
+
+	sb.WriteString("\n# Prune unused bindings:\n")
+
+	// Build a map of service account ID to service account and their roles
+	updatedRolesByServiceAccount := make(map[string]map[string]bool)
+	for _, serviceAccount := range updatedWifConfig.Gcp().ServiceAccounts() {
+		saId := serviceAccount.ServiceAccountId()
+		updatedRolesByServiceAccount[saId] = make(map[string]bool)
+		for _, role := range serviceAccount.Roles() {
+			updatedRolesByServiceAccount[saId][role.RoleId()] = true
+		}
+	}
+
+	// For each service account in the original config, find roles that are no longer present
+	project := originalWifConfig.Gcp().ProjectId()
+	for _, serviceAccount := range originalWifConfig.Gcp().ServiceAccounts() {
+		saId := serviceAccount.ServiceAccountId()
+		updatedRoles, exists := updatedRolesByServiceAccount[saId]
+		// Service account was removed entirely, this is not a supported operation.
+		// The call will fail and the user will be directed to contact support.
+		if !exists {
+			fmt.Fprintf(os.Stderr, "The service account %s was removed from the updated wif-config. "+
+				"This is not a supported operation. Please contact support", saId)
+			os.Exit(1)
+		}
+
+		// Find roles that existed in original but not in updated
+		for _, role := range serviceAccount.Roles() {
+			roleId := role.RoleId()
+			if !updatedRoles[roleId] {
+				// This role needs to be removed
+				member := fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", saId, project)
+				var roleResource string
+				if role.Predefined() {
+					roleResource = fmt.Sprintf("roles/%s", roleId)
+				} else {
+					roleResource = fmt.Sprintf("projects/%s/roles/%s", project, roleId)
+				}
+
+				if role.ResourceBindings() != nil {
+					for _, resourceBinding := range role.ResourceBindings() {
+						switch resourceBinding.Type() {
+						case "iam.serviceAccounts":
+							saResourceId := gcp.FmtSaResourceId(resourceBinding.Name(), project)
+							sb.WriteString(fmt.Sprintf("gcloud iam service-accounts remove-iam-policy-binding %s --member=%s --role=%s\n",
+								saResourceId, member, roleResource))
+						default:
+							fmt.Printf("Warning: unsupported resource type '%s' for resource '%s'\n",
+								resourceBinding.Type(), resourceBinding.Name())
+						}
+					}
+				} else {
+					sb.WriteString(fmt.Sprintf("gcloud projects remove-iam-policy-binding %s --member=%s --role=%s\n",
+						project, member, roleResource))
+				}
+			}
+		}
+	}
+
+	return sb.String()
 }

@@ -9,6 +9,7 @@ type options struct {
 	Mode                     string
 	Name                     string
 	OpenshiftVersion         string
+	OpenshiftVersions        string
 	Project                  string
 	FederatedProject         string
 	Region                   string
