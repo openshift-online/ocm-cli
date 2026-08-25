@@ -125,6 +125,9 @@ var args struct {
 	defaultIngressExcludedNamespaceSelectors string
 	defaultIngressWildcardPolicy             string
 	defaultIngressNamespaceOwnershipPolicy   string
+
+	// GCP Firewall Rules
+	gcpFirewallRuleID string
 }
 
 const clusterNameHelp = "The name can be used as the identifier of the cluster." +
@@ -615,6 +618,13 @@ func init() {
 		"Specifies the DNS zone ID to use for the cluster.",
 	)
 	arguments.SetQuestion(fs, "dns-zone-id", "DNS Zone ID:")
+
+	fs.StringVar(
+		&args.gcpFirewallRuleID,
+		"gcp-firewall-rule-id",
+		"",
+		"GCP firewall rule ID to associate with the cluster.",
+	)
 
 }
 
@@ -1141,8 +1151,15 @@ func preRun(cmd *cobra.Command, argv []string) error {
 		if err != nil {
 			return err
 		}
+
+		err = promptFirewallRule(fs, connection)
+		if err != nil {
+			return err
+		}
 	} else if args.dns.DnsZoneId != "" {
 		return fmt.Errorf("this cli only supports 'dns-zone-id' for GCP clusters")
+	} else if args.gcpFirewallRuleID != "" {
+		return fmt.Errorf("this cli only supports 'gcp-firewall-rule-id' for GCP clusters")
 	}
 
 	err = promptPrivateServiceConnect(fs)
@@ -1227,6 +1244,7 @@ func run(cmd *cobra.Command, argv []string) error {
 		GcpAuthentication:    args.gcpAuthentication,
 		GcpPrivateSvcConnect: args.gcpPrivateSvcConnect,
 		GcpEncryption:        args.gcpEncryption,
+		GcpFirewallRuleID:    args.gcpFirewallRuleID,
 	}
 
 	cluster, err := c.CreateCluster(connection.ClustersMgmt().V1(), clusterConfig, args.dryRun)
@@ -1862,6 +1880,39 @@ func getDnsDomainOptions(connection *sdk.Connection) ([]arguments.Option, error)
 	return dnsDomains, nil
 }
 
+func getFirewallRuleOptions(connection *sdk.Connection) ([]arguments.Option, error) {
+	options := []arguments.Option{}
+	collection := connection.ClustersMgmt().V1().GCP().FirewallRules()
+	page, size := 1, 100
+	for {
+		// Create a context with timeout for each request
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+
+		response, err := collection.List().
+			Page(page).
+			Size(size).
+			SendContext(ctx)
+		cancel() // Always cancel to release resources
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to list GCP firewall rules: %v", err)
+		}
+
+		for _, rule := range response.Items().Slice() {
+			options = append(options, arguments.Option{
+				Value:       rule.ID(),
+				Description: "",
+			})
+		}
+
+		if response.Size() < size {
+			break
+		}
+		page++
+	}
+	return options, nil
+}
+
 func promptClusterPrivacy(fs *pflag.FlagSet) error {
 	return arguments.PromptBool(fs, privateFlag)
 }
@@ -2128,6 +2179,61 @@ func promptEtcdEncryption(fs *pflag.FlagSet) error {
 
 	//if FIPS encrytion is enabled, etcd encryption should be enabled
 	args.etcdEncryption = true
+	return nil
+}
+
+func promptFirewallRule(fs *pflag.FlagSet, connection *sdk.Connection) error {
+	// Only prompt if provider is GCP and flag not already set
+	if args.provider != c.ProviderGCP {
+		return nil
+	}
+
+	flag := fs.Lookup("gcp-firewall-rule-id")
+	if flag.Changed {
+		// Flag was explicitly set, validate the value
+		firewallRuleOptions, err := getFirewallRuleOptions(connection)
+		if err != nil {
+			return err
+		}
+
+		if err := arguments.CheckOneOf(fs, "gcp-firewall-rule-id", firewallRuleOptions); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if !args.interactive {
+		// Not interactive and flag not set, skip
+		return nil
+	}
+
+	useFirewallRule, err := interactive.GetBool(interactive.Input{
+		Question: "Use a GCP firewall rule",
+		Help:     "If specified, the cluster will use the provided GCP firewall rule ID.",
+		Default:  false,
+	})
+	if err != nil {
+		return err
+	}
+
+	if !useFirewallRule {
+		return nil
+	}
+
+	firewallRuleOptions, err := getFirewallRuleOptions(connection)
+	if err != nil {
+		return err
+	}
+
+	if len(firewallRuleOptions) == 0 {
+		return fmt.Errorf("no GCP firewall rules found")
+	}
+
+	err = arguments.PromptOneOf(fs, "gcp-firewall-rule-id", firewallRuleOptions)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

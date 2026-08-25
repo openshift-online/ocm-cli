@@ -116,6 +116,9 @@ type Spec struct {
 
 	// DNS settings
 	DNS DNS
+
+	// GCP Firewall Rules
+	GcpFirewallRuleID string
 }
 
 type Autoscaling struct {
@@ -501,14 +504,6 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 				return nil, fmt.Errorf("unexpected GCP authentication method %q", config.GcpAuthentication.Type)
 			}
 
-			if isGCPNetworkExists(config.ExistingVPC) {
-				gcpNetwork := cmv1.NewGCPNetwork().VPCName(config.ExistingVPC.VPCName).
-					ControlPlaneSubnet(config.ExistingVPC.ControlPlaneSubnet).ComputeSubnet(config.ExistingVPC.ComputeSubnet)
-				if isGCPSharedVPC(config.ExistingVPC) {
-					gcpNetwork = gcpNetwork.VPCProjectID(config.ExistingVPC.VPCProjectID)
-				}
-				clusterBuilder = clusterBuilder.GCPNetwork(gcpNetwork)
-			}
 		default:
 			return nil, fmt.Errorf("Unexpected CCS provider %q", config.Provider)
 		}
@@ -612,6 +607,26 @@ func CreateCluster(cmv1Client *cmv1.Client, config Spec, dryRun bool) (*cmv1.Clu
 	}
 
 	if config.Provider == ProviderGCP {
+		// Validate and configure GCP network settings
+		if config.GcpFirewallRuleID != "" && !config.CCS.Enabled {
+			return nil, fmt.Errorf("GCP firewall rule ID can only be used with CCS-enabled clusters")
+		}
+
+		// Configure GCP network (VPC and firewall rules)
+		gcpNetwork := cmv1.NewGCPNetwork()
+		if isGCPNetworkExists(config.ExistingVPC) {
+			gcpNetwork.VPCName(config.ExistingVPC.VPCName).
+				ControlPlaneSubnet(config.ExistingVPC.ControlPlaneSubnet).
+				ComputeSubnet(config.ExistingVPC.ComputeSubnet)
+			if isGCPSharedVPC(config.ExistingVPC) {
+				gcpNetwork = gcpNetwork.VPCProjectID(config.ExistingVPC.VPCProjectID)
+			}
+		}
+		if config.GcpFirewallRuleID != "" {
+			gcpNetwork.FirewallRulesId(config.GcpFirewallRuleID)
+		}
+		clusterBuilder = clusterBuilder.GCPNetwork(gcpNetwork)
+
 		clusterBuilder = clusterBuilder.GCP(gcpBuilder)
 	}
 
