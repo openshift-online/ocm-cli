@@ -8,8 +8,11 @@ manual:         Commands necessary to modify GCP resources will be output
                 as a script to be run manually.
 `
 
-	targetDirFlagDescription        = `Directory to place generated files (defaults to current directory)`
-	versionFlagDescription          = `Version of OpenShift to configure the WIF resources for`
+	targetDirFlagDescription = `Directory to place generated files (defaults to current directory)`
+	versionFlagDescription   = `Version of OpenShift to add to the WIF resources ` +
+		`(additive - does not remove other versions)`
+	versionsFlagDescription = `Comma-separated list of OpenShift versions to configure for the WIF resources ` +
+		`(declarative - versions not specified will be removed)`
 	federatedProjectFlagDescription = `ID of the Google cloud project that will host the WIF pool`
 
 	// DNS zone flags

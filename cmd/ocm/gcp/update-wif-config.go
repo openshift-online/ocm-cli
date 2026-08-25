@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	"github.com/openshift-online/ocm-cli/pkg/ocm"
@@ -16,10 +17,11 @@ import (
 
 var (
 	UpdateWifConfigOpts = options{
-		Mode:             ModeAuto,
-		TargetDir:        "",
-		OpenshiftVersion: "",
-		FederatedProject: "",
+		Mode:              ModeAuto,
+		TargetDir:         "",
+		OpenshiftVersion:  "",
+		OpenshiftVersions: "",
+		FederatedProject:  "",
 	}
 )
 
@@ -56,6 +58,12 @@ the wif-config metadata and the GCP resources it represents.`,
 		"",
 		versionFlagDescription,
 	)
+	updateWifConfigCmd.PersistentFlags().StringVar(
+		&UpdateWifConfigOpts.OpenshiftVersions,
+		"versions",
+		"",
+		versionsFlagDescription,
+	)
 
 	updateWifConfigCmd.PersistentFlags().StringVar(
 		&UpdateWifConfigOpts.FederatedProject,
@@ -74,6 +82,26 @@ func validationForUpdateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, arg
 
 	if UpdateWifConfigOpts.Mode != ModeAuto && UpdateWifConfigOpts.Mode != ModeManual {
 		return fmt.Errorf("Invalid mode. Allowed values are %s", Modes)
+	}
+
+	versionChanged := cmd.Flags().Changed("version")
+	versionsChanged := cmd.Flags().Changed("versions")
+
+	if versionChanged && versionsChanged {
+		return fmt.Errorf("Cannot specify both --version and --versions flags")
+	}
+
+	if versionsChanged {
+		if strings.TrimSpace(UpdateWifConfigOpts.OpenshiftVersions) == "" {
+			return fmt.Errorf("--versions cannot be empty or whitespace-only")
+		}
+		if UpdateWifConfigOpts.Mode != ModeManual {
+			return fmt.Errorf("--versions flag requires --mode=manual")
+		}
+	}
+
+	if UpdateWifConfigOpts.Mode == ModeManual && UpdateWifConfigOpts.TargetDir == "" {
+		return fmt.Errorf("--mode=manual requires --output-dir to be specified")
 	}
 
 	UpdateWifConfigOpts.TargetDir, err = getPathFromFlag(UpdateWifConfigOpts.TargetDir)
@@ -99,7 +127,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	defer connection.Close()
 
 	// Verify the WIF configuration exists
-	wifConfig, err := findWifConfig(connection.ClustersMgmt().V1(), key)
+	originalWifConfig, err := findWifConfig(connection.ClustersMgmt().V1(), key)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get wif-config")
 	}
@@ -107,10 +135,25 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	wifBuilder := cmv1.NewWifConfig()
 	// Update the WIF configuration
 	if UpdateWifConfigOpts.OpenshiftVersion != "" {
+		// Additive mode: append the new version to existing templates
 		wifTemplate := versionToTemplateID(UpdateWifConfigOpts.OpenshiftVersion)
 
-		existingTemplates, _ := wifConfig.GetWifTemplates()
+		existingTemplates, _ := originalWifConfig.GetWifTemplates()
 		wifBuilder.WifTemplates(append(existingTemplates, wifTemplate)...)
+	} else if UpdateWifConfigOpts.OpenshiftVersions != "" {
+		// Declarative mode: replace all templates with the specified versions
+		versionsList := strings.Split(UpdateWifConfigOpts.OpenshiftVersions, ",")
+		wifTemplates := make([]string, 0, len(versionsList))
+		for _, version := range versionsList {
+			version = strings.TrimSpace(version)
+			if version != "" {
+				wifTemplates = append(wifTemplates, versionToTemplateID(version))
+			}
+		}
+		if len(wifTemplates) == 0 {
+			return fmt.Errorf("--versions must contain at least one version")
+		}
+		wifBuilder.WifTemplates(wifTemplates...)
 	}
 
 	// Create the client for the GCP API
@@ -120,7 +163,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	}
 
 	if UpdateWifConfigOpts.FederatedProject != "" &&
-		wifConfig.Gcp().FederatedProjectId() != UpdateWifConfigOpts.FederatedProject {
+		originalWifConfig.Gcp().FederatedProjectId() != UpdateWifConfigOpts.FederatedProject {
 		projectNumInt64, err := gcpClient.ProjectNumberFromId(ctx, UpdateWifConfigOpts.FederatedProject)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get GCP project number from project id")
@@ -137,20 +180,22 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	}
 
 	resp, err := connection.ClustersMgmt().V1().GCP().WifConfigs().
-		WifConfig(wifConfig.ID()).Update().Body(updatedWifConfig).Send()
+		WifConfig(originalWifConfig.ID()).Update().Body(updatedWifConfig).Send()
 	if err != nil {
 		return errors.Wrapf(err, "failed to update wif-config")
 	}
-	wifConfig = resp.Body()
+	updatedWifConfig = resp.Body()
 
 	if UpdateWifConfigOpts.Mode == ModeManual {
 		log.Printf("Writing script files to %s", UpdateWifConfigOpts.TargetDir)
-		projectNumInt64, err := strconv.ParseInt(getFederatedProjectNumber(wifConfig), 10, 64)
+		projectNumInt64, err := strconv.ParseInt(getFederatedProjectNumber(updatedWifConfig), 10, 64)
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse project number from WifConfig")
 		}
 
-		if err := createUpdateScript(UpdateWifConfigOpts.TargetDir, wifConfig, projectNumInt64); err != nil {
+		if err := createUpdateScript(
+			UpdateWifConfigOpts.TargetDir, projectNumInt64, originalWifConfig, updatedWifConfig,
+		); err != nil {
 			return errors.Wrapf(err, "failed to generate script files")
 		}
 		return nil
@@ -159,7 +204,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	// Re-apply WIF resources
 	gcpClientWifConfigShim := NewGcpClientWifConfigShim(GcpClientWifConfigShimSpec{
 		GcpClient: gcpClient,
-		WifConfig: wifConfig,
+		WifConfig: updatedWifConfig,
 		FailFast:  wifConfigOptions.FailFast,
 	})
 
@@ -194,17 +239,17 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 	//messages being returned, we will verify that the backend can see the
 	//resources before we consider the wif-config creation complete.
 	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
-		log.Printf("Verifying wif-config '%s'...", wifConfig.ID())
-		if err := verifyWifConfig(connection, wifConfig.ID()); err != nil {
+		log.Printf("Verifying wif-config '%s'...", updatedWifConfig.ID())
+		if err := verifyWifConfig(connection, updatedWifConfig.ID()); err != nil {
 			return true, err
 		}
 		return false, nil
 	}, retryTimeout, log); err != nil {
 		return fmt.Errorf("Timed out verifying wif-config resources\n"+
 			"Please try 'ocm gcp update wif-config %s' again in a few minutes, "+
-			"or contact Red Hat support.", wifConfig.ID())
+			"or contact Red Hat support.", updatedWifConfig.ID())
 	}
 
-	log.Printf("wif-config '%s' updated successfully.", wifConfig.ID())
+	log.Printf("wif-config '%s' updated successfully.", updatedWifConfig.ID())
 	return nil
 }
