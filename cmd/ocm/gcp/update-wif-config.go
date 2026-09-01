@@ -196,7 +196,12 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		if err := createUpdateScript(
 			UpdateWifConfigOpts.TargetDir, projectNumInt64, originalWifConfig, updatedWifConfig,
 		); err != nil {
-			return errors.Wrapf(err, "failed to generate script files")
+			return errors.Wrapf(err, "failed to generate update script file")
+		}
+		if err := createPruneScript(
+			UpdateWifConfigOpts.TargetDir, originalWifConfig, updatedWifConfig,
+		); err != nil {
+			return errors.Wrapf(err, "failed to generate prune script file")
 		}
 		return nil
 	}
