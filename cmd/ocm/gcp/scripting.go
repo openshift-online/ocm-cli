@@ -44,6 +44,16 @@ func createUpdateScript(targetDir string, projectNum int64, originalWifConfig, u
 	return nil
 }
 
+func createPruneScript(targetDir string, originalWifConfig, updatedWifConfig *cmv1.WifConfig) error {
+	// Write the script content to the path
+	scriptContent := generatePruneScriptContent(originalWifConfig, updatedWifConfig)
+	err := os.WriteFile(filepath.Join(targetDir, "prune.sh"), []byte(scriptContent), 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func createDeleteScript(targetDir string, wifConfig *cmv1.WifConfig) error {
 	// Write the script content to the path
 	scriptContent := generateDeleteScriptContent(wifConfig)
@@ -118,6 +128,11 @@ func generateUpdateScriptContent(originalWifConfig, updatedWifConfig *cmv1.WifCo
 	scriptContent += updateServiceAccountScriptContent(updatedWifConfig, projectNum)
 
 	scriptContent += grantSupportAccessScriptContent(updatedWifConfig)
+	return scriptContent
+}
+
+func generatePruneScriptContent(originalWifConfig, updatedWifConfig *cmv1.WifConfig) string {
+	scriptContent := bashShebang
 
 	scriptContent += pruneUnusedBindings(originalWifConfig, updatedWifConfig)
 
