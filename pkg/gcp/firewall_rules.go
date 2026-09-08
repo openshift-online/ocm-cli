@@ -29,8 +29,6 @@ func GenerateCreateBashScript(fr *FirewallRuleset) string {
 	fmt.Fprintf(&sb, "NETWORK=%s\n", shellQuote(fr.GcpNetwork().VpcName()))
 	fmt.Fprintf(&sb, "PREFIX=%s\n\n", shellQuote(fr.Name()))
 
-	sb.WriteString("set -e\n\n")
-
 	for i, rule := range fr.Status().Rules() {
 		if i > 0 {
 			sb.WriteString("\n")
@@ -98,8 +96,6 @@ func GenerateDeleteBashScript(fr *FirewallRuleset) string {
 	fmt.Fprintf(&sb, "NETWORK=%s\n", shellQuote(fr.GcpNetwork().VpcName()))
 	fmt.Fprintf(&sb, "PREFIX=%s\n\n", shellQuote(fr.Name()))
 
-	sb.WriteString("set -e\n\n")
-
 	for i, rule := range fr.Status().Rules() {
 		if i > 0 {
 			sb.WriteString("\n")
@@ -134,8 +130,6 @@ func GenerateUpdateBashScript(fr *FirewallRuleset) string {
 	fmt.Fprintf(&sb, "PROJECT=%s\n", shellQuote(fr.GcpNetwork().ProjectId()))
 	fmt.Fprintf(&sb, "NETWORK=%s\n", shellQuote(fr.GcpNetwork().VpcName()))
 	fmt.Fprintf(&sb, "PREFIX=%s\n\n", shellQuote(fr.Name()))
-
-	sb.WriteString("set -e\n\n")
 
 	for i, rule := range fr.Status().Rules() {
 		if i > 0 {
