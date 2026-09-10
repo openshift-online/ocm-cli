@@ -3,6 +3,112 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.16 Sep 10 2026
+
+- Trigger release (#1110)
+- Red Hat Konflux update ocm-cli (#1111)
+- Trigger CI pipeline (#1112)
+- konflux: Fix push-pipeline-to-cdn by using tar.gz format (#1113)
+- Support opaque (non-JWT) tokens for sandbox environments
+- update build pipeline to use pre-fetched dependencies (#1117)
+- ROSAENG-13680 | feat: add --fail-fast flag to wif-config operations (#1118)
+- ROSAENG-59254 | fix: handle WifConfig retrieval errors gracefully
+- Update module github.com/zalando/go-keyring to v0.2.8
+- ROSA-745: Tide routing for MintMaker and Dependabot
+- ROSAENG-13397 | fix: konflux warnings
+- Chore(deps): Bump github.com/openshift-online/ocm-common
+- Update module github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp to v1.33.0 (#981)
+- Update google.golang.org/genproto/googleapis/api digest to 925bb5d (#978)
+- Update module github.com/openshift-online/ocm-common to v0.0.44 (#986)
+- Update aws-sdk-go-v2 monorepo (#988)
+- Chore(deps): Bump golang.org/x/net from 0.49.0 to 0.55.0 (#1136)
+- Chore(deps): Bump github.com/openshift/rosa from 1.2.60 to 1.2.64 (#1135)
+- Update module github.com/mattn/go-colorable to v0.1.15 (#1120)
+- Build(deps): Bump github.com/hashicorp/go-version from 1.8.0 to 1.9.0 (#1083)
+- Update module github.com/openshift-online/ocm-api-model/clientapi to v0.0.461
+- ROSAENG-13397 | fix: change from ubi-micro to ubi-minimal (#1139)
+- OCM-23390 | feat: prefetch machine types and versions in interactive mode (#1078)
+- Update module github.com/openshift-online/ocm-sdk-go to v0.1.504
+- Update module github.com/onsi/ginkgo/v2 to v2.32.0
+- Update module github.com/googleapis/enterprise-certificate-proxy to v0.3.18
+- Update module go.yaml.in/yaml/v2 to v2.4.4
+- Update module github.com/lib/pq to v1.12.3
+- Update module github.com/Masterminds/semver/v3 to v3.5.0
+- Update module github.com/spiffe/go-spiffe/v2 to v2.8.1
+- Update module cloud.google.com/go/iam to v1.11.0 (#1147)
+- Update module github.com/fatih/color to v1.19.0
+- Update module github.com/googleapis/gax-go/v2 to v2.22.0
+- Update module github.com/prometheus/common to v0.69.0
+- Update opentelemetry-go monorepo to v1.44.0
+- ROSAENG-13397 | fix: remove ecosystem-cert-preflight-checks and update version tags (#1153)
+- Update module github.com/onsi/gomega to v1.42.1
+- Update module github.com/prometheus/procfs to v0.21.1
+- Update module golang.org/x/mod to v0.37.0
+- Update module golang.org/x/sync to v0.22.0
+- Update module github.com/openshift-online/ocm-sdk-go to v0.1.505
+- Update google.golang.org/genproto/googleapis/api digest to f0a9213
+- Update google.golang.org/genproto/googleapis/rpc digest to f0a9213
+- Update k8s.io/utils digest to cf1189d
+- Update module golang.org/x/mod to v0.38.0
+- Update module golang.org/x/term to v0.45.0
+- Update Konflux references
+- Update module golang.org/x/crypto to v0.54.0
+- Update module golang.org/x/net to v0.57.0
+- Update github.com/google/pprof digest to b9395ee
+- Build(deps): Bump github.com/googleapis/gax-go/v2 from 2.22.0 to 2.23.0
+- Update module github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp to v1.34.0
+- Build(deps): Bump google.golang.org/api from 0.287.1 to 0.288.0 (#1186)
+- Update module github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping to v0.58.0
+- Update module cloud.google.com/go/storage to v1.63.1
+- Update module cloud.google.com/go/iam to v1.12.0
+- Update module cloud.google.com/go/monitoring to v1.30.0
+- Update google.golang.org/genproto/googleapis/api digest to e75dac1
+- Update module google.golang.org/grpc to v1.82.1
+- Update module github.com/mattn/go-isatty to v0.0.23
+- Build(deps): Bump google.golang.org/api from 0.288.0 to 0.289.0
+- Update module github.com/prometheus/client_golang to v1.24.0
+- Update module github.com/googleapis/enterprise-certificate-proxy to v0.3.19
+- Update module cloud.google.com/go/storage to v1.64.0
+- Accept Warning and Moderate when printing cluster service-log warnings (#1209)
+- Update module github.com/openshift-online/ocm-api-model/clientapi to v0.0.462
+- Update module github.com/prometheus/common to v0.70.1
+- Update module github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp to v1.35.0
+- Update module github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric to v0.59.0
+- Build(deps): Bump google.golang.org/api from 0.289.0 to 0.290.0
+- Build(deps): Bump github.com/MicahParks/jwkset from 0.11.0 to 0.11.1
+- Build(deps): Bump github.com/openshift-online/ocm-sdk-go
+- Update module github.com/prometheus/client_golang to v1.24.1
+- Update module go.yaml.in/yaml/v3 to v3.0.5
+- Update module github.com/MicahParks/jwkset to v0.11.2
+- Update google.golang.org/genproto/googleapis/api digest to 8efbd57
+- Update module google.golang.org/grpc to v1.83.0
+- Build(deps): Bump google.golang.org/api from 0.290.0 to 0.291.0
+- Update module github.com/MicahParks/jwkset to v0.11.3
+- Update github.com/google/pprof digest to ef3492d
+- Update module github.com/openshift-online/ocm-api-model/clientapi to v0.0.463
+- Build(deps): Bump google.golang.org/api from 0.291.0 to 0.292.0
+- Update module github.com/openshift-online/ocm-sdk-go to v0.1.508
+- Update module cloud.google.com/go/auth to v0.23.0
+- Update module cloud.google.com/go/iam to v1.13.0
+- Update Konflux references
+- Build(deps): Bump google.golang.org/grpc from 1.83.0 to 1.83.1
+- Build(deps): Bump github.com/openshift-online/ocm-common
+- Build(deps): Bump cloud.google.com/go/storage from 1.64.0 to 1.65.0
+- ROSAENG-61163 | feat: gcp firewall rules commands (#1248)
+- ROSAENG-62755 | feat: WIF Config Version Pruning
+- Update module cloud.google.com/go/auth to v0.23.2
+- Update module github.com/fxamacker/cbor/v2 to v2.9.3
+- Update module github.com/openshift-online/ocm-common to v0.0.45
+- Build(deps): Bump github.com/openshift-online/ocm-api-model/clientapi
+- Build(deps): Bump cloud.google.com/go/storage from 1.65.0 to 1.66.0
+- Build(deps): Bump google.golang.org/api from 0.292.0 to 0.294.0
+- ROSAENG-66151 | wif update generates separate pruning script
+- Update module github.com/prometheus/client_model to v0.6.3
+- ROSAENG-66495 | fix: generate scripts for fw ops should not terminate on fail
+- Update module github.com/go-jose/go-jose/v4 to v4.1.5
+- Build(deps): Bump cloud.google.com/go/storage from 1.66.0 to 1.67.0
+- Build(deps): Bump github.com/googleapis/gax-go/v2 from 2.24.0 to 2.24.1
+
 ## 1.0.15 May 14 2026
 
 - Add one-command build/setup: README.md (Quick Start section)
