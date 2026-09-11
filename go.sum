@@ -26,8 +26,8 @@ github.com/99designs/keyring v1.2.2 h1:pZd3neh/EmUzWONb35LxQfvuY7kiSXAq3HQd97+XB
 github.com/99designs/keyring v1.2.2/go.mod h1:wes/FrByc8j7lFOAGLGSNEg8f/PaI3cgTBqhFkHUrPk=
 github.com/AlecAivazis/survey/v2 v2.3.7 h1:6I/u8FvytdGsgonrYsVn2t8t4QiRnh6QSTqkkhIiSjQ=
 github.com/AlecAivazis/survey/v2 v2.3.7/go.mod h1:xUTIdE4KCOIjsBAE1JYsUPoCqYdZ1reCfTwbto0Fduo=
-github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.35.0 h1:bN1gA3of5bXtbnLsRPrwfmbbe7A5UWFlcTHseujLnpc=
-github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.35.0/go.mod h1:Yj5vHEz/aAepZGliRJsA6uvHAVAQyEwajq9ORCHPxzM=
+github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.37.0 h1:edOuLWehuDlQ68roBF900Y09jvBoJP5W5d/wusz9nWY=
+github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.37.0/go.mod h1:iIyrdhveU5Ow84ipRlxtjCOQnIM0DiqSMxuxm50xwZY=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.59.0 h1:c/Ivw7FuawPLfrr+zB0LZKeCchO2cAHQpF2qZ6OV7rQ=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.59.0/go.mod h1:Zba7lknY/d78oxbKqFTmCsaGwfpzeJ3ktrrLXtnTV6g=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0.59.0 h1:xTXsqDOj5k9mK3VVWHYUryryJCIdYfXxdjKFwpzINUw=
