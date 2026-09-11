@@ -14,7 +14,7 @@ require (
 	github.com/m1/go-generate-password v0.2.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nwidger/jsoncolor v0.3.2
-	github.com/onsi/ginkgo/v2 v2.32.0
+	github.com/onsi/ginkgo/v2 v2.32.1
 	github.com/onsi/gomega v1.42.1
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.466
 	github.com/openshift-online/ocm-common v0.0.45
