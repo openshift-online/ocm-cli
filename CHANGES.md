@@ -3,6 +3,12 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.17 Sep 15 2026
+
+- Build(deps): Bump github.com/onsi/ginkgo/v2 from 2.32.0 to 2.32.2
+- Build(deps): Bump cloud.google.com/go/storage from 1.67.0 to 1.67.1
+- Build(deps): Bump github.com/openshift-online/ocm-sdk-go
+
 ## 1.0.16 Sep 10 2026
 
 - Trigger release (#1110)
