@@ -2,6 +2,9 @@
 #This script invoked via a make target by the Dockerfile
 #which builds a cli wrapper container that contains all release images
 
+#Fail fast so build errors (e.g. a failing go build) abort the pipeline
+set -e
+
 #Keeping it similar to ROSA official releases which only publish amd64 to mirror
 #This list can be modified as needed if additional os or arch support is needed
 archs=(amd64)
