@@ -18,7 +18,7 @@ require (
 	github.com/onsi/gomega v1.43.1
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.468
 	github.com/openshift-online/ocm-common v0.0.45
-	github.com/openshift-online/ocm-sdk-go v0.1.512
+	github.com/openshift-online/ocm-sdk-go v0.1.513
 	github.com/openshift/rosa v1.2.64
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
