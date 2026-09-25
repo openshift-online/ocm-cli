@@ -1,6 +1,6 @@
 module github.com/openshift-online/ocm-cli
 
-go 1.25.9
+go 1.26.0
 
 require (
 	cloud.google.com/go/iam v1.13.0
@@ -9,7 +9,7 @@ require (
 	github.com/MicahParks/jwkset v0.11.3
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang/glog v1.2.5
-	github.com/googleapis/gax-go/v2 v2.24.1
+	github.com/googleapis/gax-go/v2 v2.25.0
 	github.com/hashicorp/go-version v1.9.0
 	github.com/m1/go-generate-password v0.2.0
 	github.com/mitchellh/go-homedir v1.1.0
