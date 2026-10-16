@@ -151,12 +151,23 @@ func buildOpenidIdp(cluster *cmv1.Cluster, idpName string) (idpBuilder cmv1.Iden
 	}
 
 	// Create OpenID IDP
-	openIDIDP := cmv1.NewOpenIDIdentityProvider().
+	openIDIDPBuilder := cmv1.NewOpenIDIdentityProvider().
 		ClientID(clientID).
 		ClientSecret(clientSecret).
 		Issuer(issuerURL).
-		Claims(openIDClaims).
-		ExtraScopes(extraScopes)
+		Claims(openIDClaims)
+	if extraScopes != "" {
+		var scopes []string
+		for _, scope := range strings.Split(extraScopes, ",") {
+			if scope = strings.TrimSpace(scope); scope != "" {
+				scopes = append(scopes, scope)
+			}
+		}
+		if len(scopes) > 0 {
+			openIDIDPBuilder = openIDIDPBuilder.ExtraScopes(scopes...)
+		}
+	}
+	openIDIDP := openIDIDPBuilder
 
 	// Create new IDP with OpenID provider
 	idpBuilder.

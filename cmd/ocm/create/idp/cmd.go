@@ -231,7 +231,7 @@ func init() {
 		&args.openidExtraScopes,
 		"extra-scopes",
 		"",
-		"OpenID: List of extra scopes to request when provisioning a user.\n",
+		"OpenID: Comma-separated list of extra scopes to request when provisioning a user.\n",
 	)
 
 	// HTPasswd
