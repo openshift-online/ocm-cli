@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -1852,10 +1853,15 @@ func promptDNS(fs *pflag.FlagSet, connection *sdk.Connection) error {
 func getDnsDomainOptions(connection *sdk.Connection) ([]arguments.Option, error) {
 	var dnsDomains []arguments.Option
 	collection := connection.ClustersMgmt().V1().DNSDomains()
+	providerSearchValue := escapeOCMSearchValue(args.provider)
+	search := fmt.Sprintf(
+		"user_defined = true AND cloud_provider = '%s' AND cluster.id = ''",
+		providerSearchValue,
+	)
 	page, size := 1, 100
 	for {
 		response, err := collection.List().
-			Search(fmt.Sprintf("user_defined = true AND cloud_provider = '%s' AND cluster.id = ''", args.provider)).
+			Search(search).
 			Page(page).
 			Size(size).
 			Send()
@@ -1874,10 +1880,87 @@ func getDnsDomainOptions(connection *sdk.Connection) ([]arguments.Option, error)
 		}
 		page++
 	}
-	if len(dnsDomains) == 0 {
-		return nil, fmt.Errorf("no available DNS domains found")
+
+	requestedID := args.dns.DnsZoneId
+	if requestedID != "" {
+		for _, option := range dnsDomains {
+			if option.Value == requestedID {
+				return dnsDomains, nil
+			}
+		}
+		return dnsDomainOptionForRequestedID(connection, requestedID)
 	}
-	return dnsDomains, nil
+
+	if len(dnsDomains) > 0 {
+		return dnsDomains, nil
+	}
+
+	total := 0
+	page = 1
+	search = fmt.Sprintf("user_defined = true AND cloud_provider = '%s'", providerSearchValue)
+	for {
+		response, err := collection.List().
+			Search(search).
+			Page(page).
+			Size(size).
+			Send()
+		if err != nil {
+			return nil, fmt.Errorf("failed to list DNS domains: %v", err)
+		}
+		total += response.Size()
+		if response.Size() < size {
+			break
+		}
+		page++
+	}
+
+	if total == 0 {
+		return nil, fmt.Errorf(
+			"no user-defined DNS domains found for cloud provider '%s'. "+
+				"Create one with 'ocm gcp create dns-zone' before using a predefined DNS managed zone",
+			args.provider,
+		)
+	}
+	return nil, fmt.Errorf(
+		"all user-defined DNS domains for cloud provider '%s' are already associated with a cluster. "+
+			"Create a new DNS zone with 'ocm gcp create dns-zone' or choose a domain that is not in use",
+		args.provider,
+	)
+}
+
+func escapeOCMSearchValue(value string) string {
+	return strings.ReplaceAll(value, "'", "''")
+}
+
+func dnsDomainOptionForRequestedID(
+	connection *sdk.Connection,
+	requestedID string,
+) ([]arguments.Option, error) {
+	getResponse, err := connection.ClustersMgmt().V1().DNSDomains().DNSDomain(requestedID).Get().Send()
+	if err != nil {
+		if getResponse != nil && getResponse.Status() == http.StatusNotFound {
+			return nil, fmt.Errorf(
+				"DNS domain '%s' was not found for your organization",
+				requestedID,
+			)
+		}
+		return nil, fmt.Errorf("failed to get DNS domain '%s': %v", requestedID, err)
+	}
+	domain := getResponse.Body()
+	if !domain.UserDefined() || string(domain.CloudProvider()) != args.provider {
+		return nil, fmt.Errorf(
+			"DNS domain '%s' was not found for your organization",
+			requestedID,
+		)
+	}
+	if domain.Cluster() != nil {
+		return nil, fmt.Errorf(
+			"DNS domain '%s' is already in use by another cluster. "+
+				"Create a new DNS zone with 'ocm gcp create dns-zone' or choose a different domain",
+			requestedID,
+		)
+	}
+	return []arguments.Option{{Value: domain.ID()}}, nil
 }
 
 func getFirewallRuleOptions(connection *sdk.Connection) ([]arguments.Option, error) {
