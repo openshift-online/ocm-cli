@@ -1,15 +1,15 @@
 module github.com/openshift-online/ocm-cli
 
-go 1.25.9
+go 1.26.0
 
 require (
 	cloud.google.com/go/iam v1.13.0
-	cloud.google.com/go/storage v1.68.0
+	cloud.google.com/go/storage v1.69.0
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/jwkset v0.11.3
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang/glog v1.2.5
-	github.com/googleapis/gax-go/v2 v2.24.1
+	github.com/googleapis/gax-go/v2 v2.26.2
 	github.com/hashicorp/go-version v1.9.0
 	github.com/m1/go-generate-password v0.2.0
 	github.com/mitchellh/go-homedir v1.1.0
@@ -127,7 +127,7 @@ require (
 	github.com/zalando/go-keyring v0.2.8 // indirect
 	github.com/zgalor/weberr v0.9.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/contrib/detectors/gcp v1.44.0 // indirect
+	go.opentelemetry.io/contrib/detectors/gcp v1.45.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.68.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0 // indirect
 	go.opentelemetry.io/otel v1.45.0 // indirect
