@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package upgrade
+package update
 
 import (
 	"context"
@@ -44,18 +44,18 @@ var args struct {
 }
 
 var Cmd = &cobra.Command{
-	Use:     "upgrade [flags] CLUSTER",
+	Use:     "update [flags] CLUSTER",
 	Aliases: []string{"update-version"},
-	Short:   "Upgrade a cluster to an available version",
-	Long:    "Upgrade a cluster by creating a manual upgrade policy for one of its available versions.",
-	Example: `  # Upgrade a cluster to a specific version
-  ocm cluster upgrade my-cluster --version 4.22.18
+	Short:   "Update a cluster to an available version",
+	Long:    "Update a cluster by creating a manual update policy for one of its available versions.",
+	Example: `  # Update a cluster to a specific version
+  ocm cluster update my-cluster --version 4.22.18
 
-  # Change channels before choosing an upgrade version
-  ocm cluster upgrade my-cluster --channel candidate-5.0 --version 5.0.0-rc.6
+  # Change channels before choosing an update version
+  ocm cluster update my-cluster --channel candidate-5.0 --version 5.0.0-rc.6
 
   # Choose from the cluster's available versions interactively
-  ocm cluster upgrade my-cluster --interactive`,
+  ocm cluster update my-cluster --interactive`,
 	Args: cobra.ExactArgs(1),
 	RunE: run,
 }
@@ -69,7 +69,7 @@ func init() {
 		&args.channel,
 		"channel",
 		"",
-		"Update channel to use before selecting the upgrade version.",
+		"Update channel to use before selecting the update version.",
 	)
 	arguments.SetQuestion(flags, "channel", "Update channel:")
 
@@ -77,7 +77,7 @@ func init() {
 		&args.version,
 		"version",
 		"",
-		"OpenShift version to upgrade the cluster to.",
+		"OpenShift version to update the cluster to.",
 	)
 	arguments.SetQuestion(flags, "version", "OpenShift version:")
 
@@ -85,7 +85,7 @@ func init() {
 		&args.nextRun,
 		"next-run",
 		"",
-		"UTC time to run the upgrade in RFC3339 format. Defaults to six minutes from now.",
+		"UTC time to run the update in RFC3339 format. Defaults to six minutes from now.",
 	)
 }
 
@@ -127,16 +127,16 @@ func run(cmd *cobra.Command, argv []string) (err error) {
 
 	version := cluster.Version()
 	if version == nil {
-		return fmt.Errorf("There are no available upgrades for cluster '%s'", clusterKey)
+		return fmt.Errorf("There are no available updates for cluster '%s'", clusterKey)
 	}
-	availableUpgrades := c.GetAvailableUpgrades(version)
-	if len(availableUpgrades) == 0 {
-		return fmt.Errorf("There are no available upgrades for cluster '%s'", clusterKey)
+	availableUpdates := c.GetAvailableUpgrades(version)
+	if len(availableUpdates) == 0 {
+		return fmt.Errorf("There are no available updates for cluster '%s'", clusterKey)
 	}
 
-	options := make([]arguments.Option, 0, len(availableUpgrades))
-	for _, upgrade := range availableUpgrades {
-		options = append(options, arguments.Option{Value: upgrade})
+	options := make([]arguments.Option, 0, len(availableUpdates))
+	for _, update := range availableUpdates {
+		options = append(options, arguments.Option{Value: update})
 	}
 
 	err = arguments.PromptOrCheckOneOf(cmd.Flags(), "version", options)
@@ -144,7 +144,7 @@ func run(cmd *cobra.Command, argv []string) (err error) {
 		return err
 	}
 	if args.version == "" {
-		return fmt.Errorf("A --version must be specified.\nValid options: %v", availableUpgrades)
+		return fmt.Errorf("A --version must be specified.\nValid options: %v", availableUpdates)
 	}
 
 	nextRun, err := parseNextRun(args.nextRun, time.Now().UTC())
@@ -158,7 +158,7 @@ func run(cmd *cobra.Command, argv []string) (err error) {
 		NextRun(nextRun).
 		Build()
 	if err != nil {
-		return fmt.Errorf("Failed to create upgrade policy for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("Failed to create update policy for cluster '%s': %v", clusterKey, err)
 	}
 
 	ctx, cancel := context.WithTimeout(cmd.Context(), policySubmitTimeout)
@@ -171,10 +171,10 @@ func run(cmd *cobra.Command, argv []string) (err error) {
 		Body(upgradePolicy).
 		SendContext(ctx)
 	if err != nil {
-		return fmt.Errorf("Failed to schedule upgrade for cluster '%s': %v", clusterKey, err)
+		return fmt.Errorf("Failed to schedule update for cluster '%s': %v", clusterKey, err)
 	}
 
-	fmt.Printf("Scheduled upgrade for cluster '%s' to version '%s' at '%s'\n",
+	fmt.Printf("Scheduled update for cluster '%s' to version '%s' at '%s'\n",
 		clusterKey, args.version, nextRun.Format(time.RFC3339))
 	return nil
 }
