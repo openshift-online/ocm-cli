@@ -19,7 +19,7 @@ package cluster
 import (
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/login"
 	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/status"
-	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/upgrade"
+	"github.com/openshift-online/ocm-cli/cmd/ocm/cluster/update"
 	"github.com/spf13/cobra"
 )
 
@@ -33,5 +33,5 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(login.Cmd)
 	Cmd.AddCommand(status.Cmd)
-	Cmd.AddCommand(upgrade.Cmd)
+	Cmd.AddCommand(update.Cmd)
 }
