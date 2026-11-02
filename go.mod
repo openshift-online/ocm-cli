@@ -17,7 +17,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.1
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.468
-	github.com/openshift-online/ocm-common v0.0.45
+	github.com/openshift-online/ocm-common v0.0.47
 	github.com/openshift-online/ocm-sdk-go v0.1.514
 	github.com/openshift/rosa v1.2.64
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
@@ -85,7 +85,7 @@ require (
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.4 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
