@@ -15,6 +15,18 @@ type projectIAMGrant struct {
 	member string
 }
 
+type projectIAMPreflightError struct {
+	cause error
+}
+
+func (preflightError *projectIAMPreflightError) Error() string {
+	return preflightError.cause.Error()
+}
+
+func (preflightError *projectIAMPreflightError) Unwrap() error {
+	return preflightError.cause
+}
+
 type projectIAMPolicyReadError struct {
 	project string
 	cause   error

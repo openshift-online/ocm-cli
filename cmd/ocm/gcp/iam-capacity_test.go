@@ -12,6 +12,7 @@ import (
 	"github.com/openshift-online/ocm-cli/pkg/gcp"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v1"
+	"google.golang.org/api/googleapi"
 )
 
 type capacityClient struct {
@@ -130,6 +131,12 @@ func TestProjectIAMCapacity(t *testing.T) {
 			accountRoles: []*cmv1.WifRoleBuilder{predefined("viewer"), predefined("viewer")},
 		},
 		{
+			name: "duplicate existing role-member occurrences each count", count: 1498,
+			accountRoles: []*cmv1.WifRoleBuilder{predefined("editor")},
+			bindings:     []*cloudresourcemanager.Binding{{Role: "roles/viewer", Members: []string{worker, worker}}},
+			wantError:    "current=1500 additional=1 projected=1501 limit=1500",
+		},
+		{
 			name: "conditional grant does not satisfy unconditional grant", count: 1499,
 			accountRoles: []*cmv1.WifRoleBuilder{predefined("viewer")},
 			bindings:     []*cloudresourcemanager.Binding{conditional},
@@ -218,7 +225,7 @@ func TestProjectIAMCapacity(t *testing.T) {
 
 func TestGrantSupportAccessPreflightStopsBeforeMutation(t *testing.T) {
 	t.Parallel()
-	readErr := errors.New(`policy unavailable: user:private@example.com {"bindings":[]}`)
+	readErr := &googleapi.Error{Code: 403, Message: `policy unavailable: user:private@example.com {"bindings":[]}`}
 	for _, testCase := range []struct {
 		name    string
 		policy  *cloudresourcemanager.Policy
@@ -242,11 +249,57 @@ func TestGrantSupportAccessPreflightStopsBeforeMutation(t *testing.T) {
 			if testCase.readErr != nil && !errors.Is(err, readErr) {
 				t.Fatal("policy read error must remain available to callers")
 			}
+			var preflightError *projectIAMPreflightError
+			if !errors.As(err, &preflightError) {
+				t.Fatal("callers must distinguish preflight rejection from partial cloud provisioning")
+			}
+			var policyError *googleapi.Error
+			if testCase.readErr != nil && (!errors.As(err, &policyError) || policyError != readErr) {
+				t.Fatal("typed policy-read causes must remain available without exposing their text")
+			}
 			if strings.Contains(err.Error(), "@") || strings.Contains(err.Error(), "bindings") {
 				t.Fatal("preflight errors must not expose upstream policy data or principal identities")
 			}
 			if client.readCalls != 1 || client.writeCalls != 0 {
 				t.Fatal("preflight rejection must not retry or mutate cloud resources")
+			}
+		})
+	}
+}
+
+func TestProjectIAMCapacityMatchesAccountAccessMethods(t *testing.T) {
+	t.Parallel()
+	for _, accessMethod := range []cmv1.WifAccessMethod{
+		cmv1.WifAccessMethodImpersonate, cmv1.WifAccessMethodWif, cmv1.WifAccessMethodVm,
+	} {
+		t.Run(string(accessMethod), func(t *testing.T) {
+			t.Parallel()
+			config, err := cmv1.NewWifConfig().Gcp(cmv1.NewWifGcp().ProjectId("test-project").ServiceAccounts(
+				cmv1.NewWifServiceAccount().ServiceAccountId("worker").AccessMethod(accessMethod).Roles(
+					cmv1.NewWifRole().RoleId("viewer").Predefined(true),
+					cmv1.NewWifRole().RoleId("iam.serviceAccountUser").Predefined(true).ResourceBindings(
+						cmv1.NewWifResourceBinding().Type("iam.serviceAccounts").Name("target"),
+					),
+				),
+			)).Build()
+			if err != nil {
+				t.Fatal(err)
+			}
+			client := &capacityClient{policy: capacityPolicy(1500)}
+			clientShim := &shim{wifConfig: config, gcpClient: client}
+			err = clientShim.checkProjectIAMCapacity(context.Background())
+			if err == nil || !strings.Contains(err.Error(), "current=1500 additional=1 projected=1501") {
+				t.Fatal("each access method must plan exactly one project grant, excluding resource grants")
+			}
+			client.policy = capacityPolicy(0)
+			if err := clientShim.bindRolesToServiceAccount(context.Background(), log.New(io.Discard, "", 0),
+				config.Gcp().ServiceAccounts()[0]); err != nil {
+				t.Fatal(err)
+			}
+			if len(client.policy.Bindings) != 1 || client.policy.Bindings[0].Role != "roles/viewer" ||
+				len(client.policy.Bindings[0].Members) != 1 ||
+				client.policy.Bindings[0].Members[0] != "serviceAccount:worker@test-project.iam.gserviceaccount.com" {
+				t.Fatal("planned grants must match the actual project-policy writer for every access method")
 			}
 		})
 	}

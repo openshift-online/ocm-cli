@@ -243,6 +243,10 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	if err := gcpClientWifConfigShim.GrantSupportAccess(ctx, log); err != nil {
 		log.Printf("Failed to grant support access to project: %s", err)
+		var preflightError *projectIAMPreflightError
+		if errors.As(err, &preflightError) {
+			return err
+		}
 		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 

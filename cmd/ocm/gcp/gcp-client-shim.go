@@ -184,7 +184,7 @@ func (c *shim) GrantSupportAccess(
 	log *log.Logger,
 ) error {
 	if err := c.checkProjectIAMCapacity(ctx); err != nil {
-		return err
+		return &projectIAMPreflightError{cause: err}
 	}
 	var lastErr error
 	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
