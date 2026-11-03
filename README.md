@@ -435,6 +435,11 @@ can still cause a later policy update to fail. The OCM WIF configuration metadat
 has already been created or updated when this check runs. Manual-mode script
 generation does not run this check.
 
+After a create preflight failure, review the OCM metadata identified in the
+error before retrying. Do not use the GCP WIF deletion command to address a
+preflight failure: it also unbinds and deletes configured GCP resources, which
+may already exist and be in use even though preflight made no GCP changes.
+
 ## Deleting Objects
 
 Objects can be deleted using the `delete` command. For example to delete the

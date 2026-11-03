@@ -251,9 +251,15 @@ func TestGrantSupportAccessPreflightStopsBeforeMutation(t *testing.T) {
 			if !errors.Is(err, originalErr) || !strings.Contains(err.Error(), originalErr.Error()) {
 				t.Fatal("create error must preserve the original sanitized preflight diagnostic and cause")
 			}
-			if !strings.Contains(err.Error(), "The wif-config was already created in OCM.") ||
-				!strings.HasSuffix(err.Error(), "ocm gcp delete wif-config example-config-id") {
-				t.Fatal("create error must explain existing OCM metadata and identify its manual cleanup command")
+			if !strings.Contains(err.Error(), "The wif-config example-config-id was already created in OCM.") ||
+				!strings.Contains(err.Error(), "Review this OCM metadata before retrying.") {
+				t.Fatal("create error must identify existing OCM metadata for review")
+			}
+			if !strings.Contains(err.Error(), "Do not use the GCP wif-config deletion command") ||
+				!strings.Contains(err.Error(), "it can delete pre-existing GCP resources.") ||
+				strings.Contains(err.Error(), "ocm gcp delete wif-config") ||
+				strings.Contains(err.Error(), "ocm delete") {
+				t.Fatal("preflight guidance must warn against cloud deletion without suggesting unverified cleanup")
 			}
 			if testCase.name == "overflow" && !strings.Contains(err.Error(),
 				"current=1500 additional=1 projected=1501 limit=1500") {

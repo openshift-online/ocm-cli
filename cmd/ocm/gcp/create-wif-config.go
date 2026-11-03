@@ -292,10 +292,12 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 }
 
 // wifConfigPreflightCreationError preserves the preflight cause and identifies
-// the OCM metadata left for manual cleanup.
+// the OCM metadata left for review without recommending cloud-resource deletion.
 func wifConfigPreflightCreationError(err error, configID string) error {
-	return fmt.Errorf("%w\nThe wif-config was already created in OCM. "+
-		"To clean up, run the following command: ocm gcp delete wif-config %s", err, configID)
+	return fmt.Errorf("%w\nThe wif-config %s was already created in OCM. "+
+		"Review this OCM metadata before retrying. "+
+		"Do not use the GCP wif-config deletion command after a preflight failure; "+
+		"it can delete pre-existing GCP resources.", err, configID)
 }
 
 func createWorkloadIdentityConfiguration(
