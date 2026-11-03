@@ -41,6 +41,7 @@ func (readError *projectIAMPolicyReadError) Unwrap() error {
 	return readError.cause
 }
 
+// unconditionalProjectIAMGrants indexes reusable role/member pairs without deduplicating policy usage counts.
 func unconditionalProjectIAMGrants(policy *cloudresourcemanager.Policy) map[projectIAMGrant]bool {
 	existing := make(map[projectIAMGrant]bool)
 	for _, binding := range policy.Bindings {
@@ -53,6 +54,8 @@ func unconditionalProjectIAMGrants(policy *cloudresourcemanager.Policy) map[proj
 	return existing
 }
 
+// checkProjectIAMCapacity checks a policy snapshot against missing project grants before any GCP mutation.
+// Binding members and audit exemptions count per occurrence; the check does not reserve capacity.
 func (clientShim *shim) checkProjectIAMCapacity(ctx context.Context) error {
 	project := clientShim.wifConfig.Gcp().ProjectId()
 	policy, err := clientShim.gcpClient.GetProjectIamPolicy(ctx, project, &cloudresourcemanager.GetIamPolicyRequest{

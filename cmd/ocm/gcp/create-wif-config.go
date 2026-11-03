@@ -245,7 +245,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 		log.Printf("Failed to grant support access to project: %s", err)
 		var preflightError *projectIAMPreflightError
 		if errors.As(err, &preflightError) {
-			return err
+			return wifConfigPreflightCreationError(err, wifConfig.ID())
 		}
 		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
@@ -289,6 +289,13 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	log.Printf("wif-config '%s' created successfully.", wifConfig.ID())
 	return nil
+}
+
+// wifConfigPreflightCreationError preserves the preflight cause and identifies
+// the OCM metadata left for manual cleanup.
+func wifConfigPreflightCreationError(err error, configID string) error {
+	return fmt.Errorf("%w\nThe wif-config was already created in OCM. "+
+		"To clean up, run the following command: ocm gcp delete wif-config %s", err, configID)
 }
 
 func createWorkloadIdentityConfiguration(

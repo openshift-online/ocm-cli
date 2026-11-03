@@ -246,6 +246,19 @@ func TestGrantSupportAccessPreflightStopsBeforeMutation(t *testing.T) {
 			if err == nil {
 				t.Fatal("expected preflight rejection")
 			}
+			originalErr := err
+			err = wifConfigPreflightCreationError(err, "example-config-id")
+			if !errors.Is(err, originalErr) || !strings.Contains(err.Error(), originalErr.Error()) {
+				t.Fatal("create error must preserve the original sanitized preflight diagnostic and cause")
+			}
+			if !strings.Contains(err.Error(), "The wif-config was already created in OCM.") ||
+				!strings.HasSuffix(err.Error(), "ocm gcp delete wif-config example-config-id") {
+				t.Fatal("create error must explain existing OCM metadata and identify its manual cleanup command")
+			}
+			if testCase.name == "overflow" && !strings.Contains(err.Error(),
+				"current=1500 additional=1 projected=1501 limit=1500") {
+				t.Fatal("create error must retain capacity counts")
+			}
 			if testCase.readErr != nil && !errors.Is(err, readErr) {
 				t.Fatal("policy read error must remain available to callers")
 			}
