@@ -50,8 +50,43 @@ func (client *capacityClient) SetProjectIamPolicy(
 	if client.conflict && client.writeCalls == 1 {
 		return nil, errors.New("concurrent policy update")
 	}
+	for _, binding := range request.Policy.Bindings {
+		if binding.Condition != nil && request.Policy.Version != 3 {
+			return nil, errors.New("conditional policy requires version 3")
+		}
+	}
 	client.policy = request.Policy
 	return request.Policy, nil
+}
+
+func TestCapacityClientPolicyVersions(t *testing.T) {
+	t.Parallel()
+	for _, conditional := range []bool{false, true} {
+		for _, version := range []int64{0, 1, 3} {
+			t.Run(fmt.Sprintf("conditional=%t/version=%d", conditional, version), func(t *testing.T) {
+				t.Parallel()
+				original := capacityPolicy(1)
+				client := &capacityClient{policy: original}
+				binding := &cloudresourcemanager.Binding{Role: "roles/viewer", Members: []string{"group:readers@example.com"}}
+				if conditional {
+					binding.Condition = &cloudresourcemanager.Expr{Expression: "false"}
+				}
+				policy := &cloudresourcemanager.Policy{Version: version, Bindings: []*cloudresourcemanager.Binding{binding}}
+				response, err := client.SetProjectIamPolicy(context.Background(), "test-project",
+					&cloudresourcemanager.SetIamPolicyRequest{Policy: policy})
+				if client.writeCalls != 1 {
+					t.Fatal("every attempted write must count, including rejected writes")
+				}
+				if conditional && version != 3 {
+					if err == nil || response != nil || client.policy != original {
+						t.Fatal("invalid conditional policy must be rejected without replacing the stored policy")
+					}
+				} else if err != nil || response != policy || client.policy != policy {
+					t.Fatal("accepted policy must be returned and stored")
+				}
+			})
+		}
+	}
 }
 
 func capacityConfig(t *testing.T, accountRoles, supportRoles []*cmv1.WifRoleBuilder) *cmv1.WifConfig {
@@ -356,7 +391,9 @@ func TestProjectIAMBindingsPreserveConditions(t *testing.T) {
 		Role: "roles/viewer", Members: []string{"group:other@example.com"},
 		Condition: &cloudresourcemanager.Expr{Expression: "false"},
 	}
-	client := &capacityClient{policy: &cloudresourcemanager.Policy{Bindings: []*cloudresourcemanager.Binding{conditional}}}
+	client := &capacityClient{policy: &cloudresourcemanager.Policy{
+		Version: 3, Bindings: []*cloudresourcemanager.Binding{conditional},
+	}}
 	config := capacityConfig(t, nil, []*cmv1.WifRoleBuilder{cmv1.NewWifRole().RoleId("viewer").Predefined(true)})
 	clientShim := &shim{wifConfig: config, gcpClient: client}
 	modified, err := clientShim.ensurePolicyBindingsForProject(context.Background(), config.Gcp().Support().Roles(),
@@ -369,7 +406,8 @@ func TestProjectIAMBindingsPreserveConditions(t *testing.T) {
 		len(client.policy.Bindings[0].Members) != 1 || client.policy.Bindings[0].Members[0] != "group:other@example.com" {
 		t.Fatal("conditional grant must remain unchanged and a separate unconditional grant must be added")
 	}
-	if client.policy.Bindings[1].Condition != nil || client.policy.Bindings[1].Role != "roles/viewer" ||
+	if client.policy.Version != 3 || client.writeCalls != 1 ||
+		client.policy.Bindings[1].Condition != nil || client.policy.Bindings[1].Role != "roles/viewer" ||
 		len(client.policy.Bindings[1].Members) != 1 || client.policy.Bindings[1].Members[0] != "group:support@example.com" ||
 		client.lastRequest.Options.RequestedPolicyVersion != 3 {
 		t.Fatal("project policy updates must preserve conditions and add an unconditional grant")
