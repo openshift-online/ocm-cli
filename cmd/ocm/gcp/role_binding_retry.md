@@ -41,6 +41,16 @@ also formats only this safe summary while retaining its original cause via
 `Unwrap`. Existing progress messages and diagnostics for unrelated operations are
 unchanged. The shared retry helper is unchanged.
 
+Generic HTTP 400/403 rejections do not by themselves identify policy capacity or
+principal/role propagation. The documented `badRequest` reason is retained, but
+unrecognized messages remain redacted. Diagnostics link to the
+[IAM policy limits](https://cloud.google.com/iam/quotas) and recommend checking
+principal/role configuration without claiming that waiting will fix the failure.
+The public quota reference documents principal and group/domain limits but does
+not provide a capacity-error response payload. The classifier therefore does not
+infer capacity from an unverified message pattern. Offline fixtures are contract
+and sanitization tests, not captured runtime API errors.
+
 ## Official API guidance
 
 - [IAM retry strategy](https://cloud.google.com/iam/docs/retry-strategy): transient

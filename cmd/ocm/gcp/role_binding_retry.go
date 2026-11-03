@@ -62,6 +62,11 @@ func classifyRoleBindingError(err error) roleBindingDiagnostic {
 	if apiErr.Code >= 100 && apiErr.Code <= 599 {
 		diagnostic.code = apiErr.Code
 	}
+	if apiErr.Code == 400 || apiErr.Code == 403 {
+		diagnostic.advice = "Check IAM policy limits (https://cloud.google.com/iam/quotas) and " +
+			"API permissions/principal/role configuration; " +
+			"capacity versus propagation is not determined from this response."
+	}
 	for _, phrase := range []string{
 		"Permission denied", "The caller does not have permission", "Rate limit exceeded",
 		"Quota exceeded", "Internal error encountered", "Service unavailable",
@@ -93,7 +98,7 @@ func classifyRoleBindingError(err error) roleBindingDiagnostic {
 	throttled, unknownReason := false, false
 	for _, reason := range reasons {
 		switch reason {
-		case "forbidden", "authError", "invalid", "notFound", "conditionNotMet":
+		case "badRequest", "forbidden", "authError", "invalid", "notFound", "conditionNotMet":
 			diagnostic.reason = reason
 			return diagnostic
 		case "quotaExceeded", "dailyLimitExceeded", "dailyLimitExceeded402", "quotaExceeded402",

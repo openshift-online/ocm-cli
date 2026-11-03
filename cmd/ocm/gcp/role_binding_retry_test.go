@@ -282,6 +282,47 @@ func TestRoleBindingDiagnosticsAreSanitized(t *testing.T) {
 	}
 }
 
+func TestRoleBindingPolicyRejectionPreservesReasonWithoutInferringCause(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		code   int
+		reason string
+		want   string
+	}{
+		{400, "badRequest", "badRequest"},
+		{400, "opaque-reason-sentinel", "unknown"},
+		{403, "opaque-reason-sentinel", "unknown"},
+	} {
+		t.Run(fmt.Sprintf("%d/%s", test.code, test.reason), func(t *testing.T) {
+			var output bytes.Buffer
+			failure := bindingAPIError(test.code, test.reason)
+			failure.Message = "opaque-message-sentinel"
+			attempts := 0
+			err := retryRoleBinding(context.Background(), log.New(&output, "", 0), time.Minute,
+				func(context.Context) error { attempts++; return failure },
+				func(context.Context, time.Duration) error {
+					t.Fatal("unexpected wait after policy rejection")
+					return nil
+				})
+			if attempts != 1 || !errors.Is(err, failure) {
+				t.Fatal("policy rejection must fail immediately and retain its cause")
+			}
+			combined := output.String() + err.Error()
+			for _, required := range []string{
+				fmt.Sprintf("code=%d", test.code), "reason=" + test.want, `message="[redacted]"`,
+				"https://cloud.google.com/iam/quotas", "capacity versus propagation is not determined",
+			} {
+				if !strings.Contains(combined, required) {
+					t.Fatalf("missing bounded rejection evidence: %s", required)
+				}
+			}
+			if strings.Contains(combined, "sentinel") {
+				t.Fatal("opaque response text leaked into diagnostics")
+			}
+		})
+	}
+}
+
 type bindingPolicyClient struct {
 	gcputils.GcpClient
 	reads  int
