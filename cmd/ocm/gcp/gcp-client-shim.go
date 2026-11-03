@@ -183,6 +183,9 @@ func (c *shim) GrantSupportAccess(
 	ctx context.Context,
 	log *log.Logger,
 ) error {
+	if err := c.checkProjectIAMCapacity(ctx); err != nil {
+		return err
+	}
 	var lastErr error
 	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
 		log.Print("Ensuring Red Hat support has access to project...")
@@ -811,12 +814,15 @@ func (c *shim) ensurePolicyBindingsForProject(
 ) (bool, error) {
 	needPolicyUpdate := false
 
-	policy, err := c.gcpClient.GetProjectIamPolicy(ctx, projectName, &cloudresourcemanager.GetIamPolicyRequest{})
+	policy, err := c.gcpClient.GetProjectIamPolicy(ctx, projectName, &cloudresourcemanager.GetIamPolicyRequest{
+		Options: &cloudresourcemanager.GetPolicyOptions{RequestedPolicyVersion: 3},
+	})
 
 	if err != nil {
 		return false, errors.Wrap(err, "Failed to fetch policy for project")
 	}
 
+	existing := unconditionalProjectIAMGrants(policy)
 	// Validate that each role exists, and add the policy binding as needed
 	for _, definedRole := range roles {
 		// Skip if the role has resource bindings, as they are handled by resource-specific bindings
@@ -824,6 +830,10 @@ func (c *shim) ensurePolicyBindingsForProject(
 			continue
 		}
 		roleResourceId := c.formatRoleResourceId(definedRole)
+		grant := projectIAMGrant{role: roleResourceId, member: member}
+		if existing[grant] {
+			continue
+		}
 		roleBindingAdded := c.ensureRoleBindingInPolicy(policy, roleResourceId)
 		if roleBindingAdded {
 			needPolicyUpdate = true
@@ -836,6 +846,7 @@ func (c *shim) ensurePolicyBindingsForProject(
 		if memberAddedToRoleBinding {
 			needPolicyUpdate = true
 		}
+		existing[grant] = true
 
 	}
 
@@ -973,7 +984,7 @@ func (c *shim) applyMemberToRoleInPolicy(
 	applyFunc func(string, *cloudresourcemanager.Binding) bool,
 ) bool {
 	for i, binding := range policy.Bindings {
-		if binding.Role == roleName {
+		if binding.Role == roleName && binding.Condition == nil {
 			return applyFunc(memberName, policy.Bindings[i])
 		}
 	}
@@ -1021,7 +1032,7 @@ func (c *shim) ensureRoleBindingInPolicy(
 	roleName string,
 ) bool {
 	for _, binding := range policy.Bindings {
-		if binding.Role == roleName {
+		if binding.Role == roleName && binding.Condition == nil {
 			return false
 		}
 	}
