@@ -1,4 +1,3 @@
-#
 # Copyright (c) 2018 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +23,8 @@ export CGO_ENABLED=0
 PROJECT_PATH := $(PWD)
 LOCAL_BIN_PATH := $(PROJECT_PATH)/bin
 GINKGO := $(LOCAL_BIN_PATH)/ginkgo
+
+include boilerplate/generated-includes.mk
 
 # Allow overriding: `make lint container_runner=docker`.
 container_runner:=podman
@@ -89,3 +90,7 @@ image:
 .PHONY: hermetic_image
 hermetic_image:
 	bash ./hack/build_hermetic_image.sh "${IMAGE_REPOSITORY}" "${IMAGE_TAG}" "${IMAGE_NAME}"
+
+.PHONY: boilerplate-update
+boilerplate-update:
+	@boilerplate/update
