@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source $REPO_ROOT/boilerplate/_lib/common.sh
+source $REPO_ROOT/boilerplate/_lib/release.sh
+
+usage() {
+    cat <<EOF
+$CMD SUBSCRIBER ...
+
+Analyzes the openshift/release footprint of onboarded boilerplate
+subscribers. For each subscriber, prints the delta, if any, between the
+existing and expected prow configuration.
+
+Arguments:
+    SUBSCRIBER  One or more subscriber repositories of the form
+                "org/name" (e.g. "openshift/deadmanssnitch-operator");
+                or the special keyword "ALL" to report on all onboarded
+                subscribers.
+EOF
+    exit -1
+}
+
+source $REPO_ROOT/boilerplate/_lib/subscriber.sh
+
+# Arguments are required
+[[ $# -eq 0 ]] && usage
+
+## prow_config ORG PROJ
+#
+# Downloads the ci-operator configuration file from openshift/release for the
+# specified consuming project. Prints to stdout the path to the file. If the
+# file does not exist on the server, there is no output.
+#
+# Set the TMPD global before invoking this.
+prow_config() {
+    local org=$1
+    local proj=$2
+    local p=https://raw.githubusercontent.com/$RELEASE_REPO/master/ci-operator/config/$org/$proj
+    local f
+    for branch in master main; do
+        f=$org-$proj-$branch.yaml
+        local c="$(curl -s $p/$f)"
+        if [[ "$c" != "404: Not Found" ]]; then
+            echo "$c" > $TMPD/$f
+            echo $TMPD/$f
+            return
+        fi
+    done
+}
+
+## expected_prow_config ORG PROJ BRANCH
+#
+# Prints to stdout the expected prow configuration for the specified
+# ORG/PROJ.
+expected_prow_config() {
+    local org=$1
+    local consumer_name=$2
+    local branch=$3
+    # TODO: DRY this with what's in prow-config.
+    # Do it by making it a template in the convention dir.
+    cat <<EOF
+build_root:
+  from_repository: true
+images:
+- dockerfile_path: build/Dockerfile
+  to: unused
+resources:
+  '*':
+    limits:
+      memory: 4Gi
+    requests:
+      cpu: 100m
+      memory: 200Mi
+tests:
+- as: coverage
+  commands: |
+    export CODECOV_TOKEN=\$(cat /tmp/secret/CODECOV_TOKEN)
+    make coverage
+  container:
+    from: src
+  secret:
+    mount_path: /tmp/secret
+    name: ${consumer_name}-codecov-token
+- as: publish-coverage
+  commands: |
+    export CODECOV_TOKEN=\$(cat /tmp/secret/CODECOV_TOKEN)
+    make coverage
+  container:
+    from: src
+  postsubmit: true
+  secret:
+    mount_path: /tmp/secret
+    name: ${consumer_name}-codecov-token
+- as: lint
+  commands: make lint
+  container:
+    from: src
+- as: test
+  commands: make test
+  container:
+    from: src
+- as: validate
+  commands: make validate
+  container:
+    from: src
+zz_generated_metadata:
+  branch: ${branch}
+  org: ${org}
+  repo: ${consumer_name}
+EOF
+}
+
+TMPD=$(mktemp -d)
+trap "rm -fr $TMPD" EXIT
+
+for subscriber in $(subscriber_args "$@"); do
+    banner $subscriber
+    org=${subscriber%/*}
+    proj=${subscriber#*/}
+    pc=$(prow_config $org $proj)
+    # Filename is of the form ...-$branch.yaml
+    branch=${pc##*-}
+    branch=${branch%.yaml}
+    if [[ -z "$pc" ]]; then
+        echo "=== No configuration ==="
+    else
+        d="$(expected_prow_config $org $proj $branch | diff - $pc)"
+        if [[ -z "$d" ]]; then
+            echo "=== A-OK ==="
+        else
+            echo "$d"
+        fi
+    fi
+done

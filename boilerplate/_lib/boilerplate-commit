@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+
+set -e
+if [ "$BOILERPLATE_SET_X" ]; then
+  set -x
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source $REPO_ROOT/boilerplate/_lib/common.sh
+
+tmpd=$(mktemp -d)
+trap "rm -fr $tmpd" EXIT
+git_status=$tmpd/git_status
+bp_log=$tmpd/bp_git_log
+bp_clone=$tmpd/bp_git_clone
+convention_status=$tmpd/convention_status
+commit_message=$tmpd/commit_msg
+
+# Variables to keep track of what's happening in this commit. Empty
+# means we're not doing whatever it is.
+####
+# - Bootstrapping: bringing boilerplate into the repo for the first
+# time. Nonempty if bootstrapping.
+bootstrap=
+####
+# - If we were already bootstrapped, and boilerplate-update brought in a
+# newer boilerplate commit, we'll put "{from_hash}...{to_hash}" here.
+# This should be mutually exclusive with `bootstrap`.
+bp_commit_change=
+####
+# - Changes in conventions. This is a file containing one line per
+# convention indicating what was done in this commit with respect to
+# that convention: "Subscribe", "Update", or "No change". (TODO:
+# "Unsubscribe".) The file is only empty if update.cfg is
+# (substantively) empty.
+convention_statuses=$tmpd/convention_statuses
+>$convention_statuses
+####
+
+git status --porcelain > $git_status
+
+# Bootstrapping includes adding the boilerplate-update target to the
+# Makefile and adding boilerplate/update and boilerplate/update.cfg. We
+# won't bother with the former. Since the latter are new files in a new
+# directory, `git status` will just show the `boilerplate/` directory as
+# untracked.
+if grep -q '^?? boilerplate/$' $git_status; then
+  bootstrap=true
+
+# This wasn't a bootstrap. We can detect it was an update if the
+# last-boilerplate-commit file was changed.
+elif grep -q '^ M boilerplate/_data/last-boilerplate-commit$' $git_status; then
+  # Produce a string of the form {old_hash}...{new_hash}
+  bp_commit_change=$(git diff boilerplate/_data/last-boilerplate-commit | tail -2 | paste -d/ -s - | sed 's/[+-]//g; s,/,...,')
+  # Handy URL showing the commits and deltas
+  bp_compare_url="https://github.com/openshift/boilerplate/compare/$bp_commit_change"
+  # Generate the commit history for this range. This will go in the commit message.
+  (
+    git clone "${BOILERPLATE_GIT_REPO}" "${bp_clone}"
+    cd "${bp_clone}"
+    # Matches promote.sh
+    git log --no-merges --pretty=format:'commit: %H%nauthor: %an%n%s%n%n%b%n%n' $bp_commit_change > $bp_log
+  )
+
+fi
+
+# Okay, let's look for convention changes.
+# TODO: Handle unsubscribes (not yet handled by the main `update` either).
+while read convention junk; do
+  # TODO: These first few conditions, scrubbing the config file, are
+  # identical to what's in `update`. It would be lovely to library-ize
+  # them. However, `update` needs to remain self-contained since it's
+  # part of the bootstrap process.
+
+  # Skip comment lines (which can have leading whitespace)
+  if [[ "$convention" == '#'* ]]; then
+    continue
+  fi
+  # Skip blank or whitespace-only lines
+  if [[ "$convention" == "" ]]; then
+    continue
+  fi
+  # Lines like
+  #    valid/path  other_junk
+  # are not acceptable, unless `other_junk` is a comment
+  if [[ "$junk" != "" ]] && [[ "$junk" != '#'* ]]; then
+    echo "Invalid config! Only one convention is allowed per line. Found '$junk'. Ignoring."
+    # `update` bails for this. We're being a bit more forgiving.
+    continue
+  fi
+
+  dir_path="boilerplate/${convention}"
+  # Make sure the directory exists
+  if ! [[ -d "$dir_path" ]]; then
+    echo "Invalid convention directory: '$convention'."
+    echo "(Could be because we don't handle unsubscribing yet.)"
+    echo "Ignoring."
+    # `update` bails for this. We're being a bit more forgiving.
+    continue
+  fi
+
+  # Okay, we have a legit convention. Let's see if the current checkout
+  # touches it
+  # (Note that we're reusing the same temp file on each iteration.)
+  git status --porcelain $dir_path > $convention_status
+  if ! [[ -s $convention_status ]]; then
+    # No deltas here.
+    echo "- $convention: No change" >> $convention_statuses
+
+  elif grep -q -v '^??' $convention_status; then
+    # If there's anything *other than* untracked, this was an update
+    echo "- $convention: Update" >> $convention_statuses
+
+  else
+    # If we get here, everything is '^??' (untracked), meaning this is a
+    # new subscription. (Or, I suppose, the convention was previously
+    # empty? We'll call it a new subscription anyway.)
+    echo "- $convention: Subscribe" >> $convention_statuses
+  fi
+
+done < boilerplate/update.cfg
+
+# Let's make sure *something* boilerplate-related is happening here.
+if [[ -z "$bootstrap" ]] && [[ -z "$bp_commit_change" ]] && ! grep -v -q "No change" $convention_statuses; then
+  err "No boilerplate-related activity found in the current checkout!"
+fi
+
+# Okay, we're ready to do this.
+# Generate the commit title and branch name indicating the *main* action
+# we're taking. This is 'bootstrap' or 'update'; or if we're doing
+# neither of those things and only changing config, 'subscribe'.
+# => Commit titles will be of one of the following forms:
+#       "Boilerplate: Bootstrap at {hash}"
+#       "Boilerplate: Update to {hash}"
+#       "Boilerplate: Subscribe at {hash}"
+# => Branch names will be of the form:
+#       boilerplate-{bootstrap|update|subscribe}-{N}-{hash}
+#    where {N} is the number of configured conventions (omitted if zero)
+title="Boilerplate:"
+branch=boilerplate
+if [[ -n "$bootstrap" ]]; then
+  title="$title Bootstrap at"
+  branch="$branch-bootstrap"
+elif [[ -n "$bp_commit_change" ]]; then
+  title="$title Update to"
+  branch="$branch-update"
+else
+  title="$title Subscribe at"
+  branch="$branch-subscribe"
+fi
+cur_commit=$(cat boilerplate/_data/last-boilerplate-commit)
+title="$title $cur_commit"
+echo "$title
+" > $commit_message
+
+if [[ -n "$bootstrap" ]]; then
+  echo "https://github.com/openshift/boilerplate/commit/$cur_commit
+---" >> $commit_message
+fi
+
+echo "Conventions:" >> $commit_message
+if [[ -s $convention_statuses ]]; then
+  cat $convention_statuses >> $commit_message
+  # Add the number of conventions to the branch name
+  branch="$branch-"$(wc -l $convention_statuses | sed 's/ .*//')
+else
+  echo "  None." >> $commit_message
+fi
+
+branch="$branch-$cur_commit"
+
+if [[ -n "$bp_commit_change" ]]; then
+
+  echo "---
+$bp_compare_url
+" >> $commit_message
+cat $bp_log >> $commit_message
+
+fi
+
+# TODO: Handle branch name conflict. At the moment, this should really only be
+# possible if unsubscribing and subscribing the same number of conventions.
+# Since we don't handle unsubscribing (properly), we'll take our chances that
+# it "can't" happen for now.
+git checkout -b $branch
+# We can get away with -A because `update` forces a clean checkout.
+git add -A
+git commit -F $commit_message
+echo "Ready to push branch $branch"

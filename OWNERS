@@ -1,3 +1,8 @@
 approvers:
-  - rcampos2029
-  - miguelhbrito
+  - rosa-services-fibonacci
+# can approve but won't be assigned directly to reviewers
+advisory_approvers:
+  - tdrozdowski
+  - rosa-services-staff-engineers
+reviewers:
+  - rosa-services-fibonacci

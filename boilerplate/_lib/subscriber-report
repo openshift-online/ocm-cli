@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source $REPO_ROOT/boilerplate/_lib/common.sh
+
+declare -A SUBCOMMANDS
+SUBCOMMANDS=(
+    [onboarding]='Prints a CSV report of onboarded boilerplate subscribers.'
+    [pr]='Finds boilerplate-related pull requests for registered subscribers.'
+    [release]='Checks openshift/release configuration for onboarded subscribers.'
+)
+
+source $REPO_ROOT/boilerplate/_lib/subscriber.sh

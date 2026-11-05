@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source $REPO_ROOT/boilerplate/_lib/common.sh
+
+usage() {
+    cat <<EOF
+$CMD
+
+Prints a CSV report of onboarded boilerplate subscribers. Each record is of
+the form:
+      org/proj,hash (-N),link
+where:
+      org:    Github org (e.g. openshift)
+      proj:   Github project (e.g. my-wizbang-operator)
+      hash:   Short (7c) hash of the project's last boilerplate commit
+      N:      How many merge commits {hash} is behind master
+      link:   Github URL comparing {hash} to master (empty if N==0)
+EOF
+    exit -1
+}
+
+source $REPO_ROOT/boilerplate/_lib/subscriber.sh
+
+## bp_range_url HASH
+#
+# Prints the github URL for the commit range from HASH to master.
+bp_range_url() {
+    local hash=$1
+    [[ -n "$hash" ]] || return
+    echo "https://github.com/openshift/boilerplate/compare/$hash...master"
+}
+
+for subscriber in $(subscriber_list onboarded); do
+    lbc=$(last_bp_commit $subscriber)
+    [[ -n "$lbc" ]] || continue
+    printf "%s,%s (-%d),%s\n" $subscriber $lbc $(commits_behind_bp_master $lbc) $(bp_range_url $lbc)
+done
