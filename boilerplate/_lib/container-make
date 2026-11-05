@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+if [[ "$1" == "-h"* ]] || [[ "$1" == "--h"* ]]; then
+  echo "Usage: $0 {arguments to the real 'make'}"
+  echo "Runs 'make' in the boilerplate backing container."
+  echo "If the command fails, starts a shell in the container so you can debug."
+  echo "Set NONINTERACTIVE=true (or TRUE) to skip the debug shell and exit with the make return code."
+  exit -1
+fi
+
+source ${0%/*}/common.sh
+
+CONTAINER_ENGINE="${CONTAINER_ENGINE:-$(command -v podman || command -v docker)}"
+[[ -n "$CONTAINER_ENGINE" ]] || err "Couldn't find a container engine. Are you already in a container?"
+
+# Make sure the mount inside the container is named in such a way that
+# - openapi-gen (which relies on GOPATH) produces absolute paths; and
+# - other go-ish paths are writeable, e.g. for `go mod download`.
+CONTAINER_MOUNT=/go/src/$(repo_import $REPO_ROOT)
+
+# First set up a detached container with the repo mounted.
+banner "Starting the container"
+CE_OPTS="--platform=linux/amd64"
+if [[ "${CONTAINER_ENGINE##*/}" == "podman" ]]; then
+    CE_OPTS="${CE_OPTS} --userns keep-id"
+fi
+if [[ "${CONTAINER_ENGINE##*/}" == "podman" ]] && [[ $OSTYPE == *"linux"* ]]; then
+    CE_OPTS="${CE_OPTS} -v $REPO_ROOT:$CONTAINER_MOUNT:Z"
+else
+    CE_OPTS="${CE_OPTS} -v $REPO_ROOT:$CONTAINER_MOUNT"
+fi
+container_id=$($CONTAINER_ENGINE run --rm -d ${CE_OPTS} $IMAGE_PULL_PATH sleep infinity)
+
+if [[ $? -ne 0 ]] || [[ -z "$container_id" ]]; then
+  err "Couldn't start detached container"
+fi
+
+trap "$CONTAINER_ENGINE stop $container_id >/dev/null 2>&1" EXIT
+
+# Now run our `make` command in it with the right UID and working directory
+args="exec -it -u $(id -u):0 -w $CONTAINER_MOUNT $container_id"
+banner "Running: make $@"
+$CONTAINER_ENGINE $args make "$@"
+rc=$?
+
+# If it failed, check if we should drop into a shell or exit
+if [[ $rc -ne 0 ]]; then
+  # Case-insensitive check for NONINTERACTIVE (true, TRUE, True all work)
+  if [[ "${NONINTERACTIVE,,}" == "true" ]]; then
+    banner "The 'make' command failed with exit code $rc. Skipping debug shell (NONINTERACTIVE=${NONINTERACTIVE})."
+  else
+    banner "The 'make' command failed! Starting a shell in the container for debugging. Just 'exit' when done."
+    $CONTAINER_ENGINE $args /bin/bash
+  fi
+fi
+
+# Disarm the interrupt trap -- normal cleanup handles it from here
+trap - EXIT
+
+# Finally, remove the container
+banner "Cleaning up the container"
+$CONTAINER_ENGINE rm -f $container_id >/dev/null
+
+# Exit with the return code from make
+exit $rc

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source $REPO_ROOT/boilerplate/_lib/common.sh
+
+declare -A SUBCOMMANDS
+SUBCOMMANDS=(
+    [propose]='Propose pull/merge requests for subscribers'
+    [report]='Print information about subscribers'
+)
+
+source $REPO_ROOT/boilerplate/_lib/subscriber.sh

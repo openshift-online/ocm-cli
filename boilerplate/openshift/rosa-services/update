@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "${CONVENTION_ROOT}/_lib/common.sh"
+
+[[ "$1" == "PRE" ]] && exit 0
+[[ "$1" == "POST" ]] || err "Got a parameter I don't understand: '$1'. Did the infrastructure change?"
+
+echo "Copying OWNERS_ALIASES to your repository root."
+cp -L "${HERE}/OWNERS_ALIASES" "${REPO_ROOT}/OWNERS_ALIASES"
