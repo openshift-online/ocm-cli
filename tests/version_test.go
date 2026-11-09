@@ -18,24 +18,68 @@ package tests
 
 import (
 	"context"
+	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2" // nolint
 	. "github.com/onsi/gomega"    // nolint
 
 	"github.com/openshift-online/ocm-cli/pkg/info"
+	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
 var _ = Describe("Version", func() {
 	It("Prints the version", func() {
-		// Create a context:
 		ctx := context.Background()
-
-		// Run the command:
 		result := NewCommand().Args("version").Run(ctx)
 
-		// Check the result:
 		Expect(result.OutString()).To(Equal(info.Version + "\n"))
 		Expect(result.ErrString()).To(BeEmpty())
 		Expect(result.ExitCode()).To(BeZero())
+	})
+
+	It("Lists HCP versions when a product is specified", func() {
+		ctx := context.Background()
+		ssoServer := MakeTCPServer()
+		defer ssoServer.Close()
+		apiServer := MakeTCPServer()
+		defer apiServer.Close()
+
+		ssoServer.AppendHandlers(RespondWithAccessToken(MakeTokenString("Bearer", 15*time.Minute)))
+		loginResult := NewCommand().Args(
+			"login", "--client-id", "my-client", "--client-secret", "my-secret",
+			"--token-url", ssoServer.URL(), "--url", apiServer.URL(),
+		).Run(ctx)
+		Expect(loginResult.ExitCode()).To(BeZero())
+
+		var requestedProduct string
+		apiServer.AppendHandlers(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requestedProduct = r.URL.Query().Get("product")
+			w.Header().Set("Content-Type", "application/json")
+			_, err := w.Write([]byte(`{
+				"kind": "VersionList",
+				"page": 1,
+				"size": 1,
+				"total": 1,
+				"items": [
+					{
+						"kind": "Version",
+						"id": "openshift-v5.0.1-fast",
+						"raw_id": "5.0.1",
+						"enabled": true,
+						"default": false,
+						"channel_group": "fast"
+					}
+				]
+			}`))
+			Expect(err).NotTo(HaveOccurred())
+		}))
+
+		result := NewCommand().ConfigString(loginResult.ConfigString()).Args(
+			"list", "versions", "--channel-group", "fast", "--product", "hcp",
+		).Run(ctx)
+		Expect(result.ExitCode()).To(BeZero(), result.ErrString())
+		Expect(requestedProduct).To(Equal("hcp"))
+		Expect(result.OutString()).To(Equal("5.0.1-fast\n"))
 	})
 })

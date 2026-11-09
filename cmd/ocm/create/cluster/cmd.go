@@ -760,7 +760,7 @@ func getVersionOptionsWithDefault(
 ) {
 	// Check and set the cluster version
 	versionList, defaultVersion, err := c.GetEnabledVersions(
-		connection.ClustersMgmt().V1(), channel, channelGroup, gcpMarketplaceEnabled, additionalFilters)
+		connection.ClustersMgmt().V1(), channel, channelGroup, gcpMarketplaceEnabled, additionalFilters, "")
 	if err != nil {
 		return
 	}

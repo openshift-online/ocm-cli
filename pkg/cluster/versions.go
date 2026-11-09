@@ -48,6 +48,7 @@ func EnsureOpenshiftVPrefix(v string) string {
 //   - channelGroup: Channel group name (e.g., "stable"). Used if channel is not provided (deprecated).
 //   - gcpMarketplaceEnabled: Filter for GCP marketplace support ("true"/"false").
 //   - additionalFilters: Additional filter expressions to apply.
+//   - product: Product context to pass to the versions API (e.g. "hcp").
 //
 // Returns:
 //   - versions: List of enabled version IDs without "openshift-v" prefix, sorted by semver.
@@ -58,6 +59,7 @@ func GetEnabledVersions(client *cmv1.Client,
 	channelGroup string,
 	gcpMarketplaceEnabled string,
 	additionalFilters string,
+	product string,
 ) (
 	versions []string, defaultVersion string, err error) {
 	collection := client.Versions()
@@ -90,11 +92,11 @@ func GetEnabledVersions(client *cmv1.Client,
 		filter = fmt.Sprintf("%s %s", filter, additionalFilters)
 	}
 	for {
-		response, err := collection.List().
-			Search(filter).
-			Page(page).
-			Size(size).
-			Send()
+		request := collection.List().Search(filter).Page(page).Size(size)
+		if product != "" {
+			request.Parameter("product", product)
+		}
+		response, err := request.Send()
 		if err != nil {
 			return nil, "", err
 		}
