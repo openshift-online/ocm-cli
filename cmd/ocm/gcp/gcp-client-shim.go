@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
 	"github.com/googleapis/gax-go/v2/apierror"
@@ -118,12 +119,8 @@ func (c *shim) CreateServiceAccounts(
 			return lastErr
 		}
 
-		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
-			log.Printf("Ensuring role bindings for service account '%s'...", serviceAccount.ServiceAccountId())
-			lastErr = c.bindRolesToServiceAccount(ctx, log, serviceAccount)
-			return lastErr != nil, lastErr
-		}, retryTimeout, log); err != nil {
-			return lastErr
+		if err := c.bindRolesToServiceAccount(ctx, log, serviceAccount); err != nil {
+			return err
 		}
 
 		if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
@@ -184,14 +181,15 @@ func (c *shim) GrantSupportAccess(
 	log *log.Logger,
 ) error {
 	var lastErr error
+	support := c.wifConfig.Gcp().Support()
 	if err := utils.RetryWithBackoffandTimeout(func() (bool, error) {
 		log.Print("Ensuring Red Hat support has access to project...")
-		lastErr = c.grantSupportAccess(ctx, log)
+		lastErr = c.createOrUpdateRoles(ctx, log, support.Roles())
 		return lastErr != nil, lastErr
 	}, c.getRetryTimeout(), log); err != nil {
 		return lastErr
 	}
-	return nil
+	return c.bindRolesToGroup(ctx, log, support.Principal(), support.Roles())
 }
 
 func (c *shim) createWorkloadIdentityPool(
@@ -337,20 +335,6 @@ func (c *shim) createWorkloadIdentityProvider(
 			)
 		}
 		log.Printf("Workload identity pool '%s' identity provider '%s' was updated", poolId, providerId)
-	}
-	return nil
-}
-
-func (c *shim) grantSupportAccess(
-	ctx context.Context,
-	log *log.Logger,
-) error {
-	support := c.wifConfig.Gcp().Support()
-	if err := c.createOrUpdateRoles(ctx, log, support.Roles()); err != nil {
-		return err
-	}
-	if err := c.bindRolesToGroup(ctx, log, support.Principal(), support.Roles()); err != nil {
-		return err
 	}
 	return nil
 }
@@ -536,14 +520,16 @@ func (c *shim) bindRolesToPrincipal(
 	principal string,
 	roles []*cmv1.WifRole,
 ) error {
-	modified, err := c.ensurePolicyBindingsForProject(
-		ctx,
-		roles,
-		principal,
-		c.wifConfig.Gcp().ProjectId(),
-	)
+	var modified bool
+	err := retryRoleBinding(ctx, log, time.Duration(c.getRetryTimeout())*time.Second,
+		func(attemptCtx context.Context) error {
+			var err error
+			modified, err = c.ensurePolicyBindingsForProject(
+				attemptCtx, roles, principal, c.wifConfig.Gcp().ProjectId())
+			return err
+		}, waitRoleBinding)
 	if err != nil {
-		return errors.Errorf("Failed to bind roles to principal %s: %s", principal, err)
+		return err
 	}
 	if modified {
 		log.Printf("Bound project-level roles to principal '%s'", principal)
@@ -957,7 +943,7 @@ func (c *shim) setProjectIamPolicy(
 			Policy: policy,
 		})
 	if err != nil {
-		return fmt.Errorf("error setting project policy: %v", err)
+		return fmt.Errorf("error setting project policy: %w", err)
 	}
 	return nil
 }
