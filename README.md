@@ -414,6 +414,32 @@ is `ready`:
 $ ocm get /api/clusters_mgmt/v1/clusters/123 | jq -r .state
 ```
 
+## GCP WIF Project IAM Capacity
+
+Automatic `ocm gcp create wif-config` and `ocm gcp update wif-config` check
+project IAM capacity before granting support access or provisioning WIF cloud
+resources. The check counts principal occurrences in role bindings and
+audit-logging exemptions, then adds the missing unconditional project grants
+required by the resolved WIF configuration, including support grants.
+Resource-specific grants do not consume this project-policy capacity. Existing
+grants do not require additional capacity.
+
+If additional grants are needed and the projected count exceeds Google's
+[1,500-principal policy limit](https://cloud.google.com/iam/quotas), the command
+reports the project and current, additional, projected, and limit counts without
+dumping the policy or principal identities. Policy-read failures also stop
+provisioning. The check does not delete resources or change group membership.
+
+This is a point-in-time check, not an atomic reservation: concurrent IAM changes
+can still cause a later policy update to fail. The OCM WIF configuration metadata
+has already been created or updated when this check runs. Manual-mode script
+generation does not run this check.
+
+After a create preflight failure, review the OCM metadata identified in the
+error before retrying. Do not use the GCP WIF deletion command to address a
+preflight failure: it also unbinds and deletes configured GCP resources, which
+may already exist and be in use even though preflight made no GCP changes.
+
 ## Deleting Objects
 
 Objects can be deleted using the `delete` command. For example to delete the
