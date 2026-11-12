@@ -28,7 +28,7 @@ import (
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
-var _ = Describe("Cluster upgrade", Ordered, func() {
+var _ = Describe("Cluster update", Ordered, func() {
 	var ctx context.Context
 
 	var ssoServer *Server
@@ -65,7 +65,7 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		apiServer.Close()
 	})
 
-	It("creates a manual upgrade policy for an available version", func() {
+	It("creates a manual update policy for an available version", func() {
 		apiServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/accounts_mgmt/v1/subscriptions"),
@@ -113,7 +113,7 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		result := NewCommand().
 			ConfigString(config).
 			Args(
-				"cluster", "upgrade", "my-cluster",
+				"cluster", "update", "my-cluster",
 				"--version", "5.0.0-rc.6",
 				"--next-run", "2099-01-01T00:00:00Z",
 			).
@@ -122,11 +122,11 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		Expect(result.ExitCode()).To(BeZero())
 		Expect(result.ErrString()).To(BeEmpty())
 		Expect(result.OutString()).To(ContainSubstring(
-			"Scheduled upgrade for cluster 'my-cluster' to version '5.0.0-rc.6'",
+			"Scheduled update for cluster 'my-cluster' to version '5.0.0-rc.6'",
 		))
 	})
 
-	It("updates the channel before creating an upgrade policy", func() {
+	It("updates the channel before creating an update policy", func() {
 		apiServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/accounts_mgmt/v1/subscriptions"),
@@ -202,7 +202,7 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		result := NewCommand().
 			ConfigString(config).
 			Args(
-				"cluster", "upgrade", "my-cluster",
+				"cluster", "update", "my-cluster",
 				"--channel", "candidate-5.0",
 				"--version", "5.0.0-rc.6",
 				"--next-run", "2099-01-01T00:00:00Z",
@@ -212,7 +212,7 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		Expect(result.ExitCode()).To(BeZero())
 		Expect(result.ErrString()).To(BeEmpty())
 		Expect(result.OutString()).To(ContainSubstring(
-			"Scheduled upgrade for cluster 'my-cluster' to version '5.0.0-rc.6'",
+			"Scheduled update for cluster 'my-cluster' to version '5.0.0-rc.6'",
 		))
 	})
 
@@ -268,7 +268,7 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		result := NewCommand().
 			ConfigString(config).
 			Args(
-				"cluster", "upgrade", "my-cluster",
+				"cluster", "update", "my-cluster",
 				"--channel", "candidate-4.22",
 				"--version", "4.22.18",
 				"--next-run", "2099-01-01T00:00:00Z",
@@ -279,7 +279,7 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		Expect(result.ErrString()).To(BeEmpty())
 	})
 
-	It("rejects a version that is not listed as an available upgrade", func() {
+	It("rejects a version that is not listed as an available update", func() {
 		apiServer.AppendHandlers(
 			RespondWithJSON(http.StatusOK, `{
 				"kind": "SubscriptionList",
@@ -310,7 +310,7 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		result := NewCommand().
 			ConfigString(config).
 			Args(
-				"cluster", "upgrade", "my-cluster",
+				"cluster", "update", "my-cluster",
 				"--version", "5.0.0-rc.6",
 				"--next-run", "2099-01-01T00:00:00Z",
 			).
@@ -320,7 +320,7 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		Expect(result.ErrString()).To(ContainSubstring("A valid --version must be specified"))
 	})
 
-	It("reports no available upgrades when the cluster has no version", func() {
+	It("reports no available updates when the cluster has no version", func() {
 		apiServer.AppendHandlers(
 			RespondWithJSON(http.StatusOK, `{
 				"kind": "SubscriptionList",
@@ -344,12 +344,12 @@ var _ = Describe("Cluster upgrade", Ordered, func() {
 		result := NewCommand().
 			ConfigString(config).
 			Args(
-				"cluster", "upgrade", "my-cluster",
+				"cluster", "update", "my-cluster",
 				"--next-run", "2099-01-01T00:00:00Z",
 			).
 			Run(ctx)
 
 		Expect(result.ExitCode()).ToNot(BeZero())
-		Expect(result.ErrString()).To(ContainSubstring("There are no available upgrades for cluster 'my-cluster'"))
+		Expect(result.ErrString()).To(ContainSubstring("There are no available updates for cluster 'my-cluster'"))
 	})
 })
