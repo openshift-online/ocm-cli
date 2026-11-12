@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+# NOTE: For security reasons, everything imported or invoked (even
+# indirectly) by this script should be audited for vulnerabilities and
+# explicitly excluded from `linguist-generated` in the consuming
+# repository's .gitattributes. In other words, we want PRs to show
+# deltas to this script and all its dependencies by default so that
+# attempts to inject or circumvent code are visible.
+
+set -e
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+# Hardcoded rather than sourced to reduce attack surface.
+BOILERPLATE_GIT_REPO=https://github.com/openshift/boilerplate.git
+
+# Validate that no subscribed boilerplate artifacts have been changed.
+# PR checks may wish to gate on this.
+
+# This works by grabbing the commit hash of the boilerplate repository
+# at which the last update was applied, running the main `update` driver
+# against that, and failing if there's a resulting diff.
+
+# If we can't tell what that commit was, we must assume this is the
+# first update, and we'll (noisily) "succeed".
+
+# Note that this ought to work when you've just committed an update,
+# even if you've changed your update.cfg beforehand. We're basically
+# making sure you didn't muck with anything after updating.
+
+# For this to work, you have to be starting from a clean repository
+# state (any changes committed).
+# TODO(efried): This is not ideal -- it would be nice if I could check
+# this before committing my changes -- but how would that work? Diff to
+# a file, create a temporary commit, run the rest, remove the commit,
+# and reapply the diff? Messy and error-prone -- and I would be
+# seriously ticked off if something went wrong and lost my in-flight
+# changes.
+if ! [ -z "$(git status --porcelain -- ':!build/Dockerfile*')" ]; then
+  echo "Can't validate boilerplate in a dirty repository. Please commit your changes and try again." >&2
+  exit 1
+fi
+
+# We glean the last boilerplate commit from the
+# last-boilerplate-commit file, which gets laid down by the main
+# `update` driver each time it runs.
+LBCF=${REPO_ROOT}/boilerplate/_data/last-boilerplate-commit
+if ! [[ -f "$LBCF" ]]; then
+  echo "Couldn't discover last boilerplate commit! Assuming you're bootstrapping."
+  exit 0
+fi
+LBC=$(cat $LBCF)
+
+# Download just that commit
+echo "Fetching $LBC from $BOILERPLATE_GIT_REPO"
+# boilerplate/update cleans up this temp dir
+TMPD=$(mktemp -d)
+cd $TMPD
+git init
+# TODO(efried): DRY this remote. Make it configurable?
+git remote add origin $BOILERPLATE_GIT_REPO
+git fetch origin $(cat $LBCF) --tags
+git reset --hard FETCH_HEAD
+
+# Now invoke the update script, overriding the source repository we've
+# just downloaded at the appropriate commit.
+# We invoke the script explicitly rather than via the make target to
+# close a security hole whereby the latter is overridden.
+echo "Running update"
+cd $REPO_ROOT
+BOILERPLATE_GIT_REPO="${TMPD}" boilerplate/update
+
+# Okay, if anything has changed, that's bad.
+if [[ $(git status --porcelain -- ':!build/Dockerfile*' | wc -l) -ne 0 ]]; then
+  echo "Your boilerplate is dirty!" >&2
+  git status --porcelain -- ':!build/Dockerfile*'
+  exit 1
+fi
+
+echo "Your boilerplate is clean!"
+exit 0

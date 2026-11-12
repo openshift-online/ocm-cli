@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source $REPO_ROOT/boilerplate/_lib/common.sh
+
+usage() {
+    cat <<EOF
+$CMD SUBSCRIBER ...
+
+Generate and propose a boilerplate update commit to one or more
+subscribers.
+
+Arguments:
+    SUBSCRIBER  One or more subscriber repositories of the form
+                "org/name" (e.g. "openshift/deadmanssnitch-operator");
+                or the special keyword "ALL" to update all onboarded
+                subscribers that need it.
+
+Quirks and Limitations:
+- Requires a functional and authenticated gh CLI, with git_protocol
+  appropriately configured for however you push.
+      gh config set git_protocol {ssh|https}
+- For each subscriber we actually try to propose to, UPDATES YOUR FORK'S
+  DEFAULT BRANCH to be in sync with upstream's.
+- Is still slightly interactive, because 'gh pr create' likes to ask
+  questions about your origin and upstream.
+EOF
+    exit 1
+}
+
+source $REPO_ROOT/boilerplate/_lib/subscriber.sh
+
+# Arguments are required
+[[ $# -eq 0 ]] && usage
+
+TMPD=$(mktemp -d)
+echo $TMPD;
+trap "rm -fr $TMPD" EXIT
+
+run_step() {
+    local title=$1
+    local log_file="$TMPD/$title.log"
+    log_file=$(tr '[:upper:]' '[:lower:]' <<< "$log_file")
+    log_file=$(tr ' ' '-' <<< "$log_file")
+    shift
+
+    if [[ $1 != "--" ]]; then
+        echo "ERR: expected '--' but got '$1'"
+        exit 1
+    fi
+    shift
+    echo -n "$title...  "
+
+    if ! "$@" > "$log_file" 2>&1; then
+        echo " FAILED"
+        echo "!!!"
+        echo "!!! Boilerplate update failed for $subscriber"
+        echo "!!!"
+        echo ""
+        cat "$log_file"
+        exit 1
+    fi
+    echo " DONE"
+}
+
+sync_main() {
+    local main_branch=$1
+    shift
+
+    git pull upstream $main_branch
+    git push origin $main_branch
+}
+
+git_clean_and_push() {
+    local branch=$1
+    shift
+
+    git push --delete origin $branch || true
+    git push -u origin $branch
+}
+
+propose_update() {
+    local subscriber=$1
+    local proj=${subscriber#*/}
+
+    (
+        # Clone my fork of the subscriber repo
+        cd $TMPD
+        # This
+        # - uses the existing fork if one exists
+        # - sets 'origin' and 'upstream' remotes
+        # only clones the default branch to save disk space and time
+
+        run_step "Creating fork" -- gh repo fork $subscriber --clone=true --default-branch-only
+        cd $proj
+
+        # Current branch is 'master' or 'main' or 'trunk'
+        main_branch=$(current_branch .)
+        run_step "Syncing Fork" -- sync_main $main_branch
+        # run_step "Pushing fork" -- git push origin $main_branch
+
+        # Create the update commit - only cat logs if something goes wrong.
+        run_step "Updating boilerplate" -- make boilerplate-update
+        run_step "Committing boilerplate update" -- make boilerplate-commit
+
+        boilerplate_branch=$(git rev-parse --abbrev-ref HEAD)
+        # By pushing to the origin boilerplate branch explicitly before opening a PR,
+        # we make don't get prompted for the branch to push to.
+        # If we still find that it's giving us an interactive prompt, we can otherwise
+        # use `gh api` to create the PR programmatically.
+        if [[ "$boilerplate_branch" == "$main_branch" ]]; then
+            echo "CRITICAL ERROR: boilerplate branch '$boilerplate_branch' is the same as main branch '$main_branch'"
+            echo "If you see this, something has gone terribly wrong"
+            echo "Skipping"
+            exit 20
+        fi
+        run_step "pushing update" -- git_clean_and_push $boilerplate_branch
+
+        gh pr create --repo $subscriber -f $DRY_RUN_FLAG
+    )
+}
+
+bp_master=$(git rev-parse master)
+
+DRY_RUN_FLAG=""
+if [[ -z "$DRY_RUN" ]]; then
+    echo "DRY RUN: ENABLED"
+    DRY_RUN_FLAG="--dry-run"
+fi
+
+
+for subscriber in $(subscriber_args "$@"); do
+
+    # Does this one need an update?
+    lbc=$(last_bp_commit $subscriber)
+    [[ -n "$lbc" ]] || err "No last-boilerplate-commit file for onboarded subscriber '$subscriber'"
+
+    banner "Processing $subscriber"
+
+    cbm=$(commits_behind_bp_master $lbc)
+    if [[ $cbm -eq 0 ]]; then
+        echo "Subscriber already up to date; skipping: '$subscriber'"
+        continue
+    fi
+
+    # Is there already a PR proposed for this commit?
+    pr_list=$(gh pr list --repo $subscriber --json headRefName,url,number | jq -r '. | map(select(.headRefName | startswith("boilerplate-update--")))')
+    existing_pr=$(jq -r ".[] | select(.headRefName == \"boilerplate-update--$bp_master\")" <<< "$pr_list")
+    if [[ -n "$existing_pr" ]]; then
+        echo "Subscriber '$subscriber' already has an open PR for this boilerplate commit:"
+        jq -r .url <<< "$existing_pr"
+        continue
+    fi
+
+    # Pull the trigger
+    if ! propose_update "$subscriber"; then
+        echo "Error: failed to propose update for '$subscriber'"
+        continue
+    fi
+
+    new_pr="XXXX"
+    # Get the new PR URL
+    # only run if not dry-run - otherwise the new_pr var will be empty
+    if [[ -n $DRY_RUN ]]; then
+        new_pr=$(gh pr list --repo $subscriber --json headRefName,number | jq -r ".[] | select(.headRefName == \"boilerplate-update--$bp_master\") | .number")
+        if [[ -z "$new_pr" ]]; then
+            echo "error: unable to find new PR for boilerplate update '$bp_master' on subscriber '$subscriber'"
+            continue
+        fi
+    fi
+
+    # Add comments to existing PRs to say they're superseded by this new one
+    if [[ -n "$pr_list" ]]; then
+        prs=$(jq -r '. | map(.number) | @tsv' <<< "$pr_list")
+        echo "Closing old PRs: $prs"
+        for pr in $prs; do
+            if [[ -z $DRY_RUN ]]; then
+                echo "Dry run - would close $pr with comment:"
+                echo "  \"Superseded by #$new_pr.\""
+                continue
+            fi
+
+            gh pr close --repo $subscriber --comment "Superseded by #$new_pr." $pr
+        done
+    fi
+
+done

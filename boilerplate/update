@@ -1,0 +1,256 @@
+#!/usr/bin/env bash
+
+# WARNING: THIS FILE IS MANAGED IN THE 'boilerplate' REPO AND COPIED TO OTHER REPOSITORIES.
+# ONLY EDIT THIS FILE FROM WITHIN THE 'boilerplate' REPOSITORY.
+#
+# TO OPT OUT OF UPDATES, SEE THE README.
+
+# This script updates itself, and then re-execs itself if it has
+# changed. This is in case updates to conventions rely on updates to this
+# script.
+
+set -e
+if [ "$BOILERPLATE_SET_X" ]; then
+  set -x
+fi
+
+# The directory in which this script lives is the CONVENTION_ROOT. Export
+# this for individual `update` scripts.
+export CONVENTION_ROOT="$(realpath $(cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd ))"
+CONFIG_FILE="${CONVENTION_ROOT}/update.cfg"
+
+# Set SED variable
+if LANG=C sed --help 2>&1 | grep -q GNU; then
+  SED="sed"
+elif command -v gsed &>/dev/null; then
+  SED="gsed"
+else
+  echo "Failed to find GNU sed as sed or gsed. If you are on Mac: brew install gnu-sed." >&2
+  exit 1
+fi
+
+# scrubbed_conventions
+# Parses the $CONFIG_FILE and outputs a space-delimited list of conventions.
+scrubbed_conventions() {
+  local conventions=
+
+  while read convention junk; do
+    # Skip comment lines (which can have leading whitespace)
+    if [[ "$convention" == '#'* ]]; then
+      continue
+    fi
+
+    # Skip blank or whitespace-only lines
+    if [[ "$convention" == "" ]]; then
+      continue
+    fi
+
+    # Lines like
+    #    valid/path  other_junk
+    # are not acceptable, unless `other_junk` is a comment
+    if [[ "$junk" != "" ]] && [[ "$junk" != '#'* ]]; then
+      echo "Invalid config! Only one convention is allowed per line. Found '$junk'"
+      exit 1
+    fi
+
+    # This one is legit
+    echo $convention
+
+  done < "$CONFIG_FILE"
+}
+
+## unacceptable_deltas [GREP_FLAGS]
+#
+# Looks for uncommitted changes in the current checkout, ignoring certain
+# things as noted below.
+#
+# If changes are found, they are printed (à la `git status --porcelain`)
+# and the function returns nonzero.
+#
+# If no changes are found, the function is silent and returns zero.
+#
+# Ignores:
+# This function ignores uncommitted changes to:
+# - Makefile: Editing this file is part of bootstrapping, and we don't
+#   want to force an additional commit in the bootstrapping process.
+# - .gitattributes: This file is created as part of the bootstrapping
+#   process. See above.
+# - ?? boilerplate/: I.e. the boilerplate subdirectory is brand new,
+#   meaning you're bootstrapping. See above.
+# - boilerplate/update.cfg: Changing this file prior to an update is
+#   part of the process of subscribing to new conventions.
+unacceptable_deltas() {
+  ignores="Makefile|.gitattributes|boilerplate/(update\.cfg)?"
+  git status --porcelain | grep -E -v $1 " ($ignores)$"
+}
+
+# We're initially invoked with no arguments. The branch below clones the
+# boilerplate repo at the latest level into a temporary directory and copies in
+# the update script (this script) and utilities back into the consuming repo.
+# Then it re-execs this script with the temporary directory as a CLI argument.
+if [[ -z "$1" ]]; then
+  if unacceptable_deltas -q; then
+    cat <<EOF
+Local git checkout is not clean. This is only allowed when you are
+- Bootstrapping: dirty Makefile and untracked boilerplate/ directory
+- Changing subscriptions: dirty boilerplate/update.cfg
+
+We bounced off the following:
+EOF
+    unacceptable_deltas
+    exit 2
+  fi
+
+  if [ -z "$BOILERPLATE_GIT_REPO" ]; then
+    BOILERPLATE_GIT_REPO=git@github.com:openshift/boilerplate.git
+  fi
+  if [ -z "$BOILERPLATE_GIT_CLONE" ]; then
+    BOILERPLATE_GIT_CLONE="git clone"
+  fi
+  BP_CLONE="$(mktemp -d)"
+
+  ${BOILERPLATE_GIT_CLONE} "${BOILERPLATE_GIT_REPO}" "${BP_CLONE}"
+
+  echo "Updating the update script."
+  rsync -a "${BP_CLONE}/boilerplate/update" "$0"
+  echo "Copying utilities"
+  # HACK: Delete the utility dirs first because, in CI, rsync will fail
+  # to set things like mod times and permissions on the directories
+  # themselves, which have uid=gid=0.
+  for d in $(/bin/ls -d ${BP_CLONE}/boilerplate/_*); do
+    rm -fr $CONVENTION_ROOT/${d##*/}
+  done
+  rsync -a -r --delete ${BP_CLONE}/boilerplate/_* $CONVENTION_ROOT
+  echo "Reinvoking..."
+  echo ""
+  exec "$0" "$BP_CLONE"
+  # unreached
+fi
+
+BP_CLONE=$1
+# Let's make sure this was really a re-exec and not some other
+# weirdness.
+if ! [[ -d "$BP_CLONE" ]] || ! diff -q "$0" "$BP_CLONE/boilerplate/update"; then
+  echo "Something went wrong! I was invoked with '$BP_CLONE'!"
+  exit 2
+fi
+TO_COMMIT=$(cd ${BP_CLONE} && git rev-parse HEAD)
+
+trap "rm -fr $BP_CLONE" EXIT
+
+# Allow this to be overridden by the environment, in case some bizarre
+# repo doesn't have an `origin` remote.
+if [ -z "$REPO_NAME" ]; then
+  # This is a tad ambitious, but it should usually work.
+  export REPO_NAME=$(git config --get remote.origin.url | ${SED?} 's,.*/,,; s/\.git$//')
+  # If that still didn't work, warn (but proceed)
+  if [ -z "$REPO_NAME" ]; then
+    echo 'Failed to discover repository name! $REPO_NAME not set!'
+  fi
+fi
+
+export REPO_ROOT=$(git rev-parse --show-toplevel)
+
+README="https://github.com/openshift/boilerplate/blob/master/README.md"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "$CONFIG_FILE not found."
+  echo "This file is required in order to select which features to include."
+  echo "See $README for more details."
+  exit 1
+fi
+
+# Consuming repositories use the stable `latest` tag for the boilerplate
+# backing image. Keep an explicit value for local testing or pinning, but do
+# not infer a tag from the consumer's old backing-image-tag file or from Git
+# release tags. This also migrates existing consumers to `latest` below.
+export LATEST_IMAGE_TAG="${LATEST_IMAGE_TAG:-latest}"
+
+# The boilerplate commit hash. Export for convention `update` scripts.
+export BOILERPLATE_COMMIT=$(cd ${BP_CLONE} && git rev-parse HEAD)
+
+# Prepare the "nexus makefile include".
+NEXUS_MK="${CONVENTION_ROOT}/generated-includes.mk"
+cat <<'EOF'>"${NEXUS_MK}"
+# THIS FILE IS GENERATED BY BOILERPLATE. DO NOT EDIT.
+# This file automatically includes any *.mk files in your subscribed
+# conventions. Please ensure your base Makefile includes only this file.
+include boilerplate/_lib/boilerplate.mk
+EOF
+
+for convention in $(scrubbed_conventions $CONFIG_FILE); do
+  dir_path="${BP_CLONE}/boilerplate/${convention}"
+  # Make sure the directory exists
+  if ! [[ -d "$dir_path" ]]; then
+    echo "Invalid convention directory: '$convention'"
+    exit 1
+  fi
+
+  echo "***********************************************************************************"
+  echo "$convention is configured in update.cfg."
+  echo "-----------------------------------------------------------------------------------"
+  echo "syncing files from source."
+  if [ -f "${dir_path}/update" ]; then
+    # Always run the *new* update script
+    mkdir -p "${CONVENTION_ROOT}/${convention}"
+    rsync -a "${dir_path}/update" "${CONVENTION_ROOT}/${convention}"
+    echo "executing ${CONVENTION_ROOT}/${convention}/update PRE"
+    "${CONVENTION_ROOT}/${convention}/update" PRE
+  fi
+  rm -rf "${CONVENTION_ROOT}/${convention}"
+  mkdir -p $(dirname "${CONVENTION_ROOT}/${convention}")
+  rsync -a -r -L --delete "$dir_path" $(dirname "${CONVENTION_ROOT}/${convention}")
+  if [ -f "${CONVENTION_ROOT}/${convention}/update" ]; then
+    echo "executing ${CONVENTION_ROOT}/${convention}/update POST"
+    "${CONVENTION_ROOT}/${convention}/update" POST
+  fi
+  echo "adding makefile includes."
+  for inc in $(find "${CONVENTION_ROOT}/${convention}" -type f -name '*.mk' | sort); do
+    echo "include ${inc#$REPO_ROOT/}" >> "${NEXUS_MK}"
+  done
+  echo "***********************************************************************************"
+  echo ""
+done
+
+# (Create and) edit .gitattributes to
+# - override hiding boilerplate files related to freeze-check (so they
+#   can't be hacked without you seeing it in the PR by default)
+# - unhide .gitattributes itself (so these rules can't be changed
+#   without you seeing it in the PR by default)
+echo "Processing .gitattributes"
+gitattributes=${REPO_ROOT}/.gitattributes
+if [[ -f "${gitattributes}" ]]; then
+    # Delete the previously generated section
+    ${SED?} -i '/BEGIN BOILERPLATE GENERATED/,/END BOILERPLATE GENERATED/d' "${gitattributes}"
+fi
+# .gitattributes is processed in top-down order. Putting these entries at the
+# end ensures they take precedence over earlier, manual entries.
+cat <<'EOF'>>"${gitattributes}"
+### BEGIN BOILERPLATE GENERATED -- DO NOT EDIT    ###
+### This block must be the last thing in your     ###
+### .gitattributes file; otherwise the 'validate' ###
+### CI check will fail.                           ###
+# Used to ensure nobody mucked with boilerplate files.
+boilerplate/_lib/freeze-check linguist-generated=false
+# Show the boilerplate commit hash update. It's only one line anyway.
+boilerplate/_data/last-boilerplate-commit linguist-generated=false
+# Used by freeze-check. Good place for attackers to inject badness.
+boilerplate/update linguist-generated=false
+# Make sure attackers can't hide changes to this configuration
+.gitattributes linguist-generated=false
+### END BOILERPLATE GENERATED ###
+EOF
+
+# If all that went well, record some metadata.
+mkdir -p ${CONVENTION_ROOT}/_data
+# - The last-boilerplate-commit file, which allows freeze-check to work.
+echo "Registering commit hash..."
+bp_commit=$(cd ${BP_CLONE} && git rev-parse HEAD)
+echo ${bp_commit} > ${CONVENTION_ROOT}/_data/last-boilerplate-commit
+
+# - The boilerplate backing image tag. This is used to run containerized
+#   local builds/tests.
+echo "Registering image tag..."
+echo $LATEST_IMAGE_TAG > ${CONVENTION_ROOT}/_data/backing-image-tag
+
+echo "Done"

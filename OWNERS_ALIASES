@@ -1,0 +1,143 @@
+# ================================ DO NOT EDIT ================================
+# This file is managed in https://github.com/openshift/boilerplate
+# See the OWNERS_ALIASES docs: https://git.k8s.io/community/contributors/guide/owners.md#OWNERS_ALIASES
+# =============================================================================
+aliases:
+  srep-functional-team-aurora:
+    - AlexSmithGH
+    - BATMAN-JD
+    - dakotalongRH
+    - eth1030
+    - geowa4
+    - joshbranham
+  srep-functional-team-fedramp:
+    - afreiberger
+    - annelson-rh
+    - fsferraz-rh
+    - pheckenlWork
+    - PeterCSRE
+    - rojasreinold
+    - ryemorris
+    - wcater803
+    - cjnovak98
+    - katherinelc321
+    - dwelch0
+    - digilink
+    - jonahbrawley
+    - arosa822
+  srep-functional-team-hulk:
+    - ravitri
+    - Tafhim
+    - tkong-redhat
+    - TheUndeadKing
+    - vaidehi411
+    - chamalabey
+    - charlesgong
+    - rbhilare
+  srep-functional-team-orange:
+    - bergmannf
+    - Makdaam
+    - Nikokolas3270
+    - RaphaelBut
+    - rolandmkunkel
+    - petrkotas
+    - zmird-r
+    - gvnnn
+  srep-functional-team-rocket:
+    - aliceh
+    - anispate
+    - clcollins
+    - Mhodesty
+    - nephomaniac
+  srep-functional-team-thor:
+    - diakovnec
+    - MitaliBhalla
+    - feichashao
+    - samanthajayasinghe
+    - xiaoyu74
+    - smarthall
+  rosa-staff-engineers:
+    - Ajpantuso
+    - bergmannf
+    - bmeng
+    - bpresnel-rh
+    - clcollins
+    - dustman9000
+    - geowa4
+    - joshbranham
+    - psav
+    - rafael-azevedo
+    - ravitri
+    - rbhilare
+    - smarthall
+    - typeid
+  rosa-managers:
+    - afreiberger
+    - drewandersonnz
+    - evalis1
+    - geowa4
+    - jcaianirh
+    - jnewton75
+    - krishvoor
+    - kseiter-rh
+    - tdrozdowski
+    - vkumar51
+  hp-architects:
+    - deads2k
+    - jhjaggars
+  rosa-hcp-platform-staff-engineers:
+    - lucasponce
+    - rafael-azevedo
+    - joshbranham
+  rosa-hcp-platform-core-team:
+    - robpblake
+    - holysoles
+    - Chee-Lu
+    - reedcort
+    - fernaspiazu
+  rosa-hcp-platform-fleet-team:
+    - radim-rh
+    - ChunxiAlexLuo
+    - andrebeltrami
+    - anfranci14
+    - rawsyntax
+  rosa-hcp-platform-capa-capi-team:
+    - serngawy
+    - andclt
+    - tinaafitz
+  rosa-trust-engineering-release-assurance:
+    - dustman9000
+    - bpresnel-rh
+    - samanthajayasinghe
+    - bmeng
+  rosa-trust-engineering-observability:
+    - geowa4
+    - eth1030
+    - BATMAN-JD
+    - AlexSmithGH
+  rosa-trust-engineering-security:
+    - jonseidman
+  rosa-trust-engineering-access-tooling:
+    - bergmannf
+    - RaphaelBut
+    - xiaoyu74
+  rosa-services-staff-engineers:
+    - andreadecorte
+  rosa-services-focaccia:
+    - patrickjennings
+    - davidleerh
+    - gacalixto
+    - aaraj7
+    - chenz4027
+    - philipwu08
+  rosa-services-fibonacci:
+    - rcampos2029
+    - miguelhbrito
+    - Lir10
+    - ssukanmi
+  rosa-services-ams:
+    - bhushanthakur93
+    - cambelem
+    - xeniaka
+    - braetroutman
+    - l-urbini

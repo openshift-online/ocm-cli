@@ -1,0 +1,13 @@
+### BEGIN BOILERPLATE GENERATED -- DO NOT EDIT    ###
+### This block must be the last thing in your     ###
+### .gitattributes file; otherwise the 'validate' ###
+### CI check will fail.                           ###
+# Used to ensure nobody mucked with boilerplate files.
+boilerplate/_lib/freeze-check linguist-generated=false
+# Show the boilerplate commit hash update. It's only one line anyway.
+boilerplate/_data/last-boilerplate-commit linguist-generated=false
+# Used by freeze-check. Good place for attackers to inject badness.
+boilerplate/update linguist-generated=false
+# Make sure attackers can't hide changes to this configuration
+.gitattributes linguist-generated=false
+### END BOILERPLATE GENERATED ###

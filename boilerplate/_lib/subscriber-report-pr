@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source $REPO_ROOT/boilerplate/_lib/common.sh
+
+usage() {
+    cat <<EOF
+$CMD
+
+Finds boilerplate-related pull requests for registered subscribers.
+Prints a report of the following form for each subscriber:
+
+      org/proj:
+        link  title  user:branch  state
+        ...
+
+where:
+      org:    Github org (e.g. openshift)
+      proj:   Github project (e.g. my-wizbang-operator)
+      link:   Link to the pull request on GitHub
+      title:  Pull request title
+      user:   Author of the pull request
+      branch: Branch name in author's fork
+      state:  State of the PR (should always be OPEN)
+EOF
+    exit -1
+}
+
+source $REPO_ROOT/boilerplate/_lib/subscriber.sh
+
+for subscriber in $(subscriber_list all); do
+    echo $subscriber:
+    # This awk takes advantage of the fact that these lines start with the
+    # PR number and end with /\w+user:branch\w+OPEN$/;
+    # and we name our branches starting with 'boilerplate-'
+    gh pr list --repo $subscriber | awk -F: '$NF ~ /^boilerplate-/ {print "  https://github.com/'$subscriber'/pull/"$0}'
+    echo
+done
