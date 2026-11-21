@@ -246,8 +246,8 @@ github.com/openshift-online/ocm-api-model/clientapi v0.0.468 h1:CDcmsjb0xntIpW+B
 github.com/openshift-online/ocm-api-model/clientapi v0.0.468/go.mod h1:fZwy5HY2URG9nrExvQeXrDU/08TGqZ16f8oymVEN5lo=
 github.com/openshift-online/ocm-api-model/model v0.0.468 h1:/wiGBqvJS5fLUV+dZxhNlYdJ8XsiZMVW6za4mUSNb4k=
 github.com/openshift-online/ocm-api-model/model v0.0.468/go.mod h1:PQIoq6P8Vlb7goOdRMLK8nJY+B7HH0RTqYAa4kyidTE=
-github.com/openshift-online/ocm-common v0.0.47 h1:tBeALdVqmHOzgtq9YF6uvlXyK+nhL3NcSbsfWh6GsmU=
-github.com/openshift-online/ocm-common v0.0.47/go.mod h1:FKHYQ12O4LcT3yvAQxD2ES/o6EeGcHbcQ05LpfHtntU=
+github.com/openshift-online/ocm-common v0.0.50 h1:V+oRL2l8UOaqjwuXeUQjrMsPhJ5JikiZYzVGr8yIx9c=
+github.com/openshift-online/ocm-common v0.0.50/go.mod h1:sdSNMARRH+h6ba104lvHebXZRliIjUvXJzfvsIOkbTE=
 github.com/openshift-online/ocm-sdk-go v0.1.514 h1:0NAcfQoZKvyAQoMhkrnIqYqNHGEnpCR2pW+JMSNssBE=
 github.com/openshift-online/ocm-sdk-go v0.1.514/go.mod h1:55QlWHimRye3eek/mRKVxm8tJyVP0aXy2u1w4jdqFNk=
 github.com/openshift/rosa v1.2.64 h1:5Rz2cKV9mGRaukFxoD/PMiuy4t/Vdg0KAu7CLDNu0ys=
