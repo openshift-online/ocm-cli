@@ -243,6 +243,10 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	if err := gcpClientWifConfigShim.GrantSupportAccess(ctx, log); err != nil {
 		log.Printf("Failed to grant support access to project: %s", err)
+		var preflightError *projectIAMPreflightError
+		if errors.As(err, &preflightError) {
+			return wifConfigPreflightCreationError(err, wifConfig.ID())
+		}
 		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
 	}
 
@@ -285,6 +289,15 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	log.Printf("wif-config '%s' created successfully.", wifConfig.ID())
 	return nil
+}
+
+// wifConfigPreflightCreationError preserves the preflight cause and identifies
+// the OCM metadata left for review without recommending cloud-resource deletion.
+func wifConfigPreflightCreationError(err error, configID string) error {
+	return fmt.Errorf("%w\nThe wif-config %s was already created in OCM. "+
+		"Review this OCM metadata before retrying. "+
+		"Do not use the GCP wif-config deletion command after a preflight failure; "+
+		"it can delete pre-existing GCP resources.", err, configID)
 }
 
 func createWorkloadIdentityConfiguration(
