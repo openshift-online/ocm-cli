@@ -168,7 +168,7 @@ func (c *gcpClient) GetProjectIamPolicy(
 	projectName string,
 	request *cloudresourcemanager.GetIamPolicyRequest,
 ) (*cloudresourcemanager.Policy, error) {
-	return c.cloudResourceManager.Projects.GetIamPolicy(projectName, request).Context(context.Background()).Do()
+	return c.cloudResourceManager.Projects.GetIamPolicy(projectName, request).Context(ctx).Do()
 }
 
 func (c *gcpClient) GetRole(ctx context.Context, request *adminpb.GetRoleRequest) (*adminpb.Role, error) {

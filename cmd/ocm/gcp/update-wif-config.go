@@ -230,7 +230,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	log.Println("Updating service accounts...")
 	if err = gcpClientWifConfigShim.CreateServiceAccounts(ctx, log); err != nil {
-		return fmt.Errorf("Failed to update IAM service accounts: %s", err)
+		return fmt.Errorf("Failed to update IAM service accounts: %w", err)
 	}
 
 	retryTimeout := IamApiRetrySeconds

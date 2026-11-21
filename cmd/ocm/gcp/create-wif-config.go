@@ -258,7 +258,7 @@ func createWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	if err = gcpClientWifConfigShim.CreateServiceAccounts(ctx, log); err != nil {
 		log.Printf("Failed to create IAM service accounts: %s", err)
-		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s", wifConfig.ID())
+		return fmt.Errorf("To clean up, run the following command: ocm gcp delete wif-config %s: %w", wifConfig.ID(), err)
 	}
 
 	retryTimeout := IamApiRetrySeconds
