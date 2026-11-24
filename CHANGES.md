@@ -3,6 +3,45 @@
 This document describes the relevant changes between releases of the
 `ocm` command line tool.
 
+## 1.0.18 Nov 24 2026
+
+- Update github.com/google/pprof digest to 6331bc6
+- Update sigs.k8s.io/json digest to 11ed52e
+- Update module github.com/googleapis/enterprise-certificate-proxy to v0.3.22
+- Build(deps): Bump go.opentelemetry.io/otel/sdk from 1.44.0 to 1.45.0
+- Update module github.com/fxamacker/cbor/v2 to v2.9.4
+- Update module github.com/google/s2a-go to v0.1.10
+- Update module github.com/openshift-online/ocm-api-model/clientapi to v0.0.468
+- ROSAENG-61164 | fix: increase build-container workspace storage
+- Update Konflux references
+- Update module github.com/openshift-online/ocm-sdk-go to v0.1.512
+- Update module cloud.google.com/go/auth to v0.23.3
+- Update module cloud.google.com/go/compute/metadata to v0.9.1
+- Build(deps): Bump github.com/onsi/gomega from 1.42.1 to 1.43.1
+- Build(deps): Bump cloud.google.com/go/storage from 1.67.1 to 1.68.0
+- Build(deps): Bump google.golang.org/grpc from 1.83.2 to 1.84.0
+- Update module github.com/spiffe/go-spiffe/v2 to v2.8.2
+- Update module github.com/openshift-online/ocm-sdk-go to v0.1.513
+- Build(deps): Bump github.com/openshift-online/ocm-sdk-go
+- Fix OpenID extra-scopes comma splitting for ROSAENG-15158. (#1326)
+- ROSAENG-74826 | feat: Add cluster upgrade command
+- ROSAENG-60611: improve DNS domain availability errors on cluster create (#1325)
+- Build(deps): Bump github.com/openshift-online/ocm-common
+- Update module golang.org/x/mod to v0.40.0 [SECURITY]
+- Build(deps): Bump github.com/spf13/pflag from 1.0.10 to 1.1.0
+- Build(deps): Bump github.com/onsi/ginkgo/v2 from 2.32.2 to 2.34.0
+- Build(deps): Bump github.com/MicahParks/jwkset from 0.11.3 to 0.11.4
+- Update module github.com/onsi/gomega to v1.44.0
+- ROSAENG-75147 | chore: introduce boilerplate and update owners
+- ROSAENG-76127 | chore: Bump Go toolchain to 1.26.10
+- Update module github.com/openshift-online/ocm-common to v0.0.50
+- Update Konflux references
+- Update module golang.org/x/term to v0.48.0
+- Update module github.com/MicahParks/jwkset to v0.11.5
+- Update module google.golang.org/grpc to v1.85.0
+- Build(deps): Bump google.golang.org/api from 0.294.0 to 0.316.0
+- Update module github.com/MicahParks/jwkset to v0.12.0
+
 ## 1.0.17 Sep 15 2026
 
 - Build(deps): Bump github.com/onsi/ginkgo/v2 from 2.32.0 to 2.32.2

@@ -2,6 +2,9 @@
 
 These scripts help in the process of releasing new versions of `ocm`.
 
+For the full end-to-end release process (Konflux pipeline, content gateway, and
+GA promotion), see [`docs/RELEASE.md`](../docs/RELEASE.md).
+
 Once all changes for a specific release are in `main`, the next step is to
 create a release commit:
 
