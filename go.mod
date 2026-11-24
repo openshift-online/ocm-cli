@@ -3,7 +3,7 @@ module github.com/openshift-online/ocm-cli
 go 1.26.10
 
 require (
-	cloud.google.com/go/iam v1.14.0
+	cloud.google.com/go/iam v1.15.1
 	cloud.google.com/go/storage v1.68.0
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MicahParks/jwkset v0.11.5
