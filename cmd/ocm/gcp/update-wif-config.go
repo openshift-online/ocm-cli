@@ -215,7 +215,7 @@ func updateWorkloadIdentityConfigurationCmd(cmd *cobra.Command, argv []string) e
 
 	log.Println("Updating support access...")
 	if err := gcpClientWifConfigShim.GrantSupportAccess(ctx, log); err != nil {
-		return fmt.Errorf("Failed to grant support access to project: %s", err)
+		return fmt.Errorf("Failed to grant support access to project: %w", err)
 	}
 
 	log.Println("Updating workload identity pool...")
